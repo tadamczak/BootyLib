@@ -91,6 +91,12 @@ function UI.CreateCascadingMenu(onChoose, options)
         return row
     end
     local function ApplyLayers(panel, depth)
+        if UI.WindowStack then
+            UI.WindowStack.SetOwner(panel, depth == 1 and menu.anchor or menu.panels[depth - 1])
+            UI.WindowStack.Attach(panel.dismiss, UI.WindowStack.GetWindow(menu.anchor) and menu.anchor or panel, -1)
+            UI.WindowStack.Sync(panel)
+            return
+        end
         local level = (menu.baseLevel or 201) + depth * 5
         panel:SetFrameLevel(level); panel.host:SetFrameLevel(level + 1)
         local viewport = panel.canvas.layoutViewport
@@ -251,6 +257,7 @@ function UI.CreateCascadingMenu(onChoose, options)
         for index = count + 1, table.getn(panel.options) do panel.options[index].entry = nil; panel.options[index]:Hide() end
         ApplyLayers(panel, depth)
         LayoutPanel(panel, depth, left, top)
+        if UI.WindowStack then UI.WindowStack.Sync(panel) end
         panel:Show(); panel.dismiss:Hide()
         return true
     end

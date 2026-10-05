@@ -87,7 +87,7 @@ function ProductHost.Create(product, options)
         local id = definition.id
         local window = UI.Window.Create({ name = product.name .. "View" .. id .. instance,
             title = definition.title or (table.getn(product.views) == 1 and product.name or definition.label),
-            icon = definition.icon, plainHeader = true, compact = true, minimizedWidth = 400,
+            icon = definition.icon, plainHeader = true, compact = true, minimizedWidth = 400, owner = false,
             attach = function() end,
             update = function() ResizeContent(id) end,
         })
@@ -125,6 +125,7 @@ function ProductHost.Create(product, options)
         -- Window.Create supplies project chrome; its Settings-specific deferred
         -- scroll setup is not part of a standalone feature host.
         window.Open = function()
+            host.window = window
             if window.minimized and minimize then Invoke(minimize, minimize:GetScript("OnClick")) end
             window:SetScript("OnUpdate", nil)
             window.content:Show(); window.resizeGrip:Show(); window:Show(); window:Raise()
@@ -158,6 +159,7 @@ function ProductHost.Create(product, options)
     host.OpenView = function(id)
         local controller = host.GetView(id)
         if not controller then return false end
+        if host.standalone then host.window = host.windows[id] end
         if options.OpenView and not host.standalone then return options.OpenView(id, controller) end
         if host.standalone then return host.windows[id].Open() end
         for key, view in pairs(host.controllers) do if key ~= id and view.Hide then view:Hide() end end
