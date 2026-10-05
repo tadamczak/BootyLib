@@ -26,9 +26,20 @@ function Settings.CreateAccordion(parent, text, y, iconKey)
     button.label = MOS.UI.Components.CreateHeading(button, "", 3, "orange")
     button.indicator = MOS.UI.Components.CreateHeading(button, "+", 3, "orange")
     button.indicator:SetPoint("LEFT", button, "LEFT", 0, 0)
-    button.indicator:SetWidth(10)
-    button.label:SetPoint("LEFT", button, "LEFT", 12, 0)
-    button.label.mosAccordionPrefixInset = 12
+    button.indicator:SetJustifyH("LEFT"); button.indicator:SetJustifyV("MIDDLE")
+    local function FitIndicator()
+        -- Native FontStrings replace a clipped single glyph with dots. Measure
+        -- both states without a width constraint, then keep one padded gutter.
+        local indicator, current = button.indicator, button.indicator:GetText()
+        indicator:SetWidth(0)
+        indicator:SetText("+"); local plus = indicator:GetStringWidth()
+        indicator:SetText("-"); local minus = indicator:GetStringWidth()
+        local width = math.ceil(math.max(plus, minus)) + 2
+        indicator:SetText(current); indicator:SetWidth(width)
+        button.label.mosAccordionPrefixInset = width + 4
+        button.label:ClearAllPoints(); button.label:SetPoint("LEFT", button, "LEFT", width + 4, 0)
+        if button.RefreshRule then button:RefreshRule() end
+    end
     button.baseText = text
     -- Nested Settings accordions intentionally have no icon gutter.
     local setText, setFont, setColor = button.label.SetText, button.label.SetFont, button.label.SetTextColor
@@ -38,12 +49,13 @@ function Settings.CreateAccordion(parent, text, y, iconKey)
         setText(self, string.gsub(value or "", "^[%+%-]%s+", ""))
     end
     button.label.SetFont = function(self, path, size, flags)
-        setFont(self, path, size, flags); button.indicator:SetFont(path, size, flags)
+        setFont(self, path, size, flags); button.indicator:SetFont(path, size, flags); FitIndicator()
     end
     button.label.SetTextColor = function(self, red, green, blue, alpha)
         setColor(self, red, green, blue, alpha); button.indicator:SetTextColor(red, green, blue, alpha)
     end
     button.label:SetText("+  " .. text)
+    FitIndicator()
     button:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
     -- Section decoration belongs to the heading, so collapsed feature groups
     -- cannot leave their rules visible in the shared scroll child.

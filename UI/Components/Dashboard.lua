@@ -25,6 +25,18 @@ end
 
 local function SetChromeVisible(region, shown) if shown then region:Show() else region:Hide() end end
 
+function Dashboard.UpdateTitleMetrics(view)
+    local title = view.classicTitle
+    -- Measure at the current font without the previous clipping rectangle.
+    -- A rounded width alone leaves no room for the native glyph edges.
+    title:SetWidth(0)
+    view.classicTitleWidth = math.max(1, math.ceil(title:GetStringWidth())) + 4
+    title:SetWidth(view.classicTitleWidth)
+    local _, size = title:GetFont()
+    title:SetHeight(math.max(19, math.ceil(size or 16) + 3))
+    return view.classicTitleWidth
+end
+
 function Dashboard.SetTabBody(view, protruding, topInset)
     topInset = topInset or 0
     local frame = view.frame
@@ -124,16 +136,17 @@ function Dashboard.ApplyChrome(view, get)
     SetChromeVisible(view.classicLogo, classic and not get("hideHeaderLogo"))
     local fitted = Dashboard.HeaderNeedsCompactTitle(get, classic, view.frame:GetWidth())
     local titleLeft = classic and not get("hideHeaderLogo") and (topTabs and 72 or 128) or 8
+    local titleWidth = Dashboard.UpdateTitleMetrics(view)
     view.classicTitle:ClearAllPoints(); view.title:ClearAllPoints()
     if fitted then
         view.classicTitleLeft:Hide(); view.classicTitleRight:Hide()
         view.classicTitle:SetPoint("LEFT", view.titleBar, "LEFT", titleLeft, 1.5)
-        local wordWidth = math.max(1, math.min(view.classicTitleWidth or 220, view.frame:GetWidth() - titleLeft - 78))
-        view.classicTitle:SetWidth(wordWidth); view.classicTitle:SetHeight(19)
+        local wordWidth = math.max(1, math.min(titleWidth, view.frame:GetWidth() - titleLeft - 78))
+        view.classicTitle:SetWidth(wordWidth)
         view.title:SetPoint("LEFT", view.titleBar, "LEFT", titleLeft, 1.5)
         view.title:SetWidth(math.max(1, view.frame:GetWidth() - titleLeft - 78)); view.title:SetJustifyH("LEFT")
     else
-        view.classicTitle:SetPoint("CENTER", view.titleBar, "CENTER", 0, 1.5); view.classicTitle:SetWidth(view.classicTitleWidth or 220); view.classicTitle:SetHeight(19)
+        view.classicTitle:SetPoint("CENTER", view.titleBar, "CENTER", 0, 1.5); view.classicTitle:SetWidth(titleWidth)
         view.title:SetPoint("CENTER", view.titleBar, "CENTER", 0, 1.5); view.title:SetJustifyH("CENTER")
     end
     local hiddenHeader = get("hideHeaderBar")
@@ -221,9 +234,8 @@ function Dashboard.CreateWindow(version, options)
     view.classicTitle = view.titleBar:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     view.classicTitle:SetText(view.titleText); view.classicTitle:SetTextColor(unpack(MOS.UI.Components.Theme.colors.goldText))
     -- Decorations follow the rendered title, not the old fixed-width wordmark.
-    view.classicTitle:SetWidth(0)
-    view.classicTitleWidth = math.max(1, view.classicTitle:GetStringWidth())
-    view.classicTitle:SetWidth(view.classicTitleWidth); view.classicTitle:SetHeight(19); view.classicTitle:SetPoint("CENTER", view.titleBar, "CENTER", 0, 1); view.classicTitle:Hide()
+    Dashboard.UpdateTitleMetrics(view)
+    view.classicTitle:SetPoint("CENTER", view.titleBar, "CENTER", 0, 1); view.classicTitle:Hide()
     view.classicLogo = view.titleBar:CreateTexture(nil, "ARTWORK")
     view.classicLogo:SetTexture(MOS.UI.Components.ClassicAsset("logo.tga")); view.classicLogo:SetTexCoord(0, 1, 0.08203125, 0.9140625)
     view.classicLogo:SetWidth(100); view.classicLogo:SetHeight(40); view.classicLogo:SetPoint("LEFT", view.titleBar, "LEFT", 20, 0); view.classicLogo:Hide()
@@ -297,6 +309,7 @@ function Dashboard.CreateWindow(version, options)
             return
         end
         if classic and not view.minimized then view.title:Hide(); view.classicTitle:Show() else view.classicTitle:Hide(); view.title:Show() end
+        Dashboard.UpdateTitleMetrics(view)
         if classic and not view.minimized then view.classicLogo:Show(); view.classicTitleLeft:Show(); view.classicTitleRight:Show(); view.classicMenuTitle:Show()
         else view.classicLogo:Hide(); view.classicTitleLeft:Hide(); view.classicTitleRight:Hide(); view.classicMenuTitle:Hide() end
         view.titleBar:ClearAllPoints()
@@ -489,7 +502,7 @@ function Dashboard.BindWindow(view, options)
             view.title:SetFontObject(GameFontNormalLarge)
             view.title:SetTextColor(unpack(MOS.UI.Components.Theme.colors.goldText))
             MOS.UI.Components.SetWindowButtonAction(view.minimizeButton, "minimize"); view.title:SetText(view.titleText or "Booty Suite")
-            view.classicTitle:ClearAllPoints(); view.classicTitle:SetPoint("CENTER", view.titleBar, "CENTER", 0, 1); view.classicTitle:SetWidth(220); view.classicTitle:SetHeight(19)
+            view.classicTitle:ClearAllPoints(); view.classicTitle:SetPoint("CENTER", view.titleBar, "CENTER", 0, 1); Dashboard.UpdateTitleMetrics(view)
             if MOS.UI.Components.IsClassicSkin() then
                 view.title:Hide(); view.classicTitle:Show(); view.classicLogo:Show(); view.classicTitleLeft:Show(); view.classicTitleRight:Show()
                 view.titleBar:ClearAllPoints(); view.titleBar:SetPoint("TOPLEFT", frame, "TOPLEFT", 8, -8); view.titleBar:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -8, -8); view.titleBar:SetHeight(44)
