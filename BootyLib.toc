@@ -1,0 +1,34 @@
+## Interface: 11200
+## Title: BootyLib
+## Notes: Shared UI and integration library for Booty addons.
+## Author: Mukla
+## Version: 0.1.0-dev.1
+## SavedVariables: BootyLibDB
+
+Core\Bootstrap.lua
+Core\Compatibility.lua
+Core\ClientCapabilities.lua
+Core\Diagnostics.lua
+Services\VersionService.lua
+Core\Data.lua
+Core\LegacyMigration.lua
+Services\GuildDirectory.lua
+Core\SettingsSearch.lua
+UI\Components.lua
+UI\Components\Skins.lua
+UI\Components\Theme.lua
+UI\Components\Common.lua
+UI\Components\ChoiceField.lua
+UI\Components\Dashboard.lua
+UI\Components\ProgressBar.lua
+UI\Components\Table.lua
+UI\Components\FilterPanel.lua
+UI\Components\SettingsComponents.lua
+UI\Components\Window.lua
+UI\Components\CascadingMenu.lua
+UI\Components\Navigation.lua
+Core\PersistencePrompts.lua
+Core\SettingsProfiles.lua
+Core\SettingsHost.lua
+Core\ProductHost.lua
+Core\Runtime.lua
