@@ -15,16 +15,19 @@ local function AddPath(roots, path)
     end
     return children
 end
-function SettingsHost.BuildTree(providers, integrated)
+function SettingsHost.BuildTree(providers, integrated, product)
     local roots = {}
+    local ownerView = product and product.views and product.views[1]
+    local ownerLabel = not integrated and product and (product.settingsLabel or ownerView and ownerView.label or product.title or product.name)
     for _, provider in ipairs(providers) do
         local schema = provider.GetSettings and provider.GetSettings()
         if schema then
             for _, field in ipairs(schema.fields or {}) do
                 if not field.profileOnly then
                 local path = field.path or {}
-                if integrated and provider.id == "profiler" and path[1] ~= "Profiler" then
-                    local nested = {"Profiler"}; for _, item in ipairs(path) do table.insert(nested, item) end; path = nested
+                local caption = ownerLabel or integrated and provider.id == "profiler" and "Profiler"
+                if caption and path[1] ~= caption then
+                    local nested = {caption}; for _, item in ipairs(path) do table.insert(nested, item) end; path = nested
                 end
                 local children = AddPath(roots, path)
                 table.insert(children, {text = field.label or field.key, key = field.key, field = field, db = schema.db, provider = provider})
@@ -32,6 +35,7 @@ function SettingsHost.BuildTree(providers, integrated)
             end
         end
     end
+    if ownerLabel and roots[1] then roots[1].icon = ownerView and ownerView.icon end
     Lib.Core.SettingsSearch.Index(roots)
     return roots
 end
@@ -273,6 +277,12 @@ local function LayoutField(node, page, x, y)
     control:Show()
 end
 local function Visible(node) return node.visible ~= false end
+local function ToggleAccordion()
+    -- Lua 5.0 clears a generic-for variable after traversal.
+    -- Resolve the clicked node from its pooled control instead.
+    local selected = this.mosSettingsNode
+    selected.expanded = not selected.expanded; this.mosSettingsState.Reflow()
+end
 local function LayoutNodes(nodes, page, state, depth, y)
     for _, node in ipairs(nodes) do
         local shown = Visible(node)
@@ -287,9 +297,11 @@ local function LayoutNodes(nodes, page, state, depth, y)
                 LayoutField(node, page, x, y); y = y - node.height
             else
                 if not node.control then
-                    if depth == 0 then node.control = UI.Settings.CreateSectionAccordion(page, node.text, 0, 0, 2, icons[node.text] or "list")
+                    if depth == 0 then node.control = UI.Settings.CreateSectionAccordion(page, node.text, 0, 0, 2, node.icon or icons[node.text] or "list")
                     else node.control = UI.Settings.CreateAccordion(page, node.text, 0) end
-                    node.control:SetScript("OnClick", function() node.expanded = not node.expanded; state.Reflow() end)
+                    node.control.mosSettingsNode = node
+                    node.control.mosSettingsState = state
+                    node.control:SetScript("OnClick", ToggleAccordion)
                 end
                 node.control:ClearAllPoints(); node.control:SetPoint("TOPLEFT", page, "TOPLEFT", x, y)
                 node.control:SetPoint("TOPRIGHT", page, "TOPRIGHT", -4, y)
@@ -348,18 +360,15 @@ function SettingsHost.Open(product, host, providers)
     local window
     state = {host = host, ownerName = product.name}
     providers = providers or {product}
-    state.tree = SettingsHost.BuildTree(providers, host.integrated)
+    state.tree = SettingsHost.BuildTree(providers, host.integrated, product)
     if Lib.Core.SettingsProfiles then
         state.ProfileContext = Lib.Core.SettingsProfiles.Create(providers, {id = owner,
             onApplied = function() if host.ApplySettings then host.ApplySettings() end; state.Reflow() end})
         state.profileNode = {key = "profileControls", text = "Current profile Load profile New profile Save Add Delete Export", profileControls = true}
-        if host.integrated then
-            table.insert(state.tree, 1, {key = "Profile", text = "Profile", expanded = false, children = {
-                {key = "General", text = "General", expanded = false, children = {state.profileNode}}
-            }})
-        end
+        table.insert(state.tree, 1, {key = "Profile", text = "Profile", expanded = false, children = {
+            {key = "General", text = "General", expanded = false, children = {state.profileNode}}
+        }})
         Lib.Core.SettingsSearch.Index(state.tree)
-        if not host.integrated then Lib.Core.SettingsSearch.Index({state.profileNode}) end
     end
     state.RefreshEnabled = function() RefreshNodes(state.tree) end
     state.Reflow = function()
@@ -367,14 +376,9 @@ function SettingsHost.Open(product, host, providers)
         CloseChoices(state.tree); ClearLayout(state.tree)
         if state.profileNode and state.profileNode.control and state.profileNode.control.panel then state.profileNode.control.panel:Hide() end
         if state.reset then
-            local reserved = host.integrated and 66 or 142
-            state.search:SetWidth(math.max(70, math.min(250, state.window:GetWidth() - 16 - reserved)))
+            state.search:SetWidth(math.max(70, math.min(250, state.window:GetWidth() - 16 - 66)))
         end
         local y = -4
-        if state.profileToggle and state.profilesExpanded and Visible(state.profileNode) then
-            local view = state.profileNode.profileView or CreateProfileControls(state.profileNode, state.page, state)
-            view.Layout(0, y, math.max(1, state.page:GetWidth() - 4)); y = y - state.profileNode.height - 8
-        elseif state.profileToggle and state.profileNode.control then state.profileNode.control:Hide() end
         y = LayoutNodes(state.tree, state.page, state, 0, y)
         HideUnused(state.tree)
         state.page.settingsContentHeight = math.max(1, -y + 4)
@@ -393,6 +397,7 @@ function SettingsHost.Open(product, host, providers)
     local hidden = window:GetScript("OnHide")
     window:SetScript("OnHide", function()
         if hidden then hidden() end
+        window:SetScript("OnUpdate", nil)
         CommitPending(state.tree); CloseChoices(state.tree)
         if state.profiles then state.profiles.Close() end
         if state.profileConfirm then state.profileConfirm:Hide() end
@@ -405,7 +410,6 @@ function SettingsHost.Open(product, host, providers)
     UI.AttachTooltip(state.search, "Search settings", "Filter labels and their full section path. Open sections to inspect matching fields.")
     state.search:SetScript("OnTextChanged", function()
         Lib.Core.SettingsSearch.Apply(state.tree, this:GetText())
-        if state.profileToggle then Lib.Core.SettingsSearch.Apply({state.profileNode}, this:GetText()) end
         state.viewport:SetVerticalScroll(0); state.Reflow()
     end)
     state.search:SetScript("OnEscapePressed", function() this:SetText(""); this:ClearFocus() end)
@@ -422,11 +426,6 @@ function SettingsHost.Open(product, host, providers)
                 elseif host.Print then host.Print(message) end
             end)
         end)
-        if not host.integrated then
-            state.profileToggle = UI.CreateButton(state.toolbar, nil, "Profiles", 70, 24)
-            UI.StyleActionButton(state.profileToggle); state.profileToggle:SetPoint("RIGHT", state.reset, "LEFT", -6, 0)
-            state.profileToggle:SetScript("OnClick", function() state.profilesExpanded = not state.profilesExpanded; state.Reflow() end)
-        end
     end
     serial = serial + 1
     state.viewport = UI.CreateScrollFrame("BootySettingsViewport" .. serial, window.content, "UIPanelScrollFrameTemplate")
