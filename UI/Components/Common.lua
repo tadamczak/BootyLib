@@ -174,6 +174,12 @@ function UI.CreateDropdownButton(parent, name, text, width)
 end
 
 function UI.RefreshDropdownLayers(panel, toggle)
+    if UI.WindowStack then
+        UI.WindowStack.SetOwner(panel, toggle)
+        UI.WindowStack.Attach(panel.dismiss, UI.WindowStack.GetWindow(toggle) and toggle or panel, -1)
+        UI.WindowStack.Sync(panel)
+        return
+    end
     local strata = toggle:GetFrameStrata()
     local level = math.max(math.max(toggle:GetFrameLevel(), toggle:GetParent():GetFrameLevel()) + 20, panel.mosMinimumFrameLevel or 0)
     panel:SetFrameStrata(strata); panel:SetFrameLevel(level)
@@ -219,6 +225,10 @@ function UI.CreateDropdownPanel(parent, toggle, width, height, levelOffset)
     panel:SetScript("OnHide", function() dismiss:Hide(); if UI.openDropdownPanel == panel then UI.openDropdownPanel = nil end end)
     UI.StyleProjectPopup(panel)
     panel:Hide()
+    if UI.WindowStack then
+        UI.WindowStack.Register(panel, {kind = "popup", owner = function() return panel.toggle end})
+        UI.WindowStack.Attach(dismiss, UI.WindowStack.GetWindow(toggle) and toggle or panel, -1)
+    end
     return panel
 end
 
@@ -312,6 +322,7 @@ function UI.CreateDatePicker(name)
     end
     frame.previous:SetScript("OnClick", function() frame:ChangeMonth(-1) end); frame.next:SetScript("OnClick", function() frame:ChangeMonth(1) end)
     frame.Open = function(self, owner, target)
+        if UI.WindowStack then UI.WindowStack.SetOwner(self, owner) end
         self.target = target
         local value = target and target:GetText() or ""
         local _, _, year, month = string.find(value, "^(%d%d%d%d)%-(%d%d)%-%d%d$")
@@ -320,6 +331,7 @@ function UI.CreateDatePicker(name)
         self:ClearAllPoints(); self:SetPoint("TOPLEFT", owner, "BOTTOMLEFT", 0, -3); self:Refresh(); self:Show()
     end
     frame:Hide()
+    if UI.WindowStack then UI.WindowStack.Register(frame) end
     return frame
 end
 
@@ -353,6 +365,7 @@ function UI.CreateTextPrompt(name, titleText, labelText, acceptText, onAccept, m
     frame.cancel:SetScript("OnClick", function() frame:Hide() end)
     frame.Open = function(self) self.edit:SetText(""); self.message:SetText(""); self:Show(); self.edit:SetFocus() end
     frame:Hide()
+    if UI.WindowStack then UI.WindowStack.Register(frame) end
     return frame
 end
 
@@ -427,6 +440,7 @@ function UI.CreateConfirmation(name, options)
         self.label:SetText(message); self.onYes = onYes; self.onNo = onNo
         if blocker then blocker:Show() end; self:Show()
     end
+    if UI.WindowStack then UI.WindowStack.Register(frame, {dismiss = blocker}) end
     return frame
 end
 
@@ -529,7 +543,16 @@ function UI.CreateItemListDialog(name)
         self:Refresh(); self:Show()
     end
     frame:Hide()
+    if UI.WindowStack then UI.WindowStack.Register(frame) end
     return frame
+end
+
+function UI.RegisterEscapeDialog(frame)
+    local name = frame and frame.GetName and frame:GetName()
+    if not name or frame.mosEscapeRegistered then return end
+    UISpecialFrames = UISpecialFrames or {}
+    table.insert(UISpecialFrames, name)
+    frame.mosEscapeRegistered = true
 end
 
 function UI.ShowOpaquePopup(dialogKey, textArg1, textArg2)
@@ -537,19 +560,34 @@ function UI.ShowOpaquePopup(dialogKey, textArg1, textArg2)
     if definition and definition.mosProjectTitle then
         local frame = definition.mosProjectFrame
         if not frame then
-            frame = UI.Window.CreateProjectConfirmation(nil, definition.mosProjectTitle, definition.button1)
+            frame = UI.Window.CreateProjectConfirmation(dialogKey .. "ProjectDialog", definition.mosProjectTitle, definition.button1)
             UI.StyleActionButton(frame.yes); UI.StyleActionButton(frame.no)
             frame.no:SetText(definition.button2 or "Cancel")
             frame.close:SetScript("OnClick", function()
                 local callback=frame.onNo;frame:Hide();if callback then callback() end
             end)
             definition.mosProjectFrame = frame
+            if definition.hideOnEscape then UI.RegisterEscapeDialog(frame) end
         end
-        frame:Open(definition.text, definition.OnAccept, definition.OnCancel)
+        local message = definition.text
+        frame.yes:SetText(definition.button1 or "OK")
+        frame.no:SetText(definition.button2 or "Cancel")
+        if textArg1 ~= nil then
+            if textArg2 ~= nil then message = string.format(message, textArg1, textArg2)
+            else message = string.format(message, textArg1) end
+        end
+        if UI.WindowStack and definition.mosProjectOwner then UI.WindowStack.SetOwner(frame, definition.mosProjectOwner) end
+        frame:Open(message, definition.OnAccept, definition.OnCancel)
         return frame
     end
     -- Never skin Blizzard's shared popup pool (including death/release dialogs).
     return StaticPopup_Show(dialogKey, textArg1, textArg2)
+end
+
+function UI.HideOpaquePopup(dialogKey)
+    local definition = StaticPopupDialogs and StaticPopupDialogs[dialogKey]
+    if definition and definition.mosProjectFrame then definition.mosProjectFrame:Hide()
+    elseif type(StaticPopup_Hide) == "function" then return StaticPopup_Hide(dialogKey) end
 end
 
 function UI.CreateTextEditor(name, titleText, maxLetters, onSave)
@@ -579,7 +617,7 @@ function UI.CreateTextEditor(name, titleText, maxLetters, onSave)
         -- Resolve the existing anchored rectangle from its owner; child bounds
         -- may still reflect the previous size during first-open/text callbacks.
         local viewportWidth = math.max(40, frame:GetWidth() - 16 - 32 - 4)
-        local viewportHeight = math.max(1, frame:GetHeight() - 42 - 52)
+        local viewportHeight = math.max(1, frame:GetHeight() - (frame.mosEditorTopInset or 42) - 52)
         frame.edit:SetWidth(viewportWidth)
         frame.measure:SetWidth(math.max(20, viewportWidth - 12)); frame.measure:SetText(frame.edit:GetText() or "")
         local textHeight = UI.MeasureTextHeight(frame.measure, math.max(20, viewportWidth - 12))
@@ -602,6 +640,12 @@ function UI.CreateTextEditor(name, titleText, maxLetters, onSave)
         self.counter:SetText(string.len(value or "") .. " / " .. (maxLetters or 500)); UpdateEditorGeometry(); self.scroll:SetVerticalScroll(0); self:Show(); self.edit:SetFocus()
     end
     frame.BringToFront = function(self, level)
+        if UI.WindowStack then
+            UI.WindowStack.Raise(self); UI.WindowStack.Sync(self)
+            self.scroll:Show(); self.edit:EnableMouse(true); self.edit:EnableKeyboard(true); self.edit:Show()
+            self.save:EnableMouse(true); self.save:Enable(); self.cancel:EnableMouse(true); self.cancel:Enable()
+            return
+        end
         local baseLevel = level or 220
         self:SetFrameStrata("FULLSCREEN_DIALOG"); self:SetFrameLevel(baseLevel)
         self.scroll:SetFrameStrata("FULLSCREEN_DIALOG"); self.scroll:SetFrameLevel(baseLevel + 1); self.scroll:Show()
@@ -611,6 +655,7 @@ function UI.CreateTextEditor(name, titleText, maxLetters, onSave)
         self.cancel:SetFrameStrata("FULLSCREEN_DIALOG"); self.cancel:SetFrameLevel(baseLevel + 3); self.cancel:EnableMouse(true); self.cancel:Enable()
     end
     frame:Hide()
+    if UI.WindowStack then UI.WindowStack.Register(frame) end
     return frame
 end
 
@@ -658,6 +703,7 @@ function UI.CreateReadOnlyDialog(name, titleText, width, height, backgroundColor
         self:Show()
     end
     frame:Hide()
+    if UI.WindowStack then UI.WindowStack.Register(frame, {dismiss = dismiss}) end
     return frame
 end
 

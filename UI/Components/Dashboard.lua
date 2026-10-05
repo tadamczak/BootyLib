@@ -329,6 +329,7 @@ function Dashboard.CreateWindow(version, options)
             view.sidebarToggleClassicIcon:Hide()
         end
     end)
+    if MOS.UI.Components.WindowStack then MOS.UI.Components.WindowStack.Register(frame, {owner = false}) end
     return view
 end
 

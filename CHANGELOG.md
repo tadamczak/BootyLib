@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.3 — 2026-10-05
+
+- Keep complete windows and popups in one shared foreground order across all Booty products.
+- Pool formatted project confirmations and preserve native Escape handling without altering the game popup pool.
+
 ## 0.1.0-dev.2 — 2026-10-05
 
 - Fix Settings accordion actions on the WoW 1.12 Lua runtime.

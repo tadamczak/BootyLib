@@ -70,6 +70,7 @@ local function Confirm(state, title, message, action, yes, no)
     if not state.profileConfirm then
         state.profileConfirm = UI.Window.CreateProjectConfirmation(state.ownerName .. "ProfileConfirmation", title, action, "archive")
     end
+    if UI.WindowStack then UI.WindowStack.SetOwner(state.profileConfirm, state.window) end
     state.profileConfirm.title:SetText(title); state.profileConfirm.yes:SetText(action)
     state.profileConfirm.no:SetText(no and "Discard" or "Cancel")
     state.profileConfirm:Open(message, yes, no)
@@ -155,6 +156,7 @@ local function CreateProfileControls(node, page, state)
             view.export = UI.CreateTextEditor(state.ownerName .. "ProfileExport", "Export profile", 65535)
             view.export.save:Hide(); view.export.cancel:SetText("Close")
         end
+        if UI.WindowStack then UI.WindowStack.SetOwner(view.export, state.window) end
         view.export:Open(text); view.export.edit:HighlightText(); view.export:SetMessage("Copy the selected text with Ctrl+C.", false)
         view.panel:Hide(); Message("Exported profile: " .. view.selected)
     end)
@@ -356,7 +358,10 @@ end
 function SettingsHost.Open(product, host, providers)
     local owner = product.id or product.name
     local state = SettingsHost.windows[owner]
-    if state then state.window.Open(); state.Reflow(); return state end
+    if state then
+        if UI.WindowStack then UI.WindowStack.SetOwner(state.window, host.window) end
+        state.window.Open(); state.Reflow(); return state
+    end
     local window
     state = {host = host, ownerName = product.name}
     providers = providers or {product}
@@ -385,7 +390,7 @@ function SettingsHost.Open(product, host, providers)
         state.RefreshEnabled()
         if not state.layingOut then UI.Settings.UpdateScroll(state.viewport, state.page, state.page.settingsContentHeight) end
     end
-    window = UI.Window.Create({name = product.name .. "SettingsWindow", title = product.name .. " Settings", icon = "settings", compact = true, plainHeader = true,
+    window = UI.Window.Create({name = product.name .. "SettingsWindow", title = product.name .. " Settings", icon = "settings", compact = true, plainHeader = true, owner = host.window,
         viewportWidthInset = 16, viewportHeightInset = 74,
         attach = function(_, content)
             state.toolbar:SetParent(content); state.toolbar:SetPoint("TOPLEFT", content, "TOPLEFT", 4, -2); state.toolbar:SetPoint("TOPRIGHT", content, "TOPRIGHT", -4, -2)

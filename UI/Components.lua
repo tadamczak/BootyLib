@@ -18,12 +18,17 @@ end
 
 local function ControlMouseDown()
     Components.DismissDropdownForControl(this)
+    if Components.WindowStack then Components.WindowStack.FocusFrom(this) end
 end
 
 local function WrapControlMouseDown(handler)
     -- Capture this specific handler. A later hook can safely call GetScript's
     -- previous callback without recursing through a mutable owner field.
-    return function() Components.DismissDropdownForControl(this); handler() end
+    return function()
+        Components.DismissDropdownForControl(this)
+        if Components.WindowStack then Components.WindowStack.FocusFrom(this) end
+        handler()
+    end
 end
 
 function Components.InstallControlInput(control)
@@ -82,32 +87,35 @@ end
 
 -- Native construction is confined to this package. Feature modules compose
 -- instances and attach domain callbacks; factories never reach into a module.
+local function TrackFrame(frame)
+    return Components.WindowStack and Components.WindowStack.Track(frame) or frame
+end
 function Components.CreateContainer(name, parent, template)
-    return CreateFrame("Frame", name, parent, template)
+    return TrackFrame(CreateFrame("Frame", name, parent, template))
 end
 
 function Components.CreateControl(name, parent, template)
-    return Components.InstallControlInput(CreateFrame("Button", name, parent, template))
+    return Components.InstallControlInput(TrackFrame(CreateFrame("Button", name, parent, template)))
 end
 
 function Components.CreateCheckButton(name, parent, template)
-    return Components.InstallControlInput(CreateFrame("CheckButton", name, parent, template))
+    return Components.InstallControlInput(TrackFrame(CreateFrame("CheckButton", name, parent, template)))
 end
 
 function Components.CreateScrollFrame(name, parent, template)
-    return CreateFrame("ScrollFrame", name, parent, template)
+    return TrackFrame(CreateFrame("ScrollFrame", name, parent, template))
 end
 
 function Components.CreateSliderFrame(name, parent, template)
-    return CreateFrame("Slider", name, parent, template)
+    return TrackFrame(CreateFrame("Slider", name, parent, template))
 end
 
 function Components.CreateEditField(name, parent, template)
-    return CreateFrame("EditBox", name, parent, template)
+    return TrackFrame(CreateFrame("EditBox", name, parent, template))
 end
 
 function Components.CreateStatusFrame(name, parent, template)
-    return CreateFrame("StatusBar", name, parent, template)
+    return TrackFrame(CreateFrame("StatusBar", name, parent, template))
 end
 
 function Components.CreateLabel(parent, name, layer, template)

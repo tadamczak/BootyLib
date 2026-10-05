@@ -163,6 +163,7 @@ function Window.Create(options)
     window.resizeGrip = resize
     window.ApplyResizeBounds = ApplyResizeBounds
     window:Hide()
+    if MOS.UI.Components.WindowStack then MOS.UI.Components.WindowStack.Register(window, {owner = options.owner}) end
     return window
 end
 
@@ -181,6 +182,7 @@ function Window.CreateAttached(parent, owner, width, height, onClose)
     frame.close:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -6, -6)
     frame.close:SetScript("OnClick", function() frame:Hide(); if onClose then onClose() end end)
     frame:Hide()
+    if C.WindowStack then C.WindowStack.Register(frame, {owner = owner}) end
     return frame
 end
 
@@ -209,6 +211,7 @@ function Window.StyleProjectDialog(frame, iconKey)
     UI.RegisterSkinnedSurface(frame.projectDivider, "content", nil, {0,0,0,0}, {0.68,0.54,0.27,1})
     UI.JoinSurfaceEdges(frame.projectDivider, true, false)
     if frame.close then frame.close:ClearAllPoints(); frame.close:SetPoint("RIGHT", frame, "TOPRIGHT", -6, -14) end
+    if UI.WindowStack then UI.WindowStack.Register(frame) end
 end
 
 function Window.CreateProjectConfirmation(name, title, action, iconKey, options)
