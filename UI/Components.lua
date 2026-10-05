@@ -94,6 +94,10 @@ function Components.CreateContainer(name, parent, template)
     return TrackFrame(CreateFrame("Frame", name, parent, template))
 end
 
+function Components.CreateModel(name, parent, template)
+    return TrackFrame(CreateFrame("Model", name, parent, template))
+end
+
 function Components.CreateControl(name, parent, template)
     return Components.InstallControlInput(TrackFrame(CreateFrame("Button", name, parent, template)))
 end

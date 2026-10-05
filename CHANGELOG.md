@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.4 — 2026-10-05
+
+- Support native model controls used by BootyActionBars cooldowns through the shared UI library.
+
 ## 0.1.0-dev.3 — 2026-10-05
 
 - Keep complete windows and popups in one shared foreground order across all Booty products.
