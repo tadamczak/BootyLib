@@ -18,7 +18,8 @@ Skins.current = Skins.current or "default"
 
 local CLASSIC_ICONS = {
     roster = "roster", raid = "raids", statistics = "guild_stats", raidStatistics = "raid_stats",
-    csr = "csr", performance = "performance", configuration = "settings", about = "about",
+    csr = "csr", performance = "performance", profiler = "performance", plugins = "groups",
+    configuration = "settings", about = "about",
 }
 
 local function ClassicPath(path)
@@ -544,7 +545,8 @@ local function ApplyNavigation(entry)
     local icon = entry.frame.icon
     if not icon then return end
     if Skins.current == "classic" then
-        icon:SetTexture(ClassicPath("Icons\\" .. (CLASSIC_ICONS[entry.key] or "about") .. ".tga"))
+        local asset = CLASSIC_ICONS[entry.key]
+        icon:SetTexture(asset and ClassicPath("Icons\\" .. asset .. ".tga") or entry.defaultIcon or ClassicPath("Icons\\about.tga"))
         if not entry.classicHoverBorder then entry.classicHoverBorder = CreateClassicHoverOutline(entry.frame, ClassicPath("Buttons\\dark-selected.tga"), true)
         else SetNineSliceShown(entry.classicHoverBorder, true); entry.classicHoverBorder.textures[5]:Hide() end
         if entry.frame.navigationMode == "tabs" then SetNineSliceShown(entry.classicHoverBorder, false) end
