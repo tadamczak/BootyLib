@@ -448,6 +448,9 @@ function SettingsHost.Open(product, host, providers)
         if state.profileConfirm then state.profileConfirm:Hide() end
     end)
     state.page = UI.CreateContainer(nil, state.viewport); state.page:SetWidth(700); state.page:SetHeight(1)
+    -- Preserve the compact Settings typography used before the product split.
+    -- This presentation scope does not alter any saved feature font preference.
+    state.page.mosTextSizeDelta = -2
     state.page.ReflowSettings = function() state.layingOut = true; state.Reflow(); state.layingOut = nil end
     state.viewport:SetScrollChild(state.page)
     state.viewport:SetScript("OnSizeChanged", function() if state.page then state.Reflow() end end)

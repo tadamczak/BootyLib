@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.5 — 2026-10-05
+
+- Preserve complete header titles through resizing, skin changes and window restore.
+- Restore compact Settings typography and readable accordion plus/minus signs.
+
 ## 0.1.0-dev.4 — 2026-10-05
 
 - Support native model controls used by BootyActionBars cooldowns through the shared UI library.
