@@ -32,6 +32,17 @@ function ProductHost.Create(product, options)
         controllers = {}, windows = {}, window = options.window }
     local definitions = {}
     for _, definition in ipairs(product.views or {}) do definitions[definition.id] = definition end
+    local geometryManager
+    local geometryTransition = false
+    local _, geometryDatabase = Store(product)
+    local function GeometryDatabase()
+        local owner = Lib.Data and Lib.Data.GetOwner and Lib.Data.GetOwner(product.id)
+        if not owner then return geometryDatabase end
+        if type(owner.dbGlobal) ~= "string" then error("Product geometry owner must declare its SavedVariables.") end
+        local database = _G[owner.dbGlobal]
+        if type(database) ~= "table" then error("Product geometry data is unavailable or invalid.") end
+        return database
+    end
     host.Print = options.Print or function(message)
         if DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.AddMessage then
             DEFAULT_CHAT_FRAME:AddMessage("|cffe0b95a" .. (product.title or product.name) .. "|r: " .. tostring(message))
@@ -41,8 +52,11 @@ function ProductHost.Create(product, options)
         local presentation = Store(product)
         return presentation[key]
     end
-    local function Geometry(id)
-        local presentation = Store(product)
+    local function Geometry(id, expectedDatabase)
+        local presentation, database = Store(product)
+        if expectedDatabase and (database ~= expectedDatabase or GeometryDatabase() ~= expectedDatabase) then
+            error("Product geometry ownership changed during its write.")
+        end
         local geometry = presentation.windows[id]
         if type(geometry) ~= "table" then geometry = {}; presentation.windows[id] = geometry end
         return geometry
@@ -50,6 +64,8 @@ function ProductHost.Create(product, options)
     local function SaveGeometry(id)
         local window = host.windows[id]
         if not window or window.minimized then return end
+        if geometryTransition or geometryManager and geometryManager.IsApplying() then return end
+        if geometryManager and geometryManager.HasPreview(id) then return geometryManager.CaptureManual(id) end
         local geometry = Geometry(id)
         local width, height = window:GetWidth(), window:GetHeight()
         if Finite(width) and width > 0 then geometry.width = width end
@@ -60,11 +76,12 @@ function ProductHost.Create(product, options)
     local function ResizeContent(id)
         local window, controller = host.windows[id], host.controllers[id]
         if not window or window.minimized then return end
+        if geometryManager and geometryManager.IsApplying() and not geometryTransition then return end
         -- Permanent chrome owns the rectangle; there is no scrollbar gutter at
         -- this layer. A feature's own viewport reserves actual overflow space.
         window.content:SetWidth(math.max(1, window:GetWidth() - 8))
         window.content:SetHeight(math.max(1, window:GetHeight() - 34))
-        if controller and controller.OnResize then controller:OnResize() end
+        if controller and controller.OnResize then return controller:OnResize() end
     end
     local function RestoreBounds(window, definition, geometry)
         local screenWidth, screenHeight = UI.GetFrameSpan(UIParent)
@@ -81,6 +98,55 @@ function ProductHost.Create(product, options)
             local left = math.max(0, math.min(math.max(0, screenWidth - window:GetWidth()), geometry.left))
             local bottom = math.max(0, math.min(math.max(0, screenHeight - window:GetHeight()), geometry.bottom))
             window:ClearAllPoints(); window:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", left, bottom)
+        end
+    end
+    if Lib.Core.WindowGeometry then
+        geometryManager = Lib.Core.WindowGeometry.Create({
+            getFrame = function(id) return host.windows[id] end,
+            getStored = function(id)
+                local presentation = GeometryDatabase().presentation
+                if presentation ~= nil and type(presentation) ~= "table" then error("Invalid product presentation data.") end
+                if presentation and presentation.windows ~= nil and type(presentation.windows) ~= "table" then error("Invalid product window data.") end
+                return presentation and presentation.windows and presentation.windows[id]
+            end,
+            writeStored = function(id, rect)
+                local geometry = Geometry(id, GeometryDatabase())
+                geometry.left, geometry.bottom, geometry.width, geometry.height = rect.left, rect.bottom, rect.width, rect.height
+                return true
+            end,
+            getContext = function()
+                local width, height = UI.GetFrameSpan(UIParent)
+                return {width = width, height = height, scale = UIParent.GetEffectiveScale and UIParent:GetEffectiveScale() or 1}
+            end,
+            getDefaults = function(id, context)
+                local definition = definitions[id] or {}
+                local width, height = definition.width or 900, definition.height or 620
+                return {width = width, height = height, left = (context.width - width) / 2 + 40, bottom = (context.height - height) / 2 + 10}
+            end,
+            getLimits = function(id)
+                local definition = definitions[id] or {}
+                return {minWidth = definition.minWidth or 350, minHeight = definition.minHeight or 300,
+                    maxWidth = definition.maxWidth or 1400, maxHeight = definition.maxHeight or 1000}
+            end,
+            isAvailable = function(id)
+                if not host.standalone then return false, "integrated" end
+                if not definitions[id] then return false, "unknown-view" end
+                if product.stopped or product.failure then return false, "stopped" end
+                if definitions[id].IsAvailable and not definitions[id].IsAvailable() then return false, "unavailable" end
+                return true
+            end,
+            isMinimized = function(id) return host.windows[id] and host.windows[id].minimized == true end,
+            refresh = function(id)
+                geometryTransition = true
+                local ok, result, message = pcall(ResizeContent, id)
+                geometryTransition = false
+                if not ok then error(result) end
+                if result == false then return false, message or "The view declined the window layout." end
+                return true
+            end,
+        })
+        for _, name in ipairs({"ReadGeometry", "BeginGeometryPreview", "PreviewGeometry", "ApplyGeometry", "CancelGeometry", "ResetGeometry"}) do
+            host[name] = geometryManager[name]
         end
     end
     local function CreateWindow(definition)
@@ -103,7 +169,11 @@ function ProductHost.Create(product, options)
         window.AttachView({ viewport = window.content, page = controller.frame })
         local hidden = window:GetScript("OnHide")
         window:SetScript("OnHide", function()
-            SaveGeometry(id)
+            local preview = geometryManager and geometryManager.HasPreview(id)
+            if preview then
+                local ok, failure = geometryManager.EndPreview(id, "hidden")
+                if not ok then host.Print(failure.message) end
+            else SaveGeometry(id) end
             if hidden then hidden() end
             if controller.Hide then controller:Hide() end
             if host.menu then host.menu:Close() end
@@ -114,7 +184,15 @@ function ProductHost.Create(product, options)
         if minimize then
             local clicked = minimize:GetScript("OnClick")
             minimize:SetScript("OnClick", function()
-                if not window.minimized then SaveGeometry(id); if controller.Hide then controller:Hide() end end
+                local preview = geometryManager and geometryManager.HasPreview(id)
+                if preview then
+                    local ok, failure = geometryManager.EndPreview(id, "minimized")
+                    if not ok then host.Print(failure.message); return end
+                end
+                if not window.minimized then
+                    if not preview then SaveGeometry(id) end
+                    if controller.Hide then controller:Hide() end
+                end
                 if clicked then clicked() end
                 if not window.minimized then
                     RestoreBounds(window, definition, Geometry(id)); ResizeContent(id)

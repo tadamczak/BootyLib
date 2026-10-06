@@ -710,6 +710,15 @@ function UI.GetSkin()
     return Skins.current
 end
 
+function UI.GetAvailableSkins()
+    local choices = {}
+    for id, definition in pairs(Skins.definitions) do
+        table.insert(choices, {value = id, text = definition.name or id})
+    end
+    table.sort(choices, function(first, second) return first.value < second.value end)
+    return choices
+end
+
 function UI.IsClassicSkin()
     return Skins.current == "classic"
 end
