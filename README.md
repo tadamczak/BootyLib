@@ -8,7 +8,7 @@ Install the `BootyLib` folder in `Interface/AddOns` alongside any Booty product.
 
 Windows, controls and menus use a consistent foreground order across installed Booty addons.
 
-Compatible layout editors can preview window position and size, then apply or cancel the edit. Hiding or minimizing a window cancels its unfinished preview.
+Compatible layout editors can preview window position, size, scale and supported anchor points, then apply or cancel the edit. Hiding or minimizing a window cancels its unfinished preview. Unavailable anchor elements retain their saved reference and use a recoverable screen position.
 Applied Suite window position and size are restored when the UI reloads.
 
 Compatible appearance editors can preview the shared interface skin before applying it. A new choice in Settings ends an unfinished skin preview.
