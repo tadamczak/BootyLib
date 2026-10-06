@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.13 — 2026-10-07
+
+- Preserve input text before native font changes and synchronous size callbacks, including failed setter retries.
+- Add pixel-aligned snapping for the selected window point while preserving dimensions.
+
 ## 0.1.0-dev.12 — 2026-10-06
 
 - Preserve normal dropdown fonts when resizing or scaling a window.
