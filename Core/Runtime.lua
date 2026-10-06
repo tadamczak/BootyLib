@@ -10,15 +10,7 @@ local function Compatible(value)
         (not value.namespace or value.namespace.API_VERSION == nil or value.namespace.API_VERSION == Lib.API_VERSION)
 end
 local function Failure(product, message)
-    if type(message) == "table" then message = message.message or message.code end
     product.failure = tostring(message or "Initialization failed.")
-    if type(product.OnActivationFailed) == "function" then
-        local ok, result, failure = pcall(product.OnActivationFailed, product.failure)
-        if not ok or result == false then
-            if type(failure) == "table" then failure = failure.message or failure.code end
-            product.failure = product.failure .. " Cleanup failed: " .. tostring(ok and failure or result)
-        end
-    end
     Lib.Print(product.name .. ": " .. product.failure)
     return false, product.failure
 end
@@ -44,8 +36,6 @@ function Lib.RegisterProduct(product)
     return product
 end
 function Lib.GetProduct(id) return Runtime.products[id] end
-function Lib.GetProductHost(id) return Runtime.hosts[id] end
-function Lib.GetSuite() return Runtime.suite end
 function Lib.GetProducts() return Runtime.order end
 function Lib.RegisterSuite(suite)
     if type(suite) ~= "table" or not Compatible(suite) or type(suite.Attach) ~= "function" then
@@ -187,12 +177,9 @@ function Runtime.StopProduct(id)
         if Flag(busy) then return false, "Finish the active raid or recording before stopping this addon." end
     end
     if product.Stop then
-        local ok, result, reason = pcall(product.Stop)
+        local ok, result = pcall(product.Stop)
         if not ok then return false, tostring(result) end
-        if result == false then
-            if type(reason) == "table" then reason = reason.message or reason.code end
-            return false, tostring(reason or "The addon could not stop safely.")
-        end
+        if result == false then return false, "The addon could not stop safely." end
     end
     product.stopped = true
     local host = Runtime.hosts[id]

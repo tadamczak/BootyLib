@@ -150,27 +150,6 @@ function UI.ApplySelectionListStyle(buttons, items, selectedId, loadButton)
     return selectedAvailable
 end
 
--- Dropdown labels retain their logical font through transient narrow bounds.
--- EditBoxes inherit scale natively; layout must not rewrite their input buffer.
-function UI.ReflowControlText(control)
-    local font = control.mosControlFont
-    if not font or not control.label then return end
-    local width, height = control:GetWidth(), control:GetHeight()
-    local scale = control.GetEffectiveScale and control:GetEffectiveScale() or 1
-    if control.mosTextWidth == width and control.mosTextHeight == height and control.mosTextScale == scale then return end
-    local label = control.label
-    -- Mark the bounds before native setters can emit synchronous size events.
-    control.mosTextWidth, control.mosTextHeight, control.mosTextScale = width, height, scale
-    local ok, reason = pcall(label.SetFont, label, font[1], font[2], font[3])
-    if not ok then
-        control.mosTextWidth = nil
-        error(reason)
-    end
-    label:SetWidth(math.max(1, width - 28)); label:SetHeight(math.max(1, height - 4))
-end
-
-local function ReflowControlText() UI.ReflowControlText(this) end
-
 function UI.CreateDropdownButton(parent, name, text, width)
     local button = UI.CreateControl(name, parent)
     button:SetWidth(width or 84); button:SetHeight(24)
@@ -182,16 +161,13 @@ function UI.CreateDropdownButton(parent, name, text, width)
     if font then button.label:SetFont(font, size + math.min(0, UI.GetTextSizeDelta(parent) + 1), flags) end
     button.mosLabelJustify = "LEFT"
     button.label:SetPoint("LEFT", button, "LEFT", 4, 0); button.label:SetWidth(math.max(1,(width or 84)-28));button.label:SetJustifyH("LEFT");button.label:SetJustifyV("MIDDLE");button.label:SetText(text)
-    font, size, flags = button.label:GetFont()
-    button.mosControlFont = {font, size, flags}
-    button.SetText = function(self, value) self.label:SetText(value); UI.ReflowControlText(self) end
+    button.SetText = function(self, value) self.label:SetText(value); if UI.FitButtonLabel then UI.FitButtonLabel(self,math.max(1,self:GetWidth()-28)) end end
     button.GetText = function(self) return self.label:GetText() end
     button.arrow = button:CreateTexture(nil, "OVERLAY")
     button.arrow:SetWidth(14); button.arrow:SetHeight(14); button.arrow:SetPoint("RIGHT", button, "RIGHT", -4, 0)
     button.arrow:SetTexture("Interface\\Buttons\\UI-ScrollBar-ScrollDownButton-Up")
     button.arrow:SetTexCoord(0.20, 0.80, 0.20, 0.80)
-    button:SetScript("OnSizeChanged",ReflowControlText)
-    UI.ReflowControlText(button)
+    button:SetScript("OnSizeChanged",function() this.label:SetWidth(math.max(1,this:GetWidth()-28)) end)
     if UI.ApplyDropdownChoiceSurface then UI.ApplyDropdownChoiceSurface(button) end
     if UI.RegisterSkinCallback then UI.RegisterSkinCallback(function() UI.ApplyDropdownChoiceSurface(button) end) end
     return button
@@ -1134,7 +1110,6 @@ function UI.LayoutFlow(parent, controls, x, top, width, gap)
         control:ClearAllPoints(); control:SetPoint("TOPLEFT",parent,"TOPLEFT",x+used,-y)
         control:SetWidth(math.max(1,desired)); rowHeight=math.max(rowHeight,control:GetHeight())
         if control.mosFlowFitLabel then UI.FitButtonLabel(control,math.max(1,desired-(control.mosFlowLabelPadding or 16)));control.label:SetJustifyV("MIDDLE") end
-        if control.mosControlFont then UI.ReflowControlText(control) end
         used=used+desired+gap
     end
     return y+rowHeight

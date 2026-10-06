@@ -195,20 +195,7 @@ local function CreateField(node, page, state)
         set = function(_, value) SetValue(node, value, state); state.RefreshEnabled() end}
     local kind = field.type
     local control, label
-    if kind == "action" then
-        control = UI.CreateButton(page, nil, field.text or node.text, 180, 26)
-        UI.StyleActionButton(control)
-        control:SetScript("OnClick", function()
-            if type(node.field.action) ~= "function" then return end
-            local ok, result, reason = pcall(node.field.action)
-            if not ok or result == false then
-                local failure = ok and reason or result
-                if type(failure) == "table" then failure = failure.message or failure.code end
-                if state.host.Print then state.host.Print(failure or "This action is unavailable.") end
-            end
-        end)
-        node.height = 34
-    elseif kind == "checkbox" then
+    if kind == "checkbox" then
         control = UI.Settings.CreateCheckbox(page, 0, 0, node.text, field.key, nil, binding)
         node.height = 30
     elseif kind == "slider" then
@@ -242,10 +229,6 @@ local function CreateField(node, page, state)
     return control
 end
 local function Synchronize(node)
-    if node.field.type == "action" then
-        node.control:SetText(node.field.text or node.text)
-        return
-    end
     local control, field, value = node.control, node.field, GetValue(node)
     if field.type == "checkbox" then control:SetChecked(value and value ~= 0 and 1 or nil)
     elseif field.type == "slider" then UI.Settings.SynchronizeSlider(control, tonumber(value) or field.min or 0)
@@ -283,7 +266,6 @@ local function LayoutField(node, page, x, y)
     else
         control:SetPoint("TOPLEFT", page, "TOPLEFT", x, y - (kind == "slider" and 18 or 0))
         if kind == "slider" then control:SetWidth(math.min(220, width))
-        elseif kind == "action" then control:SetWidth(math.min(180, width)); node.height = 34
         elseif control.label then
             local available = math.max(1, width - (kind == "checkbox" and control:GetWidth() + 2 or 26))
             control.label:SetWidth(available)
@@ -365,12 +347,7 @@ local function RefreshNodes(nodes)
             if node.field.type == "checkbox" then UI.Settings.SetCheckboxEnabled(node.control, enabled)
             elseif node.field.type == "slider" then UI.Settings.SetSliderEnabled(node.control, enabled)
             else
-                local kind = node.field.type
-                if kind == "action" or kind == "color" or kind == "choice" or kind == "dropdown" then
-                    if enabled then node.control:Enable() else node.control:Disable() end
-                else
-                    UI.Settings.SetTextFieldEnabled(node.control, enabled)
-                end
+                if enabled then node.control:Enable() else node.control:Disable() end
                 node.control:SetAlpha(enabled and 1 or 0.42)
                 local label = node.label or node.control.label
                 if label then label:SetTextColor(unpack(enabled and UI.TextColors.white or UI.TextColors.gray)) end
@@ -386,7 +363,7 @@ function SettingsHost.Open(product, host, providers)
         state.window.Open(); state.Reflow(); return state
     end
     local window
-    state = {host = host, ownerName = product.name, providers = providers or {product}}
+    state = {host = host, ownerName = product.name}
     providers = providers or {product}
     state.tree = SettingsHost.BuildTree(providers, host.integrated, product)
     if Lib.Core.SettingsProfiles then
@@ -482,45 +459,4 @@ function SettingsHost.Open(product, host, providers)
     SettingsHost.windows[owner] = state
     window.Open()
     return state
-end
-
--- Optional integration ownership changes rarely. Keep both control variants
--- pooled and replace metadata in place, preserving open sections and scroll.
-function SettingsHost.RefreshProvider(id)
-    local function Refresh(nodes, fields)
-        for _, node in ipairs(nodes) do
-            if node.field and node.provider.id == id then
-                local field = fields[node.key]
-                if field then
-                    local oldType, newType = node.field.type or "text", field.type or "text"
-                    if oldType ~= newType then
-                        node.variants = node.variants or {}
-                        if node.control then
-                            node.variants[oldType] = {control = node.control, label = node.label, flow = node.flow, height = node.height}
-                            node.control:Hide(); if node.label then node.label:Hide() end
-                        end
-                        local saved = node.variants[newType]
-                        node.control, node.label, node.flow = saved and saved.control, saved and saved.label, saved and saved.flow
-                        node.height = saved and saved.height or nil
-                    end
-                    node.field, node.text = field, field.label or field.key
-                end
-            end
-            if node.children then Refresh(node.children, fields) end
-        end
-    end
-    for _, state in pairs(SettingsHost.windows) do
-        for _, provider in ipairs(state.providers or {}) do
-            if provider.id == id and provider.GetSettings then
-                local schema = provider.GetSettings()
-                local fields = {}
-                for _, field in ipairs(schema and schema.fields or {}) do fields[field.key] = field end
-                Refresh(state.tree, fields)
-                Lib.Core.SettingsSearch.Index(state.tree)
-                Lib.Core.SettingsSearch.Apply(state.tree, state.search:GetText())
-                if state.window:IsVisible() then state.Reflow() end
-            end
-        end
-    end
-    return true
 end

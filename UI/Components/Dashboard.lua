@@ -196,7 +196,6 @@ function Dashboard.CreateWindow(version, options)
     options = options or {}; local view = { titleText = options.title or "Booty Suite" }
     view.frame = CreateFrame("Frame", options.name or "BootySuiteDashboard", UIParent)
     local frame = view.frame
-    frame.mosDashboardView = view
     frame:SetWidth(840); frame:SetHeight(540)
     frame:SetPoint("CENTER", UIParent, "CENTER", 0, 10)
     frame:SetFrameStrata("DIALOG")
@@ -443,10 +442,6 @@ function Dashboard.BindWindow(view, options)
         CancelRestoreLayout()
         if frame:IsVisible() and not view.minimized and not options.isLootMasterMode() then options.applyOrRefreshLayout() end
     end
-    view.ScheduleLayoutRefresh = function()
-        if not frame:IsVisible() or view.minimized then return end
-        finalizer:Show(); finalizer:SetScript("OnUpdate", FinishRestoreLayout)
-    end
     finalizer:SetScript("OnHide", function() finalizer:SetScript("OnUpdate", nil) end)
     -- Native layout-cache is loaded after VARIABLES_LOADED and can contain the
     -- 250x30 minimized shell. SavedVariables alone own durable geometry.
@@ -454,10 +449,7 @@ function Dashboard.BindWindow(view, options)
     frame:SetScript("OnEvent", function()
         if event ~= "PLAYER_LOGIN" then return end
         frame:UnregisterEvent("PLAYER_LOGIN")
-        if options.restoreGeometry then
-            local ok,failure=options.restoreGeometry()
-            if ok==false then error(type(failure)=="table" and failure.message or tostring(failure)) end
-        else Dashboard.RestoreGeometry(frame, view.geometrySettings or {}) end
+        Dashboard.RestoreGeometry(frame, view.geometrySettings or {})
         options.applyOrRefreshLayout()
     end)
     frame.mosDashboardView = view
@@ -506,10 +498,6 @@ function Dashboard.BindWindow(view, options)
             frame:SetWidth(view.widthBeforeMinimize or 840); frame:SetHeight(view.heightBeforeMinimize or 540)
             frame:ClearAllPoints()
             if view.leftBeforeMinimize and view.bottomBeforeMinimize then frame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", view.leftBeforeMinimize, view.bottomBeforeMinimize) else frame:SetPoint("CENTER", UIParent, "CENTER", 0, 10) end
-            if options.restoreGeometry then
-                local ok,failure=options.restoreGeometry()
-                if ok==false then error(type(failure)=="table" and failure.message or tostring(failure)) end
-            end
             view.title:ClearAllPoints(); view.title:SetPoint("CENTER", view.titleBar, "CENTER", 0, 2)
             view.title:SetFontObject(GameFontNormalLarge)
             view.title:SetTextColor(unpack(MOS.UI.Components.Theme.colors.goldText))
@@ -527,14 +515,8 @@ function Dashboard.BindWindow(view, options)
             view.contentPanel:Show()
             finalizer:SetScript("OnUpdate", FinishRestoreLayout); finalizer:Show()
         else
-            local skipSave = false
-            if options.beforeMinimize then
-                local ok, result = options.beforeMinimize()
-                if ok == false then return false, result end
-                skipSave = result == true
-            end
             view.widthBeforeMinimize = frame:GetWidth(); view.heightBeforeMinimize = frame:GetHeight(); view.leftBeforeMinimize = frame:GetLeft(); view.bottomBeforeMinimize = frame:GetBottom()
-            if not skipSave then options.saveGeometry() end
+            options.saveGeometry()
             Dashboard.SetTabBody(view, false)
             view.titleBar:Show(); Dashboard.PlaceWindowControls(view, false)
             view.minimized = true; frame.mosMinimized = true

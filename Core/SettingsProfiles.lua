@@ -36,10 +36,6 @@ end
 local function IsSetting(field)
     return field.profile~=false and field.persist~=false and settingTypes[field.type or "text"] and type(field.key)=="string"
 end
-local function AppearanceRecord(name,profile)
-    return type(name)=="string" and string.sub(name,1,12)=="@appearance:"
-        or type(profile)=="table" and (profile.version==3 or profile.scope=="appearance")
-end
 local function Read(field,db)
     local value
     if field.get then value=field.get(db) else value=db[field.key] end
@@ -157,7 +153,6 @@ function Profiles.Create(providers,options)
     local function Save(name,add)
         name=Name(name);if not name then return false,"Enter a profile name (1-64 characters)." end
         local profiles=Root().settingsProfiles
-        if AppearanceRecord(name,profiles[name]) then return false,"Appearance presets use their own editor." end
         if add and profiles[name] then return false,"This profile already exists. Use Save to update it." end
         if not add and not profiles[name] then return false,"Profile not found. Use Add first." end
         local ok,snapshot=pcall(Capture,profiles[name])
@@ -179,26 +174,19 @@ function Profiles.Create(providers,options)
         end
     end
     function context.List()
-        local names={};for name,profile in pairs(Root().settingsProfiles) do if type(name)=="string" and not AppearanceRecord(name,profile) then table.insert(names,name) end end
+        local names={};for name in pairs(Root().settingsProfiles) do if type(name)=="string" then table.insert(names,name) end end
         table.sort(names);return names
     end
-    function context.Exists(name)
-        name=Name(name);local profile=Root().settingsProfiles[name or ""]
-        return not AppearanceRecord(name,profile) and profile~=nil
-    end
+    function context.Exists(name) return Root().settingsProfiles[Name(name) or ""]~=nil end
     function context.CanAdd(name)
         name=Name(name);if not name then return false,"Enter a profile name (1-64 characters)." end
-        if AppearanceRecord(name,Root().settingsProfiles[name]) then return false,"Appearance presets use their own editor." end
         if context.Exists(name) then return false,"This profile already exists." end
         return true
     end
     function context.GetCurrent()
         local root=Root()
         local name=root.currentSettingsProfiles[context.id] or context.id=="suite" and root.currentSettingsProfile
-        if name then
-            if AppearanceRecord(name,root.settingsProfiles[name]) then error("Appearance presets cannot be current general profiles.") end
-            return name
-        end
+        if name then return name end
         local base=options.defaultName or (context.id=="suite" and "Default" or (context.providers[1] and context.providers[1].name or "Booty").." Default")
         local index=1;name=base
         while context.Exists(name) do index=index+1;name=base.." "..index end
@@ -228,7 +216,6 @@ function Profiles.Create(providers,options)
     function context.Load(name)
         name=Name(name)
         local profile=Root().settingsProfiles[name or ""]
-        if AppearanceRecord(name,profile) then return false,"Appearance presets use their own editor." end
         if not Valid(profile) then return false,"Profile not found or unsupported." end
         local changes={}
         local ok,failure=pcall(function()
@@ -256,7 +243,6 @@ function Profiles.Create(providers,options)
     end
     function context.Delete(name)
         name=Name(name);local profiles=Root().settingsProfiles
-        if AppearanceRecord(name,profiles[name or ""]) then return false,"Appearance presets use their own editor." end
         if not name or not profiles[name] then return false,"Profile not found." end
         profiles[name]=nil
         return true,"Deleted profile: "..name
@@ -296,7 +282,6 @@ function Profiles.Create(providers,options)
     end
     function context.Export(name)
         name=Name(name);local profile=Root().settingsProfiles[name or ""]
-        if AppearanceRecord(name,profile) then return nil,"Appearance presets use their own editor." end
         if not Valid(profile) then return nil,"Profile not found or unsupported. Save or Add it first." end
         local ok,text=pcall(function()
             local checked=Copy(profile)
@@ -313,281 +298,6 @@ function Profiles.Create(providers,options)
         end)
         if not ok then return nil,tostring(text) end
         return text
-    end
-    return context
-end
-
--- A visual preset is one appearance owner's declared values. It never goes
--- through ordinary settings Load, aggregate providers or a durable field setter.
-function Profiles.CreateAppearance(options)
-    if type(options)~="table" or type(options.id)~="string" or options.id==""
-        or string.find(options.id,"[^%w_%.%-]") or type(options.getProvider)~="function" then
-        error("Expected an appearance target and its provider getter.")
-    end
-    local id=options.id
-    local prefix,index="@appearance:"..id..":","appearance:"..id
-    local context,busy={id=id},false
-    local deleteGuards=setmetatable({}, {__mode="k"})
-    local function Message(value) return type(value)=="table" and tostring(value.message or value.code) or tostring(value) end
-    local function Root()
-        local root=options.store
-        if root==nil then root=BootyLibDB end
-        if type(root)~="table" then error("Shared appearance preset data is not ready.") end
-        if root.settingsProfiles~=nil and type(root.settingsProfiles)~="table" then error("Invalid saved profile collection; preserve it before repair.") end
-        if root.currentSettingsProfiles~=nil and type(root.currentSettingsProfiles)~="table" then error("Invalid saved profile selection; preserve it before repair.") end
-        return root,root.settingsProfiles,root.currentSettingsProfiles
-    end
-    local function CheckedName(value)
-        local name=Name(value)
-        if not name then error("Enter a preset name (1-64 characters).") end
-        return name
-    end
-    local function Record(profiles,name,required)
-        local record=profiles and profiles[prefix..name]
-        if record==nil then if required then error("Appearance preset not found.") end;return nil end
-        if type(record)~="table" or record.version~=3 or record.scope~="appearance" or record.target~=id
-            or record.name~=name or type(record.values)~="table" then error("Invalid appearance preset; preserve it before repair.") end
-        for key in pairs(record) do
-            if key~="version" and key~="scope" and key~="target" and key~="name" and key~="values" then error("Unsupported appearance preset field.") end
-        end
-        return record
-    end
-    local function Current(profiles,currents)
-        local name=currents and currents[index]
-        if name==nil then return nil end
-        if type(name)~="string" or name~=CheckedName(name) then error("Invalid saved appearance preset selection.") end
-        Record(profiles,name,true)
-        return name
-    end
-    local function OwnerCall(owner,method,first)
-        if type(owner[method])~="function" then return false,"Update the appearance owner to use presets." end
-        local ok,result,detail=pcall(owner[method],first)
-        if not ok then return false,Message(result) end
-        if result~=true then return false,Message(detail or "The appearance owner declined this operation.") end
-        return true,detail
-    end
-    local function Owner()
-        local owner=options.getProvider(id)
-        if type(owner)~="table" or owner.id~=id or owner.apiVersion~=1 then error("The appearance owner is unavailable or incompatible.") end
-        return owner
-    end
-    local function Finite(value) return type(value)=="number" and value==value and value-value==0 end
-    local function Model(owner)
-        local ok,data=OwnerCall(owner,"ReadAppearance",id)
-        if not ok then error(data) end
-        if type(data)~="table" or data.available~=true then error(Message(type(data)=="table" and data.reason or "Appearance is unavailable.")) end
-        local fields=data.fields
-        if id=="booty.shared.appearance" then fields={{key="skin",type="choice",choices=data.choices}} end
-        if type(fields)~="table" or table.getn(fields)==0 then error("The appearance owner has no explicit field schema.") end
-        local schema={}
-        for _,field in ipairs(fields) do
-            if type(field)~="table" or type(field.key)~="string" or field.key=="" or schema[field.key] then error("Invalid appearance field schema.") end
-            local entry={type=field.type,min=field.min,max=field.max,step=field.step}
-            if field.type=="slider" then
-                if not Finite(entry.min) or not Finite(entry.max) or entry.min>entry.max
-                    or entry.step~=nil and (not Finite(entry.step) or entry.step<=0) then error("Invalid appearance slider schema.") end
-            elseif field.type=="choice" then
-                if type(field.choices)~="table" or table.getn(field.choices)==0 then error("Invalid appearance choices.") end
-                entry.choices={}
-                for _,choice in ipairs(field.choices) do
-                    local value=type(choice)=="table" and choice.value
-                    if type(value)~="string" and type(value)~="boolean" and not Finite(value) or entry.choices[value] then error("Invalid appearance choice.") end
-                    entry.choices[value]=true
-                end
-            elseif field.type~="checkbox" and field.type~="color" then error("Unsupported appearance field type.") end
-            schema[field.key]=entry
-        end
-        return schema,data
-    end
-    local function Validate(values,schema)
-        if type(values)~="table" then error("Invalid appearance preset values.") end
-        for key in pairs(values) do if not schema[key] then error("Unknown appearance field: "..tostring(key)) end end
-        local detached={}
-        for key,field in pairs(schema) do
-            local value,valid=values[key],false
-            if field.type=="color" then
-                valid=type(value)=="table"
-                if valid then
-                    for part in pairs(value) do if part~=1 and part~=2 and part~=3 then valid=false end end
-                    for part=1,3 do if not Finite(value[part]) or value[part]<0 or value[part]>1 then valid=false end end
-                end
-            elseif field.type=="checkbox" then valid=type(value)=="boolean"
-            elseif field.type=="choice" then valid=value~=nil and field.choices[value]==true
-            else
-                valid=Finite(value) and value>=field.min and value<=field.max
-                if valid and field.step then
-                    local steps=(value-field.min)/field.step
-                    valid=math.abs(steps-math.floor(steps+0.5))<0.000001
-                end
-            end
-            if not valid then error("Invalid appearance field: "..key) end
-            detached[key]=Copy(value)
-        end
-        return detached
-    end
-    local function ReadModel(owner)
-        local schema,data=Model(owner)
-        Validate(data.defaults,schema)
-        return schema,Validate(data.values,schema)
-    end
-    local function Capture()
-        local owner=Owner()
-        local begun,token=OwnerCall(owner,"BeginAppearancePreview",id)
-        if not begun then error(token) end
-        if token==nil then error("The appearance owner returned no capture token.") end
-        local read,schema,values=pcall(ReadModel,owner)
-        local cancelled,restored=OwnerCall(owner,"CancelAppearance",token)
-        if not read then error(Message(schema)..(not cancelled and ("; capture cleanup: "..Message(restored)) or "")) end
-        if not cancelled then error("Appearance capture could not finish: "..Message(restored)) end
-        if not Equal(values,Validate(restored,schema)) then error("Appearance changed during preset capture.") end
-        return schema,values
-    end
-    local function Run(callback,mutation)
-        if mutation and busy then return false,"An appearance preset operation is already in progress." end
-        if mutation then busy=true end
-        local ok,result,detail,guard=pcall(callback)
-        if mutation then busy=false end
-        if not ok then return false,Message(result) end
-        return result,detail,guard
-    end
-    local function Snapshot(root,profiles,currents,name)
-        Current(profiles,currents)
-        local old=profiles and profiles[prefix..name]
-        return {root=root,profiles=profiles,currents=currents,key=prefix..name,old=old,oldCopy=Copy(old),current=currents and currents[index]}
-    end
-    local function Commit(snapshot,record,writeRecord,selected,writeSelection)
-        local profiles,currents=snapshot.profiles,snapshot.currents
-        local createdProfiles,createdCurrents,recordAttempt,selectionAttempt
-        local expected=Copy(record)
-        local function Check(currentRecord,currentSelection,recordReference)
-            local root,collection,selection=Root()
-            if root~=snapshot.root or collection~=profiles or selection~=currents
-                or (collection and collection[snapshot.key])~=recordReference or not Equal(collection and collection[snapshot.key],currentRecord)
-                or (selection and selection[index])~=currentSelection then error("Appearance presets changed during this operation.") end
-        end
-        local ok,failure=pcall(function()
-            Check(snapshot.oldCopy,snapshot.current,snapshot.old)
-            if writeRecord and not profiles then
-                createdProfiles={};profiles=createdProfiles;snapshot.root.settingsProfiles=profiles
-                Check(snapshot.oldCopy,snapshot.current,snapshot.old)
-            end
-            if writeSelection and not currents then
-                createdCurrents={};currents=createdCurrents;snapshot.root.currentSettingsProfiles=currents
-                Check(snapshot.oldCopy,snapshot.current,snapshot.old)
-            end
-            if writeRecord then recordAttempt=true;profiles[snapshot.key]=record;Check(expected,snapshot.current,record) end
-            if writeSelection then selectionAttempt=true;currents[index]=selected end
-            local finalRecord,finalSelection,finalReference=snapshot.oldCopy,snapshot.current,snapshot.old
-            if writeRecord then finalRecord=expected;finalReference=record end
-            if writeSelection then finalSelection=selected end
-            Check(finalRecord,finalSelection,finalReference)
-        end)
-        if ok then return true end
-        local rollback={}
-        local function Restore(callback)
-            local restored,message=pcall(callback)
-            if not restored then table.insert(rollback,Message(message)) end
-        end
-        local root=options.store;if root==nil then root=BootyLibDB end
-        if root~=snapshot.root then table.insert(rollback,"A later shared profile store was preserved.")
-        else
-            if recordAttempt then Restore(function()
-                if root.settingsProfiles~=profiles then error("A later profile collection was preserved.") end
-                if profiles[snapshot.key]==record and Equal(profiles[snapshot.key],expected) then profiles[snapshot.key]=snapshot.old
-                elseif profiles[snapshot.key]~=snapshot.old or not Equal(profiles[snapshot.key],snapshot.oldCopy) then error("A later appearance preset was preserved.") end
-            end) end
-            if selectionAttempt then Restore(function()
-                if root.currentSettingsProfiles~=currents then error("A later selection collection was preserved.") end
-                if currents[index]==selected then currents[index]=snapshot.current
-                elseif currents[index]~=snapshot.current then error("A later preset selection was preserved.") end
-            end) end
-            if createdCurrents and root.currentSettingsProfiles==createdCurrents and next(createdCurrents)==nil then Restore(function() root.currentSettingsProfiles=snapshot.currents end) end
-            if createdProfiles and root.settingsProfiles==createdProfiles and next(createdProfiles)==nil then Restore(function() root.settingsProfiles=snapshot.profiles end) end
-        end
-        return false,Message(failure)..(table.getn(rollback)>0 and ("; rollback: "..table.concat(rollback,"; ")) or "")
-    end
-    local function Save(name,add)
-        return Run(function()
-            name=CheckedName(name)
-            local root,profiles,currents=Root()
-            local old=Record(profiles,name,not add)
-            if add and old then return false,"This appearance preset already exists. Use Save to update it." end
-            local snapshot=Snapshot(root,profiles,currents,name)
-            local schema,values=Capture()
-            if old then Validate(old.values,schema) end
-            local record={version=3,scope="appearance",target=id,name=name,values=values}
-            local ok,failure=Commit(snapshot,record,true,name,add)
-            if not ok then return ok,failure end
-            return true,"Saved appearance preset: "..name
-        end,true)
-    end
-    function context.List()
-        return Run(function()
-            local _,profiles=Root();local names={}
-            for key in pairs(profiles or {}) do
-                if type(key)=="string" and string.sub(key,1,string.len(prefix))==prefix then
-                    local name=string.sub(key,string.len(prefix)+1)
-                    if name~=CheckedName(name) then error("Invalid appearance preset name.") end
-                    Record(profiles,name,true);table.insert(names,name)
-                end
-            end
-            table.sort(names);return names
-        end)
-    end
-    function context.Exists(name)
-        return Run(function() name=CheckedName(name);local _,profiles=Root();return Record(profiles,name,false)~=nil end)
-    end
-    function context.CanAdd(name)
-        return Run(function()
-            name=CheckedName(name);local _,profiles=Root()
-            if Record(profiles,name,false) then return false,"This appearance preset already exists." end
-            return true
-        end)
-    end
-    function context.GetCurrent() return Run(function() local _,profiles,currents=Root();return Current(profiles,currents) end) end
-    function context.GetValues(name)
-        return Run(function()
-            name=CheckedName(name);local root,profiles=Root();local record=Record(profiles,name,true)
-            local snapshot=Copy(record)
-            local schema=ReadModel(Owner())
-            local values=Validate(record.values,schema)
-            local current,collection=Root()
-            if current~=root or collection~=profiles or collection[prefix..name]~=record or not Equal(record,snapshot) then
-                error("Appearance preset changed during its read.")
-            end
-            local guard={}
-            deleteGuards[guard]={root=root,profiles=profiles,record=record,snapshot=snapshot,name=name}
-            return true,values,guard
-        end)
-    end
-    function context.Add(name) return Save(name,true) end
-    function context.Save(name) return Save(name,false) end
-    function context.Select(name)
-        return Run(function()
-            name=CheckedName(name);local root,profiles,currents=Root();local record=Record(profiles,name,true)
-            local snapshot=Snapshot(root,profiles,currents,name)
-            local schema=ReadModel(Owner());Validate(record.values,schema)
-            local ok,failure=Commit(snapshot,nil,false,name,true)
-            if not ok then return ok,failure end
-            return true,"Selected appearance preset: "..name
-        end,true)
-    end
-    function context.Delete(name,guard)
-        return Run(function()
-            name=CheckedName(name);local root,profiles,currents=Root();local record=Record(profiles,name,true)
-            if guard~=nil then
-                local expected=deleteGuards[guard]
-                deleteGuards[guard]=nil
-                if not expected or expected.name~=name or expected.root~=root or expected.profiles~=profiles
-                    or expected.record~=record or not Equal(expected.snapshot,record) then
-                    return false,"Appearance preset changed after the delete confirmation was opened."
-                end
-            end
-            local snapshot=Snapshot(root,profiles,currents,name)
-            local ok,failure=Commit(snapshot,nil,true,nil,snapshot.current==name)
-            if not ok then return ok,failure end
-            return true,"Deleted appearance preset: "..name
-        end,true)
     end
     return context
 end
