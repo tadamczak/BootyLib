@@ -16,4 +16,3 @@ Compatible appearance editors can preview the shared interface skin before apply
 Supported editors can also save named appearance presets for individual elements. These presets remain separate from general settings profiles.
 
 Settings keeps compact text and clear plus/minus controls for expanding sections.
-Dropdowns retain their normal text size when windows change size or scale. Numeric fields retain their entered values.
