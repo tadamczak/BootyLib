@@ -1,11 +1,5 @@
 # Changelog
 
-## 0.1.0-dev.11 — 2026-10-06
-
-- Synchronize visible geometry editors after ordinary window movement without polling.
-- Keep part of the title reachable while allowing content to move beyond screen edges.
-- Reconcile scaled window contents once after the client updates child bounds.
-
 ## 0.1.0-dev.10 — 2026-10-06
 
 - Add transactional window scale and declared screen/element anchors while preserving legacy position/size saves.

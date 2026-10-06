@@ -156,12 +156,10 @@ function ProductHost.Create(product, options)
                 geometryTransition = false
                 if not ok then error(result) end
                 if result == false then return false, message or "The view declined the window layout." end
-                local window = host.windows[id]
-                if window and window.ScheduleLayoutRefresh then window.ScheduleLayoutRefresh() end
                 return true
             end,
         })
-        for _, name in ipairs({"ReadGeometry", "BeginGeometryPreview", "PreviewGeometry", "ApplyGeometry", "CancelGeometry", "ResetGeometry", "GetGeometryReference", "WatchGeometry", "UnwatchGeometry"}) do
+        for _, name in ipairs({"ReadGeometry", "BeginGeometryPreview", "PreviewGeometry", "ApplyGeometry", "CancelGeometry", "ResetGeometry", "GetGeometryReference"}) do
             host[name] = geometryManager[name]
         end
     end

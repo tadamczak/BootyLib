@@ -75,12 +75,8 @@ function Pose.Normalize(value,context,limits,selfId,allowMissing)
         if not Pose.Finite(rect.offsetX) or not Pose.Finite(rect.offsetY) then error("Anchor offsets must be finite numbers.") end
         rect.left,rect.bottom=originX+rect.offsetX,originY+rect.offsetY
     end
-    -- Match ordinary window movement: content may leave the display, while
-    -- a usable part of the title remains reachable in UIParent units.
-    local visibleWidth=math.min(64,rect.width*rect.scale,context.width)
-    local visibleHeight=math.min(26,rect.height*rect.scale,context.height)
-    rect.left=math.max(visibleWidth-rect.width*rect.scale,math.min(context.width-visibleWidth,rect.left))
-    rect.bottom=math.max(visibleHeight-rect.height*rect.scale,math.min(context.height-rect.height*rect.scale,rect.bottom))
+    rect.left=math.max(0,math.min(math.max(0,context.width-rect.width*rect.scale),rect.left))
+    rect.bottom=math.max(0,math.min(math.max(0,context.height-rect.height*rect.scale),rect.bottom))
     rect.offsetX,rect.offsetY=rect.left-originX,rect.bottom-originY
     return rect,reference,warning
 end
@@ -105,7 +101,6 @@ function Pose.Capture(frame,context)
     return rect
 end
 function Pose.Draw(frame,rect,reference)
-    if frame.SetClampedToScreen then frame:SetClampedToScreen(false) end
     if math.abs(frame:GetEffectiveScale()/UIParent:GetEffectiveScale()-rect.scale)>0.00001 then frame:SetScale(rect.scale) end
     if math.abs(frame:GetEffectiveScale()/UIParent:GetEffectiveScale()-rect.scale)>0.0001 then error("The client declined the window scale.") end
     if frame:GetWidth()~=rect.width then frame:SetWidth(rect.width) end
