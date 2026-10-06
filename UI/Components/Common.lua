@@ -150,28 +150,23 @@ function UI.ApplySelectionListStyle(buttons, items, selectedId, loadButton)
     return selectedAvailable
 end
 
--- Keep the control's own logical font. A transient one-pixel layout must not
--- shrink it; numeric EditBoxes also need fresh metrics after inherited scaling.
+-- Dropdown labels retain their logical font through transient narrow bounds.
+-- EditBoxes inherit scale natively; layout must not rewrite their input buffer.
 function UI.ReflowControlText(control)
     local font = control.mosControlFont
-    if not font then return end
+    if not font or not control.label then return end
     local width, height = control:GetWidth(), control:GetHeight()
     local scale = control.GetEffectiveScale and control:GetEffectiveScale() or 1
     if control.mosTextWidth == width and control.mosTextHeight == height and control.mosTextScale == scale then return end
-    local label = control.label or control
-    -- Preserve the current buffer across metric changes. Mark the bounds first
-    -- to suppress synchronous size reentry before restoring the entered text.
-    local text = not control.label and label:GetText() or nil
+    local label = control.label
+    -- Mark the bounds before native setters can emit synchronous size events.
     control.mosTextWidth, control.mosTextHeight, control.mosTextScale = width, height, scale
     local ok, reason = pcall(label.SetFont, label, font[1], font[2], font[3])
     if not ok then
         control.mosTextWidth = nil
-        if not control.label then label:SetText(text or "") end
         error(reason)
     end
-    if control.label then
-        label:SetWidth(math.max(1, width - 28)); label:SetHeight(math.max(1, height - 4))
-    else label:SetText(text or "") end
+    label:SetWidth(math.max(1, width - 28)); label:SetHeight(math.max(1, height - 4))
 end
 
 local function ReflowControlText() UI.ReflowControlText(this) end
@@ -294,10 +289,6 @@ function UI.CreateFramedEditBox(parent, name, width)
     local box = CreateFrame("EditBox", name, parent)
     box:SetWidth(width or 92); box:SetHeight(24); box:SetAutoFocus(false); box:SetFontObject(GameFontHighlightSmall)
     UI.ApplyTextSizeDelta(box, parent)
-    local font, size, flags = box:GetFont()
-    box.mosControlFont = {font, size, flags}
-    box:SetScript("OnSizeChanged", ReflowControlText)
-    UI.ReflowControlText(box)
     box:SetTextInsets(7, 7, 2, 2)
     box:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", tile = true, tileSize = 8, edgeSize = 10, insets = { left = 3, right = 3, top = 3, bottom = 3 } })
     box:SetBackdropColor(0.018, 0.018, 0.016, 1); box:SetBackdropBorderColor(0.48, 0.34, 0.10, 1)

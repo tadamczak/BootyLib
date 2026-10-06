@@ -11,6 +11,7 @@ Windows, controls and menus use a consistent foreground order across installed B
 Compatible layout editors can preview window position, size, scale and supported anchor points, then apply or cancel the edit. Hiding or minimizing a window cancels its unfinished preview. Unavailable anchor elements retain their saved reference and use a recoverable screen position.
 Applied Suite window position and size are restored when the UI reloads.
 Ordinary window movement also updates a visible compatible editor. Content may extend beyond the screen while part of the title remains reachable.
+Grid snapping keeps the selected point on a reachable grid line while preserving the window's size. Numeric inputs retain their text during window resizing and scaling.
 
 Compatible appearance editors can preview the shared interface skin before applying it. A new choice in Settings ends an unfinished skin preview.
 Supported editors can also save named appearance presets for individual elements. These presets remain separate from general settings profiles.
