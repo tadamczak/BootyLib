@@ -46,12 +46,6 @@ local function Reference(rect,context,selfId,allowMissing)
     if not Pose.Finite(scale) or scale<=0 or not Pose.Finite(left) or not Pose.Finite(bottom) then error("Anchor bounds are unavailable.") end
     return {frame=frame,left=left*scale,bottom=bottom*scale,width=frame:GetWidth()*scale,height=frame:GetHeight()*scale}
 end
-local function MovementBounds(rect,context)
-    local width,height=rect.width*(rect.scale or 1),rect.height*(rect.scale or 1)
-    local visibleWidth=math.min(64,width,context.width)
-    local visibleHeight=math.min(26,height,context.height)
-    return visibleWidth-width,context.width-visibleWidth,visibleHeight-height,context.height-height
-end
 function Pose.Normalize(value,context,limits,selfId,allowMissing)
     local rect=Pose.Copy(value)
     for _,key in ipairs({"left","bottom","width","height"}) do if not Pose.Finite(rect[key]) then error("Invalid window geometry: "..key) end end
@@ -83,9 +77,10 @@ function Pose.Normalize(value,context,limits,selfId,allowMissing)
     end
     -- Match ordinary window movement: content may leave the display, while
     -- a usable part of the title remains reachable in UIParent units.
-    local minLeft,maxLeft,minBottom,maxBottom=MovementBounds(rect,context)
-    rect.left=math.max(minLeft,math.min(maxLeft,rect.left))
-    rect.bottom=math.max(minBottom,math.min(maxBottom,rect.bottom))
+    local visibleWidth=math.min(64,rect.width*rect.scale,context.width)
+    local visibleHeight=math.min(26,rect.height*rect.scale,context.height)
+    rect.left=math.max(visibleWidth-rect.width*rect.scale,math.min(context.width-visibleWidth,rect.left))
+    rect.bottom=math.max(visibleHeight-rect.height*rect.scale,math.min(context.height-rect.height*rect.scale,rect.bottom))
     rect.offsetX,rect.offsetY=rect.left-originX,rect.bottom-originY
     return rect,reference,warning
 end
@@ -128,39 +123,13 @@ function Pose.Snap(value,step,pixelScale)
     end
     return result
 end
-local function BoundedSnap(value,step,pixelScale,minimum,maximum)
-    local snapped=Pose.Snap(value,step,pixelScale)
-    if snapped>=minimum and snapped<=maximum then return snapped end
-    local first,last
-    if pixelScale then
-        -- Restrict cells by their rendered physical pixels. Clamping a rounded
-        -- coordinate to a raw screen bound would put it between grid lines.
-        local minPixel,maxPixel=math.ceil(minimum*pixelScale),math.floor(maximum*pixelScale)
-        first=math.ceil((minPixel-0.5)/(step*pixelScale))
-        last=math.ceil((maxPixel+0.5)/(step*pixelScale))-1
-    else first,last=math.ceil(minimum/step),math.floor(maximum/step) end
-    if first>last then error("No grid line keeps the window title reachable.") end
-    local cell=math.max(first,math.min(last,math.floor(value/step+0.5)))
-    return Pose.Snap(cell*step,step,pixelScale)
-end
-function Pose.SnapAnchor(rect,step,pixelScale,context)
+function Pose.SnapAnchor(rect,step,pixelScale)
     local point=fractions[rect.anchor or "BOTTOMLEFT"]
     if not point then error("Unknown grid anchor point.") end
     local x=rect.width*(rect.scale or 1)*point[1]
     local y=rect.height*(rect.scale or 1)*point[2]
-    local left,bottom
-    if context then
-        if not Pose.Finite(context.width) or not Pose.Finite(context.height) or context.width<=0 or context.height<=0 then
-            error("Grid screen bounds are unavailable.")
-        end
-        local minLeft,maxLeft,minBottom,maxBottom=MovementBounds(rect,context)
-        left=BoundedSnap(rect.left+x,step,pixelScale,minLeft+x,maxLeft+x)-x
-        bottom=BoundedSnap(rect.bottom+y,step,pixelScale,minBottom+y,maxBottom+y)-y
-    else
-        left=Pose.Snap(rect.left+x,step,pixelScale)-x
-        bottom=Pose.Snap(rect.bottom+y,step,pixelScale)-y
-    end
-    rect.left,rect.bottom=left,bottom
+    rect.left=Pose.Snap(rect.left+x,step,pixelScale)-x
+    rect.bottom=Pose.Snap(rect.bottom+y,step,pixelScale)-y
     rect.offsetX,rect.offsetY=nil,nil
     return rect
 end
