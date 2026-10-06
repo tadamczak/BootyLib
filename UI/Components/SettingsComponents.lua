@@ -400,12 +400,35 @@ function Settings.CreatePercentageField(parent, name, labelText, x, y, settingKe
     return label, field
 end
 
+function Settings.SetTextFieldEnabled(field, enabled)
+    -- A native 1.12 EditBox has Frame input gates, not Button Enable/Disable.
+    field.mosEnabled = enabled and true or false
+    field:EnableMouse(field.mosEnabled)
+    field:EnableKeyboard(field.mosEnabled)
+    if not field.mosEnabled and not field.mosClearingFocus then
+        -- Native focus ownership is cleared only after OnEditFocusLost returns.
+        field.mosClearingFocus = true
+        local previousThis, previousEvent, previousArg = this, event, arg1
+        local ok, failure = pcall(field.ClearFocus, field)
+        this, event, arg1 = previousThis, previousEvent, previousArg
+        field.mosClearingFocus = nil
+        if not ok then error(failure, 0) end
+    end
+end
+
 function Settings.CreateSavedTextField(parent, settingKey, binding)
     local field = MOS.UI.Components.CreateFramedEditBox(parent, nil, 300)
     field.settingKey = settingKey; field:SetMaxLetters(512)
     field.CommitValue = function(self)
-        if not self.mosEditing then return end
-        binding.set(self.settingKey, string.gsub(self:GetText() or "", "[%c]", " "))
+        if not self.mosEditing or self.mosCommitting then return end
+        local value = string.gsub(self:GetText() or "", "[%c]", " ")
+        -- Keep the raw draft protected from refresh while its setter can reenter.
+        self.mosCommitting = true
+        local previousThis, previousEvent, previousArg = this, event, arg1
+        local ok, failure = pcall(binding.set, self.settingKey, value)
+        this, event, arg1 = previousThis, previousEvent, previousArg
+        self.mosCommitting = nil
+        if not ok then error(failure, 0) end
         self.mosEditing = nil
     end
     field.RefreshValue = function(self)

@@ -365,7 +365,12 @@ local function RefreshNodes(nodes)
             if node.field.type == "checkbox" then UI.Settings.SetCheckboxEnabled(node.control, enabled)
             elseif node.field.type == "slider" then UI.Settings.SetSliderEnabled(node.control, enabled)
             else
-                if enabled then node.control:Enable() else node.control:Disable() end
+                local kind = node.field.type
+                if kind == "action" or kind == "color" or kind == "choice" or kind == "dropdown" then
+                    if enabled then node.control:Enable() else node.control:Disable() end
+                else
+                    UI.Settings.SetTextFieldEnabled(node.control, enabled)
+                end
                 node.control:SetAlpha(enabled and 1 or 0.42)
                 local label = node.label or node.control.label
                 if label then label:SetTextColor(unpack(enabled and UI.TextColors.white or UI.TextColors.gray)) end
