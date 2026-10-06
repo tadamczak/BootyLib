@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.12 — 2026-10-06
+
+- Preserve normal dropdown fonts when resizing or scaling a window.
+- Reflow numeric input text after width or inherited scale changes while retaining the entered value.
+
 ## 0.1.0-dev.11 — 2026-10-06
 
 - Synchronize visible geometry editors after ordinary window movement without polling.
