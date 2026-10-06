@@ -161,7 +161,7 @@ function ProductHost.Create(product, options)
                 return true
             end,
         })
-        for _, name in ipairs({"ReadGeometry", "BeginGeometryPreview", "PreviewGeometry", "ApplyGeometry", "CancelGeometry", "ResetGeometry", "GetGeometryReference", "WatchGeometry", "UnwatchGeometry"}) do
+        for _, name in ipairs({"ReadGeometry", "BeginGeometryPreview", "PreviewGeometry", "ApplyGeometry", "CancelGeometry", "ResetGeometry", "ResetGeometryScale", "GetGeometryReference", "WatchGeometry", "UnwatchGeometry"}) do
             host[name] = geometryManager[name]
         end
     end
