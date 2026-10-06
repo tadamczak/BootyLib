@@ -373,6 +373,133 @@ function Geometry.Create(options)
         if not ok then return Failure("geometry-error", defaults) end
         return manager.PreviewGeometry(token, defaults)
     end
+    -- Recovery deliberately works before a window exists and without readable
+    -- native bounds. It never creates a window or resets unrelated settings.
+    function manager.ResetGeometryScale(id)
+        return Protected(function()
+            if not pose then return Failure("unsupported", "This window has no scale owner.") end
+            if sessions[id] then return Failure("busy", "Finish the window preview before recovering its scale.") end
+            local available, reason = true, nil
+            if options.isAvailable then available, reason = options.isAvailable(id) end
+            if available ~= true and reason ~= "hidden" and reason ~= "not-created" then
+                return Failure(reason or "unavailable", "This window cannot recover its scale right now.")
+            end
+            if options.isMinimized and options.isMinimized(id) then
+                return Failure("minimized", "Expand the window before recovering its scale.")
+            end
+            local context, frame, stored = Context(), options.getFrame(id), Stored(id)
+            local committed = OverlayStored(Copy(options.getDefaults(id, context)), stored)
+            if committed.scale ~= nil and (not Finite(committed.scale) or committed.scale < 0.5 or committed.scale > 2) then
+                return Failure("invalid-scale", "The saved window scale is invalid.")
+            end
+            -- A readable frame must not conceal corrupt durable geometry.
+            local checked, storedReference, warning = pose.Normalize(committed, context, Limits(id, context),
+                options.referenceId and options.referenceId(id), true)
+            local original, anchors
+            if frame and frame:IsVisible() then
+                local read, rect = pcall(Rect, frame)
+                if read and Finite(rect.width) and rect.width > 0 and Finite(rect.height) and rect.height > 0 then
+                    original, anchors = rect, Anchors(frame)
+                else warning = "Unreadable window bounds were recovered from saved geometry." end
+            end
+            local candidate = Copy(original or committed)
+            candidate.scale, candidate.offsetX, candidate.offsetY = 1, nil, nil
+            local reference, referenceWarning
+            candidate, reference, referenceWarning = pose.Normalize(candidate, context, Limits(id, context),
+                options.referenceId and options.referenceId(id), true)
+            warning = warning or referenceWarning
+            local liveScale = frame and frame:GetEffectiveScale() / context.scale or 1
+            if not Finite(liveScale) or liveScale <= 0 then return Failure("invalid-scale", "The native window scale is unavailable.") end
+            if (committed.scale or 1) == 1 and math.abs(liveScale - 1) < 0.00001 and not warning then
+                return true, Copy(original or candidate)
+            end
+            if not Equal(Stored(id), stored) then return Failure("external-change", "Saved geometry changed before scale recovery.") end
+            local projection, projectionStore = frame and frame.mosGeometryProjection, frame and frame.mosGeometryProjectionStore
+            local frameApplied = false
+            local function SameFrame()
+                local read, current = pcall(options.getFrame, id)
+                if not read then return false, tostring(current) end
+                if current ~= frame then return false, "The window instance changed during recovery." end
+                return true
+            end
+            local function Rollback(code, message)
+                local read, current = pcall(Stored, id)
+                local owns = read
+                if owns then for _, key in ipairs(keys) do
+                    if current[key] ~= stored[key] and current[key] ~= candidate[key] then owns = false; break end
+                end end
+                local rollback
+                if owns then
+                    local wrote, result, detail = pcall(options.writeStored, id, Copy(stored))
+                    local verified, restored = pcall(Stored, id)
+                    if not wrote or result ~= true or not verified or not Equal(restored, stored) then
+                        rollback = tostring(not wrote and result or detail or "Saved geometry rollback was not confirmed.")
+                    end
+                    local currentFrame, frameFailure = SameFrame()
+                    if frameApplied and currentFrame then
+                        local restoredFrame, failure = pcall(function()
+                            ApplyRect(id, frame, original or Normalize(id, committed, context), anchors)
+                            frame.mosGeometryProjection, frame.mosGeometryProjectionStore = projection, projectionStore
+                        end)
+                        if not restoredFrame then rollback = rollback or tostring(failure) end
+                    elseif frameApplied then rollback = rollback or frameFailure
+                    end
+                else
+                    rollback = read and "A later saved geometry value was preserved." or "Saved geometry could not be read during rollback."
+                    local currentFrame, frameFailure = SameFrame()
+                    if read and frameApplied and currentFrame then
+                        local restoredFrame, failure = pcall(function()
+                            local latest = OverlayStored(Copy(options.getDefaults(id, context)), current)
+                            ApplyRect(id, frame, Normalize(id, latest, context))
+                        end)
+                        if not restoredFrame then rollback = rollback .. " " .. tostring(failure) end
+                    elseif frameApplied and not currentFrame then rollback = rollback .. " " .. frameFailure
+                    end
+                end
+                return Failure(code, message, rollback)
+            end
+            local function ConfirmRecovery()
+                local currentFrame, frameFailure = SameFrame()
+                if not currentFrame then return false, "unavailable", frameFailure end
+                local read, latestContext = pcall(Context)
+                if not read then return false, "geometry-error", tostring(latestContext) end
+                if latestContext.width ~= context.width or latestContext.height ~= context.height or latestContext.scale ~= context.scale then
+                    return false, "screen-change", "The screen or UI scale changed during recovery."
+                end
+                if frame then
+                    local readScale, effectiveScale = pcall(frame.GetEffectiveScale, frame)
+                    if not readScale or not Finite(effectiveScale) or math.abs(effectiveScale / context.scale - 1) > 0.0001 then
+                        return false, "layout-failed", readScale and "The client did not retain normal window scale." or tostring(effectiveScale)
+                    end
+                end
+                return true
+            end
+            local wrote, value, message = pcall(options.writeStored, id, Copy(candidate))
+            local verified, current = pcall(Stored, id)
+            if not wrote or value ~= true or not verified or not Equal(current, candidate) then
+                return Rollback("commit-failed", not wrote and value or message or "Window store did not confirm scale recovery.")
+            end
+            if frame then
+                local currentFrame, frameFailure = SameFrame()
+                if not currentFrame then return Rollback("unavailable", frameFailure) end
+                frameApplied = true
+                local applied, failure = pcall(ApplyRect, id, frame, candidate)
+                if not applied then return Rollback("layout-failed", failure) end
+            end
+            local confirmed, confirmationCode, confirmationFailure = ConfirmRecovery()
+            if not confirmed then return Rollback(confirmationCode, confirmationFailure) end
+            local read, finalStore = pcall(Stored, id)
+            if not read or not Equal(finalStore, candidate) then return Rollback("external-change", "Saved geometry changed during scale recovery.") end
+            local notified, failure = Changed(id)
+            if not notified then return Rollback("notification-failed", failure.message) end
+            confirmed, confirmationCode, confirmationFailure = ConfirmRecovery()
+            if not confirmed then return Rollback(confirmationCode, confirmationFailure) end
+            read, finalStore = pcall(Stored, id)
+            if not read or not Equal(finalStore, candidate) then return Rollback("external-change", "Saved geometry changed during recovery completion.") end
+            local result = Copy(candidate); result.warning = warning
+            return true, result
+        end)
+    end
     function manager.GetGeometryReference(id)
         local ok,result=pcall(function()
             local available,reason=true,nil
