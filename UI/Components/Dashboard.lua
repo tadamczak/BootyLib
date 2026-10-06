@@ -515,14 +515,8 @@ function Dashboard.BindWindow(view, options)
             view.contentPanel:Show()
             finalizer:SetScript("OnUpdate", FinishRestoreLayout); finalizer:Show()
         else
-            local skipSave = false
-            if options.beforeMinimize then
-                local ok, result = options.beforeMinimize()
-                if ok == false then return false, result end
-                skipSave = result == true
-            end
             view.widthBeforeMinimize = frame:GetWidth(); view.heightBeforeMinimize = frame:GetHeight(); view.leftBeforeMinimize = frame:GetLeft(); view.bottomBeforeMinimize = frame:GetBottom()
-            if not skipSave then options.saveGeometry() end
+            options.saveGeometry()
             Dashboard.SetTabBody(view, false)
             view.titleBar:Show(); Dashboard.PlaceWindowControls(view, false)
             view.minimized = true; frame.mosMinimized = true

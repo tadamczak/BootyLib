@@ -1,13 +1,5 @@
 # Changelog
 
-## 0.1.0-dev.6 — 2026-10-06
-
-- Support window position and size previews without saving until Apply.
-- Cancel unfinished window edits on hide or minimize and preserve later changes.
-- Preview a shared interface skin and apply or cancel it without changing other preferences.
-- Refresh settings actions when another Booty product takes or releases control of an option.
-- Preserve the owner's error when safe product shutdown is refused.
-
 ## 0.1.0-dev.5 — 2026-10-05
 
 - Preserve complete header titles through resizing, skin changes and window restore.
