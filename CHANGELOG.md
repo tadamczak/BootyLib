@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.14 — 2026-10-07
+
+- Leave numeric input text and native font scaling untouched during window layout.
+- Keep the selected snap point on an accessible grid line near screen limits, including after resizing.
+
 ## 0.1.0-dev.13 — 2026-10-07
 
 - Preserve input text before native font changes and synchronous size callbacks, including failed setter retries.
