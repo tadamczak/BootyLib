@@ -66,6 +66,11 @@ function ProductHost.Create(product, options)
         if not window or window.minimized then return end
         if geometryTransition or geometryManager and geometryManager.IsApplying() then return end
         if geometryManager and geometryManager.HasPreview(id) then return geometryManager.CaptureManual(id) end
+        if Lib.Core.WindowPose and geometryManager then
+            local ok,failure=geometryManager.SaveManual(id)
+            if not ok then host.Print(failure.message) end
+            return ok,failure
+        end
         local geometry = Geometry(id)
         local width, height = window:GetWidth(), window:GetHeight()
         if Finite(width) and width > 0 then geometry.width = width end
@@ -84,6 +89,11 @@ function ProductHost.Create(product, options)
         if controller and controller.OnResize then return controller:OnResize() end
     end
     local function RestoreBounds(window, definition, geometry)
+        if geometryManager and Lib.Core.WindowPose then
+            local ok,failure=geometryManager.RestoreCommitted(definition.id)
+            if not ok then host.Print(failure.message) end
+            return ok,failure
+        end
         local screenWidth, screenHeight = UI.GetFrameSpan(UIParent)
         local maxWidth = math.max(1, math.min(definition.maxWidth or 1400, screenWidth - 24))
         local maxHeight = math.max(1, math.min(definition.maxHeight or 1000, screenHeight - 24))
@@ -102,6 +112,7 @@ function ProductHost.Create(product, options)
     end
     if Lib.Core.WindowGeometry then
         geometryManager = Lib.Core.WindowGeometry.Create({
+            extended=true,referenceId=function(id) return "booty."..product.id..".window."..id end,
             getFrame = function(id) return host.windows[id] end,
             getStored = function(id)
                 local presentation = GeometryDatabase().presentation
@@ -112,6 +123,9 @@ function ProductHost.Create(product, options)
             writeStored = function(id, rect)
                 local geometry = Geometry(id, GeometryDatabase())
                 geometry.left, geometry.bottom, geometry.width, geometry.height = rect.left, rect.bottom, rect.width, rect.height
+                if Lib.Core.WindowPose then
+                    for _,key in ipairs(Lib.Core.WindowPose.fields) do geometry[key]=rect[key] end
+                end
                 return true
             end,
             getContext = function()
@@ -145,7 +159,7 @@ function ProductHost.Create(product, options)
                 return true
             end,
         })
-        for _, name in ipairs({"ReadGeometry", "BeginGeometryPreview", "PreviewGeometry", "ApplyGeometry", "CancelGeometry", "ResetGeometry"}) do
+        for _, name in ipairs({"ReadGeometry", "BeginGeometryPreview", "PreviewGeometry", "ApplyGeometry", "CancelGeometry", "ResetGeometry", "GetGeometryReference"}) do
             host[name] = geometryManager[name]
         end
     end
@@ -174,9 +188,21 @@ function ProductHost.Create(product, options)
                 local ok, failure = geometryManager.EndPreview(id, "hidden")
                 if not ok then host.Print(failure.message) end
             else SaveGeometry(id) end
+            if geometryManager then geometryManager.SetVisible(id,false) end
             if hidden then hidden() end
             if controller.Hide then controller:Hide() end
             if host.menu then host.menu:Close() end
+        end)
+        local shown=window:GetScript("OnShow")
+        window:SetScript("OnShow",function()
+            if shown then shown() end
+            if geometryManager then
+                local ok,failure=geometryManager.SetVisible(id,true)
+                if not ok then host.Print(failure.message) end
+                if not window.minimized and not geometryManager.HasPreview(id) and Lib.Core.WindowPose then
+                    ok,failure=geometryManager.RestoreCommitted(id);if not ok then host.Print(failure.message) end
+                end
+            end
         end)
         local dragged = window:GetScript("OnDragStop")
         window:SetScript("OnDragStop", function() if dragged then dragged() end; SaveGeometry(id) end)

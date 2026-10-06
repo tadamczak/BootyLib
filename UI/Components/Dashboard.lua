@@ -450,7 +450,10 @@ function Dashboard.BindWindow(view, options)
     frame:SetScript("OnEvent", function()
         if event ~= "PLAYER_LOGIN" then return end
         frame:UnregisterEvent("PLAYER_LOGIN")
-        Dashboard.RestoreGeometry(frame, view.geometrySettings or {})
+        if options.restoreGeometry then
+            local ok,failure=options.restoreGeometry()
+            if ok==false then error(type(failure)=="table" and failure.message or tostring(failure)) end
+        else Dashboard.RestoreGeometry(frame, view.geometrySettings or {}) end
         options.applyOrRefreshLayout()
     end)
     frame.mosDashboardView = view
@@ -499,6 +502,10 @@ function Dashboard.BindWindow(view, options)
             frame:SetWidth(view.widthBeforeMinimize or 840); frame:SetHeight(view.heightBeforeMinimize or 540)
             frame:ClearAllPoints()
             if view.leftBeforeMinimize and view.bottomBeforeMinimize then frame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", view.leftBeforeMinimize, view.bottomBeforeMinimize) else frame:SetPoint("CENTER", UIParent, "CENTER", 0, 10) end
+            if options.restoreGeometry then
+                local ok,failure=options.restoreGeometry()
+                if ok==false then error(type(failure)=="table" and failure.message or tostring(failure)) end
+            end
             view.title:ClearAllPoints(); view.title:SetPoint("CENTER", view.titleBar, "CENTER", 0, 2)
             view.title:SetFontObject(GameFontNormalLarge)
             view.title:SetTextColor(unpack(MOS.UI.Components.Theme.colors.goldText))

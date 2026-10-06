@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.0-dev.10 — 2026-10-06
+
+- Add transactional window scale and declared screen/element anchors while preserving legacy position/size saves.
+- Restore committed geometry on screen changes and window restore; retain unavailable anchor references with a visible fallback reason.
+- Keep anchor validation, minimum sizes and geometry persistence with each window owner.
+
 ## 0.1.0-dev.9 — 2026-10-06
 
 - Fix native text-field enabled state in Settings without calling unsupported Button methods.
