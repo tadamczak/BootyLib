@@ -1,10 +1,5 @@
 # Changelog
 
-## 0.1.0-dev.8 — 2026-10-06
-
-- Store named appearance presets separately for each supported element.
-- Preserve general settings profiles and save only validated appearance values.
-
 ## 0.1.0-dev.7 — 2026-10-06
 
 - Preserve saved Suite window position and size when the UI reloads.
