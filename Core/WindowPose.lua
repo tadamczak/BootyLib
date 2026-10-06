@@ -114,22 +114,7 @@ function Pose.Draw(frame,rect,reference)
     frame:SetPoint(rect.anchor,reference.frame or UIParent,rect.relativePoint,rect.offsetX/rect.scale,rect.offsetY/rect.scale)
     frame.mosGeometryPose=Pose.Copy(rect)
 end
-function Pose.Snap(value,step,pixelScale)
+function Pose.Snap(value,step)
     if not Pose.Finite(value) or not Pose.Finite(step) or step<4 or step>100 then error("Invalid grid position or spacing.") end
-    local result=math.floor(value/step+0.5)*step
-    if pixelScale~=nil then
-        if not Pose.Finite(pixelScale) or pixelScale<=0 then error("Invalid grid pixel scale.") end
-        result=math.floor(result*pixelScale+0.5)/pixelScale
-    end
-    return result
-end
-function Pose.SnapAnchor(rect,step,pixelScale)
-    local point=fractions[rect.anchor or "BOTTOMLEFT"]
-    if not point then error("Unknown grid anchor point.") end
-    local x=rect.width*(rect.scale or 1)*point[1]
-    local y=rect.height*(rect.scale or 1)*point[2]
-    rect.left=Pose.Snap(rect.left+x,step,pixelScale)-x
-    rect.bottom=Pose.Snap(rect.bottom+y,step,pixelScale)-y
-    rect.offsetX,rect.offsetY=nil,nil
-    return rect
+    return math.floor(value/step+0.5)*step
 end

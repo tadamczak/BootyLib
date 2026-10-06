@@ -159,19 +159,11 @@ function UI.ReflowControlText(control)
     local scale = control.GetEffectiveScale and control:GetEffectiveScale() or 1
     if control.mosTextWidth == width and control.mosTextHeight == height and control.mosTextScale == scale then return end
     local label = control.label or control
-    -- Preserve the current buffer across metric changes. Mark the bounds first
-    -- to suppress synchronous size reentry before restoring the entered text.
-    local text = not control.label and label:GetText() or nil
-    control.mosTextWidth, control.mosTextHeight, control.mosTextScale = width, height, scale
-    local ok, reason = pcall(label.SetFont, label, font[1], font[2], font[3])
-    if not ok then
-        control.mosTextWidth = nil
-        if not control.label then label:SetText(text or "") end
-        error(reason)
-    end
+    label:SetFont(font[1], font[2], font[3])
     if control.label then
         label:SetWidth(math.max(1, width - 28)); label:SetHeight(math.max(1, height - 4))
-    else label:SetText(text or "") end
+    else label:SetText(label:GetText() or "") end
+    control.mosTextWidth, control.mosTextHeight, control.mosTextScale = width, height, scale
 end
 
 local function ReflowControlText() UI.ReflowControlText(this) end
