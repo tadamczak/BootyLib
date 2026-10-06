@@ -196,7 +196,6 @@ function Dashboard.CreateWindow(version, options)
     options = options or {}; local view = { titleText = options.title or "Booty Suite" }
     view.frame = CreateFrame("Frame", options.name or "BootySuiteDashboard", UIParent)
     local frame = view.frame
-    frame.mosDashboardView = view
     frame:SetWidth(840); frame:SetHeight(540)
     frame:SetPoint("CENTER", UIParent, "CENTER", 0, 10)
     frame:SetFrameStrata("DIALOG")

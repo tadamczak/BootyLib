@@ -1,7 +1,7 @@
 local memoryBeforeLoad = type(gcinfo) == "function" and gcinfo() or nil
 BootyLib = BootyLib or {}
 local Lib = BootyLib
-Lib.version = "0.1.0-dev.7"
+Lib.version = "0.1.0-dev.6"
 Lib.API_VERSION = 1
 Lib.Core = Lib.Core or {}
 Lib.Services = Lib.Services or {}
