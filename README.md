@@ -8,7 +8,7 @@ Install the `BootyLib` folder in `Interface/AddOns` alongside any Booty product.
 
 Windows, controls and menus use a consistent foreground order across installed Booty addons.
 
-Compatible layout editors can preview window layouts, then apply or cancel the edit. Hiding or minimizing a window cancels its unfinished preview. Unavailable anchor elements retain their saved reference and use a recoverable screen position. Current BootyUI uses native drag/resize and moving aids, with window scale fixed at100%; `/bui rescue` restores a previously scaled supported window without opening the editor.
+Compatible layout editors can preview window position, size, scale and supported anchor points, then apply or cancel the edit. Hiding or minimizing a window cancels its unfinished preview. Unavailable anchor elements retain their saved reference and use a recoverable screen position.
 Applied Suite window position and size are restored when the UI reloads.
 Ordinary window movement also updates a visible compatible editor. Content may extend beyond the screen while part of the title remains reachable.
 Grid snapping keeps the selected point on a reachable grid line while preserving the window's size. Numeric inputs retain their text during window resizing and scaling.
@@ -17,4 +17,4 @@ Compatible appearance editors can preview the shared interface skin before apply
 Supported editors can also save named appearance presets for individual elements. These presets remain separate from general settings profiles.
 
 Settings keeps compact text and clear plus/minus controls for expanding sections.
-Dropdowns retain their normal text size when windows change size.
+Dropdowns retain their normal text size when windows change size or scale. Numeric fields retain their entered values.

@@ -1,10 +1,5 @@
 # Changelog
 
-## 0.1.0-dev.15 — 2026-10-07
-
-- Let supported owners restore window scale to100% without opening hidden or unbuilt windows.
-- Keep geometry recovery transactional, retaining unrelated data and reporting refused or failed restoration.
-
 ## 0.1.0-dev.14 — 2026-10-07
 
 - Leave numeric input text and native font scaling untouched during window layout.
