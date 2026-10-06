@@ -1,11 +1,5 @@
 # Changelog
 
-## 0.1.0-dev.9 — 2026-10-06
-
-- Fix native text-field enabled state in Settings without calling unsupported Button methods.
-- Disable text-field mouse/keyboard input and clear focus through existing save behavior.
-- Prevent recursive focus-loss saves and retain typed text when a save fails.
-
 ## 0.1.0-dev.8 — 2026-10-06
 
 - Store named appearance presets separately for each supported element.
