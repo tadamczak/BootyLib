@@ -12,5 +12,6 @@ Compatible layout editors can preview window position and size, then apply or ca
 Applied Suite window position and size are restored when the UI reloads.
 
 Compatible appearance editors can preview the shared interface skin before applying it. A new choice in Settings ends an unfinished skin preview.
+Supported editors can also save named appearance presets for individual elements. These presets remain separate from general settings profiles.
 
 Settings keeps compact text and clear plus/minus controls for expanding sections.
