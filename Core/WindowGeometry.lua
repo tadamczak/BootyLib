@@ -22,18 +22,7 @@ end
 -- Each host supplies its existing store and layout callback. The manager owns
 -- only transient previews; registration and reads never construct windows.
 function Geometry.Create(options)
-    local pose = options.extended and Lib.Core.WindowPose
-    local keys = pose and pose.fields or keys
-    local Copy = pose and pose.Copy or Copy
-    local function Equal(first, second)
-        for _,key in ipairs(keys) do
-            local a,b=first[key],second[key]
-            if a~=b and not (pose and Finite(a) and Finite(b) and math.abs(a-b)<0.00001) then return false end
-        end
-        return true
-    end
     local manager, sessions, tokens, busy = {}, {}, {}, false
-    local visible = {}
     local subscribed, pendingContext, onContext = false, false, nil
     local function Context()
         local context = options.getContext()
@@ -53,19 +42,6 @@ function Geometry.Create(options)
         end
         return result
     end
-    local function OverlayStored(rect,stored)
-        for _,key in ipairs(keys) do
-            local value=stored[key]
-            if value~=nil then
-                if key~="anchor" and key~="relativeId" and key~="relativePoint" and type(value)=="string" then
-                    value=tonumber(value)
-                    if not Finite(value) then error("Invalid saved numeric geometry field: "..key) end
-                end
-                rect[key]=value
-            end
-        end
-        return rect
-    end
     local function Limits(id, context)
         local wanted = options.getLimits(id, context)
         local result = {}
@@ -80,7 +56,6 @@ function Geometry.Create(options)
         return result
     end
     local function Normalize(id, rect, context)
-        if pose then return pose.Normalize(rect,context,Limits(id,context),options.referenceId and options.referenceId(id)) end
         if type(rect) ~= "table" then error("Expected a complete window rectangle.") end
         for _, key in ipairs(keys) do if not Finite(rect[key]) then error("Invalid window rectangle field: " .. key) end end
         if rect.width <= 0 or rect.height <= 0 then error("Window dimensions must be positive.") end
@@ -93,9 +68,6 @@ function Geometry.Create(options)
         return result
     end
     local function Rect(frame)
-        if pose then
-            return pose.Capture(frame,Context())
-        end
         local rect = {left = frame:GetLeft(), bottom = frame:GetBottom(), width = frame:GetWidth(), height = frame:GetHeight()}
         for _, key in ipairs(keys) do if not Finite(rect[key]) then error("Window bounds are not available.") end end
         if rect.width <= 0 or rect.height <= 0 then error("Window dimensions are not positive.") end
@@ -115,22 +87,14 @@ function Geometry.Create(options)
     local function ApplyRect(id, frame, rect, anchors)
         local context = Context()
         local limits = Limits(id, context)
-        local layoutChanged=not pose or frame:GetWidth()~=rect.width or frame:GetHeight()~=rect.height
-            or math.abs(frame:GetEffectiveScale()/context.scale-(rect.scale or 1))>0.00001
         if frame.SetMinResize then frame:SetMinResize(limits.minWidth, limits.minHeight) end
         if frame.SetMaxResize then frame:SetMaxResize(limits.maxWidth, limits.maxHeight) end
-        if pose and not anchors then
-            local normalized,reference=Normalize(id,rect,context)
-            pose.Draw(frame,normalized,reference)
-        else
-        if pose then frame:SetScale(rect.scale or 1);frame.mosGeometryPose=Copy(rect) end
-        frame:SetWidth(rect.width); frame:SetHeight(rect.height);frame:ClearAllPoints()
+        frame:SetWidth(rect.width); frame:SetHeight(rect.height)
+        frame:ClearAllPoints()
         if anchors and table.getn(anchors) > 0 then
             for _, anchor in ipairs(anchors) do frame:SetPoint(anchor.point, anchor.relative, anchor.relativePoint, anchor.x, anchor.y) end
         else frame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", rect.left, rect.bottom) end
-        end
-        if pose then frame.mosGeometryProjection,frame.mosGeometryProjectionStore=nil,nil end
-        if options.refresh and layoutChanged then
+        if options.refresh then
             local ok, message = options.refresh(id)
             if ok == false then error(message or "Window layout declined the geometry.") end
         end
@@ -138,7 +102,7 @@ function Geometry.Create(options)
     local function Notify(session, reason, result)
         sessions[session.id], tokens[session.token] = nil, nil
         local cleanup
-        if subscribed and not next(sessions) and not next(visible) then
+        if subscribed and not next(sessions) then
             local ok, message = pcall(Lib.Unsubscribe, "CVAR_UPDATE", manager)
             if ok then subscribed = false else cleanup = tostring(message) end
         end
@@ -154,10 +118,6 @@ function Geometry.Create(options)
         if read and not Equal(current, session.last) then return false, "Window geometry changed outside its owner." end
         if not read and session.frame:IsVisible() then return false, current end
         ApplyRect(session.id, session.frame, session.original, session.anchors)
-        if pose then
-            session.frame.mosGeometryProjection=session.projection
-            session.frame.mosGeometryProjectionStore=session.projectionStore
-        end
         return true
     end
     local function Finish(session, reason, restore)
@@ -184,7 +144,7 @@ function Geometry.Create(options)
         if not Equal(stored, session.stored) then
             local context = Context()
             local latest = Copy(options.getDefaults(session.id, context))
-            OverlayStored(latest,stored)
+            for _, key in ipairs(keys) do if Finite(stored[key]) then latest[key] = stored[key] end end
             local ok, message = pcall(ApplyRect, session.id, session.frame, Normalize(session.id, latest, context))
             Notify(session, "external-change", {code = "external-change"})
             return Failure("external-change", "Saved geometry changed while editing.", not ok and tostring(message) or nil)
@@ -193,10 +153,6 @@ function Geometry.Create(options)
         if context.width ~= session.context.width or context.height ~= session.context.height or context.scale ~= session.context.scale then
             local committed = Normalize(session.id, session.original, context)
             local ok, message = pcall(ApplyRect, session.id, session.frame, committed)
-            if pose and ok then
-                session.frame.mosGeometryProjection=Copy(committed)
-                session.frame.mosGeometryProjectionStore=Copy(session.stored)
-            end
             Notify(session, "screen-change", {code = "screen-change"})
             return Failure("screen-change", "The screen or UI scale changed while editing.", not ok and tostring(message) or nil)
         end
@@ -236,8 +192,6 @@ function Geometry.Create(options)
             local context, frame = Context(), options.getFrame(id)
             local data = {available = available == true and frame ~= nil and not (options.isMinimized and options.isMinimized(id)),
                 reason = reason, stored = Stored(id), defaults = Normalize(id, options.getDefaults(id, context), context), limits = Limits(id, context)}
-            data.extended=pose~=nil
-            if pose then data.context=context;data.warning=frame and frame.mosGeometryWarning end
             if not available then data.reason = reason or "unavailable"
             elseif not frame then data.reason = "not-created"
             elseif options.isMinimized and options.isMinimized(id) then data.reason = "minimized"
@@ -262,7 +216,6 @@ function Geometry.Create(options)
             local token = {}
             local session = {id = id, frame = frame, stored = Stored(id), original = Copy(rect), last = Copy(rect), token = token,
                 anchors = Anchors(frame), context = Context(), onEnded = onEnded}
-            if pose then session.projection,session.projectionStore=frame.mosGeometryProjection,frame.mosGeometryProjectionStore end
             if not subscribed and type(Lib.Subscribe) == "function" and type(Lib.Unsubscribe) == "function" then
                 local subscribedOk, value = pcall(Lib.Subscribe, "CVAR_UPDATE", manager, onContext)
                 if not subscribedOk or value ~= true then return Failure("subscribe-failed", subscribedOk and "Window context subscription declined." or value) end
@@ -320,7 +273,7 @@ function Geometry.Create(options)
                     if restored and failure == false then restored, failure = false, restoreDetail end
                 elseif verified then
                     local latest = Copy(options.getDefaults(session.id, session.context))
-                    OverlayStored(latest,currentStore)
+                    for _, key in ipairs(keys) do if Finite(currentStore[key]) then latest[key] = currentStore[key] end end
                     restored, failure = pcall(ApplyRect, session.id, session.frame, Normalize(session.id, latest, session.context))
                 else restored, failure = false, "Saved geometry could not be read after commit." end
                 Notify(session, "error", {code = "commit-failed"})
@@ -356,81 +309,6 @@ function Geometry.Create(options)
         if not ok then return Failure("geometry-error", defaults) end
         return manager.PreviewGeometry(token, defaults)
     end
-    function manager.GetGeometryReference(id)
-        local ok,result=pcall(function()
-            local available,reason=true,nil
-            if options.isAvailable then available,reason=options.isAvailable(id) end
-            local frame=options.getFrame(id)
-            return {frame=frame,stored=Stored(id),available=available==true and frame~=nil and frame:IsVisible()
-                and not (options.isMinimized and options.isMinimized(id)),reason=reason}
-        end)
-        if not ok then return Failure("reference-error",result) end
-        return true,result
-    end
-    function manager.RestoreCommitted(id)
-        return Protected(function()
-            if sessions[id] then return Failure("busy","Finish the preview before restoring geometry.") end
-            local frame=options.getFrame(id)
-            if not frame then return Failure("unavailable","The window has not been created.") end
-            local context=Context()
-            local rect=Copy(options.getDefaults(id,context));local stored=Stored(id)
-            OverlayStored(rect,stored)
-            if pose then
-                local resolved,reference,warning=pose.Normalize(rect,context,Limits(id,context),options.referenceId and options.referenceId(id),true)
-                frame.mosGeometryWarning=warning
-                pose.Draw(frame,resolved,reference)
-                frame.mosGeometryProjection,frame.mosGeometryProjectionStore=Copy(resolved),Copy(stored)
-                if options.refresh then local ok,reason=options.refresh(id);if ok==false then error(reason or "Window layout declined geometry.") end end
-                return true,Copy(resolved)
-            end
-            rect=Normalize(id,rect,context);ApplyRect(id,frame,rect);return true,Copy(rect)
-        end)
-    end
-    function manager.SaveManual(id)
-        if sessions[id] then return manager.CaptureManual(id) end
-        return Protected(function()
-            local frame=options.getFrame(id)
-            if not frame then return Failure("unavailable") end
-            local stored=Stored(id)
-            local captured=Rect(frame)
-            if pose and frame.mosGeometryProjection and Equal(captured,frame.mosGeometryProjection)
-                and Equal(stored,frame.mosGeometryProjectionStore) then return true,Copy(captured) end
-            local rect=Normalize(id,captured,Context())
-            ApplyRect(id,frame,rect)
-            local wrote,value,reason=pcall(options.writeStored,id,Copy(rect))
-            local read,current=pcall(Stored,id)
-            if not wrote or value~=true or not read or not Equal(current,rect) then
-                local owns=read
-                if owns then for _,key in ipairs(keys) do
-                    if current[key]~=stored[key] and current[key]~=rect[key] then owns=false;break end
-                end end
-                local rollback
-                if owns then
-                    local ok,result,detail=pcall(options.writeStored,id,Copy(stored))
-                    if not ok or result~=true then rollback=tostring(ok and detail or result) end
-                    local committed=OverlayStored(Copy(options.getDefaults(id,Context())),stored)
-                    local restored,failure=pcall(function() ApplyRect(id,frame,Normalize(id,committed,Context())) end)
-                    if not restored then rollback=rollback or tostring(failure) end
-                else rollback="A later saved geometry value was preserved." end
-                return Failure("commit-failed",wrote and (reason or "Window store did not confirm manual geometry.") or value,rollback)
-            end
-            return true,Copy(rect)
-        end)
-    end
-    function manager.SetVisible(id,shown)
-        if not pose then return true end
-        if shown then visible[id]=true else visible[id]=nil end
-        if (next(visible) or next(sessions)) and not subscribed and Lib.Subscribe and Lib.Unsubscribe then
-            local ok,value=pcall(Lib.Subscribe,"CVAR_UPDATE",manager,onContext)
-            if not ok or value~=true then return Failure("subscribe-failed",ok and "Screen event subscription declined." or value) end
-            subscribed=true
-        elseif subscribed and not next(visible) and not next(sessions) then
-            local ok,value=pcall(Lib.Unsubscribe,"CVAR_UPDATE",manager)
-            if not ok then return Failure("unsubscribe-failed",value) end
-            subscribed=false
-        end
-        return true
-    end
     function manager.CaptureManual(id)
         local token = sessions[id] and sessions[id].token
         return Protected(function()
@@ -458,12 +336,6 @@ function Geometry.Create(options)
         for id in pairs(sessions) do
             local ok, failure = manager.EndPreview(id, "screen-change")
             if not ok and failure.code ~= "screen-change" and type(Lib.Print) == "function" then Lib.Print(failure.message) end
-        end
-        for id in pairs(visible) do
-            if not (options.isMinimized and options.isMinimized(id)) then
-                local ok,failure=manager.RestoreCommitted(id)
-                if not ok and type(Lib.Print)=="function" then Lib.Print(failure.message) end
-            end
         end
     end
     return manager
