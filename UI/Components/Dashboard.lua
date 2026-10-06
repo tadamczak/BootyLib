@@ -443,6 +443,10 @@ function Dashboard.BindWindow(view, options)
         CancelRestoreLayout()
         if frame:IsVisible() and not view.minimized and not options.isLootMasterMode() then options.applyOrRefreshLayout() end
     end
+    view.ScheduleLayoutRefresh = function()
+        if not frame:IsVisible() or view.minimized then return end
+        finalizer:Show(); finalizer:SetScript("OnUpdate", FinishRestoreLayout)
+    end
     finalizer:SetScript("OnHide", function() finalizer:SetScript("OnUpdate", nil) end)
     -- Native layout-cache is loaded after VARIABLES_LOADED and can contain the
     -- 250x30 minimized shell. SavedVariables alone own durable geometry.

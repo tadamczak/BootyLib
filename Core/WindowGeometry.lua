@@ -33,7 +33,14 @@ function Geometry.Create(options)
         return true
     end
     local manager, sessions, tokens, busy = {}, {}, {}, false
-    local visible = {}
+    local visible, listeners = {}, {}
+    local function Changed(id)
+        local callback = listeners[id]
+        if not callback then return true end
+        local ok, reason = pcall(callback)
+        if not ok then return Failure("notification-failed", reason) end
+        return true
+    end
     local subscribed, pendingContext, onContext = false, false, nil
     local function Context()
         local context = options.getContext()
@@ -229,6 +236,16 @@ function Geometry.Create(options)
     end
     function manager.IsApplying() return busy end
     function manager.HasPreview(id) return sessions[id] ~= nil end
+    function manager.WatchGeometry(id, callback)
+        if type(callback) ~= "function" then return Failure("invalid-callback", "Expected a geometry observer.") end
+        if listeners[id] and listeners[id] ~= callback then return Failure("busy", "This window already has a geometry observer.") end
+        listeners[id] = callback
+        return true
+    end
+    function manager.UnwatchGeometry(id, callback)
+        if listeners[id] == callback then listeners[id] = nil end
+        return true
+    end
     function manager.ReadGeometry(id)
         local ok, result, detail = pcall(function()
             local available, reason = true, nil
@@ -381,6 +398,7 @@ function Geometry.Create(options)
                 pose.Draw(frame,resolved,reference)
                 frame.mosGeometryProjection,frame.mosGeometryProjectionStore=Copy(resolved),Copy(stored)
                 if options.refresh then local ok,reason=options.refresh(id);if ok==false then error(reason or "Window layout declined geometry.") end end
+                local notified, failure = Changed(id); if not notified then return notified, failure end
                 return true,Copy(resolved)
             end
             rect=Normalize(id,rect,context);ApplyRect(id,frame,rect);return true,Copy(rect)
@@ -414,6 +432,7 @@ function Geometry.Create(options)
                 else rollback="A later saved geometry value was preserved." end
                 return Failure("commit-failed",wrote and (reason or "Window store did not confirm manual geometry.") or value,rollback)
             end
+            local notified, failure = Changed(id); if not notified then return notified, failure end
             return true,Copy(rect)
         end)
     end
@@ -439,6 +458,7 @@ function Geometry.Create(options)
             local ok, detail = Check(session); if not ok then return ok, detail end
             local candidate = Normalize(id, Rect(session.frame), session.context)
             ApplyRect(id, session.frame, candidate); session.last = Rect(session.frame)
+            local notified, failure = Changed(id); if not notified then return notified, failure end
             return true, Copy(session.last)
         end, token)
     end

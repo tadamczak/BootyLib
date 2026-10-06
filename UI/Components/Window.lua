@@ -126,6 +126,9 @@ function Window.Create(options)
         options.update(view)
         if view.viewport.UpdateScrollChildRect then view.viewport:UpdateScrollChildRect() end
     end
+    window.ScheduleLayoutRefresh = function()
+        if window:IsVisible() and view and not window.minimized then window:SetScript("OnUpdate", FinishOpen) end
+    end
     window:SetScript("OnHide", function() window:SetScript("OnUpdate", nil) end)
     window.Open = function()
         ApplyTitleBarGeometry(false)
