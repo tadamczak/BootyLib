@@ -9,3 +9,5 @@ Install the `BootyLib` folder in `Interface/AddOns` alongside any Booty product.
 Windows, controls and menus use a consistent foreground order across installed Booty addons.
 
 Settings keeps compact text and clear plus/minus controls for expanding sections.
+
+In standalone Booty addons, use the gear in the top-right corner of a feature window to open that addon's Settings. It also works while the window is minimized.

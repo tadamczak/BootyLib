@@ -46,6 +46,14 @@ function Window.Create(options)
     close:SetPoint("RIGHT", titleBar, "RIGHT", -4, 0)
     local minimize = MOS.UI.Components.CreateWindowButton(titleBar, nil, "minimize")
     minimize:SetPoint("RIGHT", close, "LEFT", -4, 0)
+    local settings
+    if options.onSettings then
+        settings = MOS.UI.Components.CreateSettingsButton(titleBar)
+        settings:SetPoint("RIGHT", minimize, "LEFT", -4, 0)
+        settings:SetScript("OnClick", function() return options.onSettings(window) end)
+        MOS.UI.Components.AttachTooltip(settings, "Settings", "Open settings for this addon.")
+        title:SetPoint("RIGHT", settings, "LEFT", -6, 0)
+    end
     local content = MOS.UI.Components.CreateContainer(nil, window)
     content:SetFrameLevel(window:GetFrameLevel() + 1)
     content:SetPoint("TOPLEFT", titleBar, "BOTTOMLEFT", 0, 0); content:SetPoint("BOTTOMRIGHT", window, "BOTTOMRIGHT", -4, options.compact and 4 or 14)
@@ -159,6 +167,7 @@ function Window.Create(options)
     window.title = title
     window.closeButton = close
     window.minimizeButton = minimize
+    window.settingsButton = settings
     window.content = content
     window.resizeGrip = resize
     window.ApplyResizeBounds = ApplyResizeBounds

@@ -90,6 +90,10 @@ function ProductHost.Create(product, options)
             icon = definition.icon, plainHeader = true, compact = true, minimizedWidth = 400, owner = false,
             attach = function() end,
             update = function() ResizeContent(id) end,
+            onSettings = function(source)
+                host.window = source
+                return host.OpenSettings()
+            end,
         })
         host.windows[id] = window
         host.window = window

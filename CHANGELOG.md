@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.16 — 2026-10-07
+
+- Open addon Settings from the top-right gear in every standalone feature window, including minimized windows.
+
 ## 0.1.0-dev.5 — 2026-10-05
 
 - Preserve complete header titles through resizing, skin changes and window restore.
