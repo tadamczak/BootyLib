@@ -252,6 +252,7 @@ function Settings.CreateColor(parent, x, y, label, key, onChanged, binding)
     button.swatch:SetPoint("BOTTOMRIGHT", button.swatchBorder, "BOTTOMRIGHT", -3, 3)
     button.label = MOS.UI.Components.CreateComponentLabel(button, "", "white")
     button.label:SetPoint("LEFT", button.swatchBorder, "RIGHT", 6, 0)
+    button.label:SetJustifyH("LEFT")
     button.label:SetText(label)
     button:SetScript("OnShow", function()
         binding.ensure()
@@ -522,14 +523,19 @@ function Settings.LayoutGrid(parent, items, x, y, available, step, sliders)
     available = math.max(1, available)
     local widths = items.mosColumnWidths or {}; items.mosColumnWidths = widths
     local cols, index, col, total = math.min(items.mosMaxColumns or 4, count), nil, nil, nil
+    local required = 0
     for index = 1, count do
         local item = items[index]
-        local label = sliders and getglobal(item:GetName() .. "Text") or item.label
-        if label then
-            label:SetWidth(0); label:SetJustifyH("LEFT")
-            local _, size = label:GetFont(); label:SetHeight((size or 10) + 4)
+        if items.mosMeasureItem then item.mosGridWidth = items.mosMeasureItem(item)
+        else
+            local label = sliders and getglobal(item:GetName() .. "Text") or item.label
+            if label then
+                label:SetWidth(0); label:SetJustifyH("LEFT")
+                local _, size = label:GetFont(); label:SetHeight((size or 10) + 4)
+            end
+            item.mosGridWidth = sliders and math.max(170, label:GetStringWidth() + 8) or ((item.swatchBorder and 26 or item:GetWidth() + 4) + (label and label:GetStringWidth() + 8 or 0))
         end
-        item.mosGridWidth = sliders and math.max(170, label:GetStringWidth() + 8) or ((item.swatchBorder and 26 or item:GetWidth() + 4) + (label and label:GetStringWidth() + 8 or 0))
+        required = math.max(required, item.mosGridWidth)
     end
     while cols > 0 do
         for col = 1, cols do widths[col] = 0 end
@@ -539,26 +545,31 @@ function Settings.LayoutGrid(parent, items, x, y, available, step, sliders)
         if total <= available or cols == 1 then break end
         cols = cols - 1
     end
-    for col=1,cols do widths[col]=math.min(available,widths[col]) end
+    if not items.mosNoWrap then for col=1,cols do widths[col]=math.min(available,widths[col]) end end
     local offsetX, rowHeight, used = 0, step, 0
     for index = 1, count do
         col = math.mod(index - 1, cols) + 1
         if col == 1 and index > 1 then used = used + rowHeight; rowHeight = step; offsetX = 0 end
         local item = items[index]
-        item:ClearAllPoints(); item:SetPoint("TOPLEFT", parent, "TOPLEFT", x + offsetX, y - used)
-        local label = sliders and getglobal(item:GetName() .. "Text") or item.label
-        local labelWidth = math.max(1, widths[col] - (sliders and 0 or (item.swatchBorder and 26 or item:GetWidth() + 4)))
-        if label then label:SetWidth(labelWidth); label:SetJustifyH("LEFT"); rowHeight = math.max(rowHeight, MOS.UI.Components.MeasureTextHeight(label, labelWidth) + (sliders and 32 or 8)) end
-        if sliders or item.swatchBorder then item:SetWidth(widths[col]) end
-        if label and not sliders then
-            label:ClearAllPoints(); label:SetPoint("TOPLEFT", item, "TOPLEFT", item.swatchBorder and 26 or item:GetWidth() + 4, -3)
-        end
-        if item.labelHit then
-            item.labelHit:SetWidth(labelWidth); item.labelHit:SetHeight(math.max(item:GetHeight(), MOS.UI.Components.MeasureTextHeight(label, labelWidth) + 6))
-            item.labelHit:ClearAllPoints(); item.labelHit:SetPoint("TOPLEFT", item, "TOPRIGHT", 2, 0)
+        if items.mosLayoutItem then
+            rowHeight = math.max(rowHeight, items.mosLayoutItem(item, parent, x + offsetX, y - used, widths[col]))
+        else
+            item:ClearAllPoints(); item:SetPoint("TOPLEFT", parent, "TOPLEFT", x + offsetX, y - used)
+            local label = sliders and getglobal(item:GetName() .. "Text") or item.label
+            local labelWidth = math.max(1, widths[col] - (sliders and 0 or (item.swatchBorder and 26 or item:GetWidth() + 4)))
+            if label then label:SetWidth(labelWidth); label:SetJustifyH("LEFT"); rowHeight = math.max(rowHeight, MOS.UI.Components.MeasureTextHeight(label, labelWidth) + (sliders and 32 or 8)) end
+            if sliders or item.swatchBorder then item:SetWidth(widths[col]) end
+            if label and not sliders then
+                label:ClearAllPoints(); label:SetPoint("TOPLEFT", item, "TOPLEFT", item.swatchBorder and 26 or item:GetWidth() + 4, -3)
+            end
+            if item.labelHit then
+                item.labelHit:SetWidth(labelWidth); item.labelHit:SetHeight(math.max(item:GetHeight(), MOS.UI.Components.MeasureTextHeight(label, labelWidth) + 6))
+                item.labelHit:ClearAllPoints(); item.labelHit:SetPoint("TOPLEFT", item, "TOPRIGHT", 2, 0)
+            end
         end
         offsetX = offsetX + widths[col] + 14
     end
     items.mosColumns = cols
+    items.mosRequiredWidth, items.mosUsedWidth = required, total
     return used + rowHeight
 end

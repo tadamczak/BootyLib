@@ -217,7 +217,6 @@ local function CreateField(node, page, state)
             width = 180, height = math.max(32, table.getn(choices) * 24 + 12), firstY = -7, step = 24,
             buttonOffset = 220, color = UI.TextColors.white})
         node.label = label; node.height = 36
-        node.flow = {label, control}
     else
         label = UI.CreateComponentLabel(page, nil, "white"); label:SetText(node.text)
         control = UI.Settings.CreateSavedTextField(page, field.key, binding)
@@ -241,42 +240,74 @@ local function Synchronize(node)
         control:SetText(caption)
     elseif control.RefreshValue then control:RefreshValue() end
 end
-local function LayoutField(node, page, x, y)
+local function NaturalLabelWidth(label)
+    label:SetWidth(0)
+    return math.max(1, math.ceil(label:GetStringWidth()) + 2)
+end
+local function MeasureField(node)
     local control, kind = node.control, node.field.type
-    local width = math.max(1, page:GetWidth() - x - 4)
+    Synchronize(node)
+    if node.label then
+        local width = math.max(180, NaturalLabelWidth(node.label))
+        if kind == "choice" or kind == "dropdown" then
+            width = math.max(width, NaturalLabelWidth(control.label or control) + 32)
+            for _, option in ipairs(control.panel.options) do
+                width = math.max(width, NaturalLabelWidth(option.label or option) + 32)
+            end
+        end
+        return width
+    elseif kind == "slider" then
+        local name = control:GetName()
+        local label = getglobal(name .. "Text")
+        local caption, width = label:GetText(), NaturalLabelWidth(label)
+        label:SetText(node.text .. ": " .. tostring(node.field.min or 0)); width = math.max(width, NaturalLabelWidth(label))
+        label:SetText(node.text .. ": " .. tostring(node.field.max or 100)); width = math.max(width, NaturalLabelWidth(label))
+        label:SetText(caption)
+        return math.max(170, width + 8,
+            NaturalLabelWidth(getglobal(name .. "Low")) + NaturalLabelWidth(getglobal(name .. "High")) + 32)
+    end
+    return (kind == "color" and 26 or control:GetWidth() + 2) + NaturalLabelWidth(control.label) + 4
+end
+local function LayoutField(node, page, x, y, width)
+    local control, kind = node.control, node.field.type
     control:ClearAllPoints()
     if node.label then
-        node.label:SetWidth(0)
-        local labelWidth = math.min(width, math.max(1, node.label:GetStringWidth()))
+        local labelWidth = NaturalLabelWidth(node.label)
         node.label:SetWidth(labelWidth)
+        node.label:SetJustifyH("LEFT")
         local labelHeight = math.max(14, UI.MeasureTextHeight(node.label, labelWidth))
         node.label:SetHeight(labelHeight); node.label:Show()
+        node.label:ClearAllPoints(); node.label:SetPoint("TOPLEFT", page, "TOPLEFT", x, y)
+        control:SetPoint("TOPLEFT", page, "TOPLEFT", x, y - labelHeight - 4)
+        control:SetWidth(width)
+        node.height = labelHeight + 4 + control:GetHeight() + 10
         if kind == "choice" or kind == "dropdown" then
-            node.label.mosFlowWidth = labelWidth
-            control.mosFlowWidth = math.min(180, width)
-            node.height = UI.LayoutFlow(page, node.flow, x, -y, width, 8) + y + 8
+            if control.mosDropdownText then control.mosTextWidth = nil; UI.ReflowControlText(control) end
             control.panel:SetWidth(control:GetWidth())
-            for _, option in ipairs(control.panel.options) do option:SetWidth(math.max(1, control:GetWidth() - 14)) end
-        else
-            node.label:ClearAllPoints(); node.label:SetPoint("TOPLEFT", page, "TOPLEFT", x, y)
-            control:SetPoint("TOPLEFT", page, "TOPLEFT", x, y - labelHeight - 4)
-            control:SetWidth(math.min(500, width))
-            node.height = labelHeight + 4 + control:GetHeight() + 10
+            for _, option in ipairs(control.panel.options) do
+                option:SetWidth(math.max(1, width - 14))
+                if option.label then option.label:SetWidth(math.max(1, width - 30)) end
+            end
         end
     else
         control:SetPoint("TOPLEFT", page, "TOPLEFT", x, y - (kind == "slider" and 18 or 0))
-        if kind == "slider" then control:SetWidth(math.min(220, width))
+        if kind == "slider" then
+            control:SetWidth(width)
+            local label = getglobal(control:GetName() .. "Text")
+            label:SetWidth(NaturalLabelWidth(label)); label:SetJustifyH("LEFT")
+            node.height = 52
         elseif control.label then
-            local available = math.max(1, width - (kind == "checkbox" and control:GetWidth() + 2 or 26))
-            control.label:SetWidth(available)
-            local height = math.max(control:GetHeight(), UI.MeasureTextHeight(control.label, available))
+            local labelWidth = NaturalLabelWidth(control.label)
+            control.label:SetWidth(labelWidth); control.label:SetJustifyH("LEFT")
+            local height = math.max(control:GetHeight(), UI.MeasureTextHeight(control.label, labelWidth))
             control.label:SetHeight(height)
-            if control.labelHit then control.labelHit:SetWidth(available); control.labelHit:SetHeight(height) end
+            if kind == "color" then control:SetWidth(width) end
+            if control.labelHit then control.labelHit:SetWidth(labelWidth); control.labelHit:SetHeight(height) end
             node.height = math.max(kind == "color" and 32 or 30, height + 8)
         end
     end
-    Synchronize(node)
     control:Show()
+    return node.height
 end
 local function Visible(node) return node.visible ~= false end
 local function ToggleAccordion()
@@ -286,7 +317,9 @@ local function ToggleAccordion()
     selected.expanded = not selected.expanded; this.mosSettingsState.Reflow()
 end
 local function LayoutNodes(nodes, page, state, depth, y)
-    for _, node in ipairs(nodes) do
+    local index = 1
+    while index <= table.getn(nodes) do
+        local node = nodes[index]
         local shown = Visible(node)
         if shown then
             node.layoutVisible = true
@@ -295,8 +328,24 @@ local function LayoutNodes(nodes, page, state, depth, y)
                 local view = node.profileView or CreateProfileControls(node, page, state)
                 view.Layout(x, y, math.max(1, page:GetWidth() - x - 4)); y = y - node.height
             elseif node.field then
-                if not node.control then CreateField(node, page, state) end
-                LayoutField(node, page, x, y); y = y - node.height
+                local items = node.gridItems
+                if not items then
+                    items = {mosNoWrap = true, mosMeasureItem = MeasureField, mosLayoutItem = LayoutField}
+                    node.gridItems = items
+                end
+                while table.getn(items) > 0 do table.remove(items) end
+                while index <= table.getn(nodes) and nodes[index].field do
+                    local fieldNode = nodes[index]
+                    if Visible(fieldNode) then
+                        fieldNode.layoutVisible = true
+                        if not fieldNode.control then CreateField(fieldNode, page, state) end
+                        table.insert(items, fieldNode)
+                    end
+                    index = index + 1
+                end
+                y = y - UI.Settings.LayoutGrid(page, items, x, y, math.max(1, page:GetWidth() - x - 4), 0)
+                state.requiredContentWidth = math.max(state.requiredContentWidth, x + items.mosRequiredWidth + 4)
+                index = index - 1
             else
                 if not node.control then
                     if depth == 0 then node.control = UI.Settings.CreateSectionAccordion(page, node.text, 0, 0, 2, node.icon or icons[node.text] or "list")
@@ -313,6 +362,7 @@ local function LayoutNodes(nodes, page, state, depth, y)
                 if node.expanded then y = LayoutNodes(node.children, page, state, depth + 1, y) end
             end
         end
+        index = index + 1
     end
     return y
 end
@@ -359,6 +409,24 @@ local function RefreshNodes(nodes)
         elseif node.children then RefreshNodes(node.children) end
     end
 end
+local function ApplyFieldMinimum(state)
+    if state.applyingMinimum then return end
+    local inset = state.viewport.mosWidthInset or 16
+    local maximum = math.max(320, math.min(1100, UIParent:GetWidth() - 32))
+    local required = math.max(math.min(350, maximum), state.requiredContentWidth + inset + (state.viewport.mosScrollGutter or 0))
+    local width = math.min(required, maximum)
+    state.requiredWindowWidth, state.maximumWindowWidth = required, maximum
+    state.minimumWidthFailure = required > maximum and "Natural settings fields exceed the available window width." or nil
+    -- The longest indivisible field also bounds a one-column window. Reserving
+    -- the gutter here follows the resolved layout, never a permanent scrollbar.
+    state.window:SetMinResize(width, math.min(420, math.max(260, UIParent:GetHeight() - 32)))
+    if state.window:GetWidth() < width then
+        state.applyingMinimum = true
+        state.window:SetWidth(width)
+        state.applyingMinimum = nil
+        if math.abs(state.page:GetWidth() - (width - inset - (state.viewport.mosScrollGutter or 0))) > 0.5 then state.Reflow() end
+    end
+end
 function SettingsHost.Open(product, host, providers)
     local owner = product.id or product.name
     local state = SettingsHost.windows[owner]
@@ -388,11 +456,15 @@ function SettingsHost.Open(product, host, providers)
             state.search:SetWidth(math.max(70, math.min(250, state.window:GetWidth() - 16 - 66)))
         end
         local y = -4
+        state.requiredContentWidth = 1
         y = LayoutNodes(state.tree, state.page, state, 0, y)
         HideUnused(state.tree)
         state.page.settingsContentHeight = math.max(1, -y + 4)
         state.RefreshEnabled()
-        if not state.layingOut then UI.Settings.UpdateScroll(state.viewport, state.page, state.page.settingsContentHeight) end
+        if not state.layingOut then
+            UI.Settings.UpdateScroll(state.viewport, state.page, state.page.settingsContentHeight)
+            ApplyFieldMinimum(state)
+        end
     end
     window = UI.Window.Create({name = product.name .. "SettingsWindow", title = product.name .. " Settings", icon = "settings", compact = true, plainHeader = true, owner = host.window,
         viewportWidthInset = 16, viewportHeightInset = 74,
