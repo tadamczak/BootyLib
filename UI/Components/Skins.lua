@@ -693,7 +693,6 @@ function UI.SetNavigationTabBorder(frame, visible)
     local entry = frame.mosNavigationSkinEntry
     if entry and entry.classicTabBorder then SetNineSliceShown(entry.classicTabBorder, false) end
     if entry and entry.classicHoverBorder then SetNineSliceShown(entry.classicHoverBorder, false) end
-    if frame.tabBorderLeft then frame.tabBorderLeft:Hide(); frame.tabBorderRight:Hide(); frame.tabBorderTop:Hide() end
     UI.SetOpenButtonBorder(frame, visible, frame.navigationBottom and "top" or "bottom")
     if visible and frame.openBorder then
         if frame.navigationSelected then frame.openBorder.border:SetBackdropBorderColor(1, 0.78, 0.2, 1)

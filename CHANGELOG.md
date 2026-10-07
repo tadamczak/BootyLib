@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.24 — 2026-10-08
+
+- Restore the shared color picker's borrowed drawing order on close and stop the dismiss overlay immediately.
+- Remove unused navigation textures and obsolete persistence prompts; retain existing project borders and product reload guards.
+
 ## 0.1.0-dev.22 — 2026-10-07
 
 - Keep retained feature windows and actions unavailable after a failed startup until cleanup and a new activation succeed.

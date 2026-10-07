@@ -84,9 +84,6 @@ function Navigation.Create(options)
             if options.isAvailable and not options.isAvailable(name) then controller.RefreshAvailability(); return end
             options.showPage(name)
         end)
-        button.tabBorderLeft = MOS.UI.Components.CreateTexture(button, nil, "OVERLAY"); button.tabBorderLeft:SetTexture("Interface\\Buttons\\WHITE8X8"); button.tabBorderLeft:SetVertexColor(1, 0.72, 0.08, 1); button.tabBorderLeft:SetWidth(1); button.tabBorderLeft:SetPoint("TOPLEFT", button, "TOPLEFT", 0, 0); button.tabBorderLeft:SetPoint("BOTTOMLEFT", button, "BOTTOMLEFT", 0, 0)
-        button.tabBorderRight = MOS.UI.Components.CreateTexture(button, nil, "OVERLAY"); button.tabBorderRight:SetTexture("Interface\\Buttons\\WHITE8X8"); button.tabBorderRight:SetVertexColor(1, 0.72, 0.08, 1); button.tabBorderRight:SetWidth(1); button.tabBorderRight:SetPoint("TOPRIGHT", button, "TOPRIGHT", 0, 0); button.tabBorderRight:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", 0, 0)
-        button.tabBorderTop = MOS.UI.Components.CreateTexture(button, nil, "OVERLAY"); button.tabBorderTop:SetTexture("Interface\\Buttons\\WHITE8X8"); button.tabBorderTop:SetVertexColor(1, 0.72, 0.08, 1); button.tabBorderTop:SetHeight(1); button.tabBorderTop:SetPoint("TOPLEFT", button, "TOPLEFT", 0, 0); button.tabBorderTop:SetPoint("TOPRIGHT", button, "TOPRIGHT", 0, 0)
         button.SetTabBorderVisible = function(visible)
             MOS.UI.Components.SetNavigationTabBorder(button, visible)
         end

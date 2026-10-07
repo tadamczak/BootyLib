@@ -285,43 +285,71 @@ function Settings.CreateColor(parent, x, y, label, key, onChanged, binding)
             owner.swatch:SetTexture(original[1], original[2], original[3], 1)
             if owner.onChanged then owner.onChanged(owner.settingKey) end
         end
-        if ColorPickerFrame.SetParent then ColorPickerFrame:SetParent(UIParent) end
-        if ColorPickerFrame.SetToplevel then ColorPickerFrame:SetToplevel(true) end
-        ColorPickerFrame:SetFrameStrata("TOOLTIP")
-        ColorPickerFrame:SetFrameLevel(10000)
-        ColorPickerFrame:SetColorRGB(color[1], color[2], color[3])
         local pickerControls = {
+            ColorPickerFrame,
             getglobal("ColorPickerOkayButton") or getglobal("ColorPickerFrameOkayButton"),
             getglobal("ColorPickerCancelButton") or getglobal("ColorPickerFrameCancelButton"),
             getglobal("DL_RedBox"),
             getglobal("DL_GreenBox"),
             getglobal("DL_BlueBox"),
         }
-        local pickerIndex
+        local pickerIndex, snapshots = nil, {}
         for pickerIndex = 1, table.getn(pickerControls) do
             local control = pickerControls[pickerIndex]
             if control then
-                if control.SetFrameStrata then control:SetFrameStrata("TOOLTIP") end
-                if control.SetFrameLevel then control:SetFrameLevel(10000 + pickerIndex) end
-                if control.SetToplevel then control:SetToplevel(true) end
-                if control.Enable then control:Enable() end
-                if control.EnableMouse then control:EnableMouse(true) end
-                if control.Raise then control:Raise() end
+                snapshots[table.getn(snapshots) + 1] = {frame = control, strata = control:GetFrameStrata(),
+                    level = control:GetFrameLevel(), foregroundLevel = 9999 + pickerIndex}
             end
         end
+        -- The stock picker and Discord's RGB fields belong to other callers.
+        -- Borrow only their drawing order, and release it on native Hide.
+        for pickerIndex = 1, table.getn(snapshots) do
+            local snapshot = snapshots[pickerIndex]
+            snapshot.frame:SetFrameStrata("TOOLTIP"); snapshot.frame:SetFrameLevel(snapshot.foregroundLevel)
+        end
+        local previousHide, onHide = ColorPickerFrame:GetScript("OnHide"), nil
+        local released = false
+        local function Release()
+            if released then return end
+            released = true
+            -- Decide ownership before restoring the parent: native frame-level
+            -- changes may also move its children. Preserve a later caller's edits.
+            for pickerIndex = 1, table.getn(snapshots) do
+                local snapshot = snapshots[pickerIndex]
+                snapshot.restoreStrata = snapshot.frame:GetFrameStrata() == "TOOLTIP"
+                snapshot.restoreLevel = snapshot.frame:GetFrameLevel() == snapshot.foregroundLevel
+            end
+            for pickerIndex = 1, table.getn(snapshots) do
+                local snapshot = snapshots[pickerIndex]
+                if snapshot.restoreStrata then snapshot.frame:SetFrameStrata(snapshot.strata) end
+                if snapshot.restoreLevel then snapshot.frame:SetFrameLevel(snapshot.level) end
+            end
+            if ColorPickerFrame:GetScript("OnHide") == onHide then ColorPickerFrame:SetScript("OnHide", previousHide) end
+            if Settings.colorPickerRelease == Release then Settings.colorPickerRelease = nil end
+            Settings.colorPickerDismiss:Hide()
+        end
+        onHide = function() Release(); if previousHide then previousHide() end end
+        ColorPickerFrame:SetScript("OnHide", onHide)
+        Settings.colorPickerRelease = Release
+        ColorPickerFrame:SetColorRGB(color[1], color[2], color[3])
         if not Settings.colorPickerDismiss then
             local dismiss = CreateFrame("Button", nil, UIParent)
             dismiss:SetAllPoints(UIParent)
             dismiss:SetFrameStrata("FULLSCREEN")
             dismiss:SetFrameLevel(1)
             dismiss:EnableMouse(true)
-            dismiss:SetScript("OnClick", function() ColorPickerFrame:Hide(); this:Hide() end)
-            dismiss:SetScript("OnUpdate", function() if not ColorPickerFrame:IsVisible() then this:Hide() end end)
+            dismiss:SetScript("OnClick", function()
+                local release = Settings.colorPickerRelease
+                ColorPickerFrame:Hide(); if release then release() end
+            end)
             Settings.colorPickerDismiss = dismiss
         end
         Settings.colorPickerDismiss:Show()
         ColorPickerFrame:Show()
         if ColorPickerFrame.Raise then ColorPickerFrame:Raise() end
+        for pickerIndex = 1, table.getn(snapshots) do
+            snapshots[pickerIndex].foregroundLevel = snapshots[pickerIndex].frame:GetFrameLevel()
+        end
     end)
     return button
 end

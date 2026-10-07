@@ -190,7 +190,6 @@ function Runtime.Start()
     local db, failure = Lib.Data.Ensure("lib")
     if not db then Lib.Print(failure); return false, failure end
     if Lib.UI.Components.SetSkin then Lib.UI.Components.SetSkin(db.uiSkin or "classic") end
-    Lib.Core.Dialogs.RegisterPersistencePrompts(Lib.Print)
     if Runtime.suite and Runtime.suite.Initialize then
         local ok, result, reason = pcall(Runtime.suite.Initialize)
         if not ok or result == false then return Failure(Runtime.suite, reason or result) end
