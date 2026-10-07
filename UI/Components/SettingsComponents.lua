@@ -400,23 +400,57 @@ function Settings.CreatePercentageField(parent, name, labelText, x, y, settingKe
     return label, field
 end
 
+local function ClearTextFocus(field)
+    if field.mosClearingFocus or field.mosCommitting then return end
+    field.mosClearingFocus = true
+    local previousThis, previousEvent, previousArg = this, event, arg1
+    this = field
+    local ok, failure = pcall(field.ClearFocus, field)
+    field.mosClearingFocus = nil
+    this, event, arg1 = previousThis, previousEvent, previousArg
+    if not ok then error(failure, 0) end
+end
+
+function Settings.SetTextFieldEnabled(field, enabled)
+    enabled = enabled and enabled ~= 0 and true or false
+    field.mosEnabled = enabled
+    field:EnableMouse(enabled); field:EnableKeyboard(enabled)
+    field:SetAlpha(enabled and 1 or 0.42)
+    -- EditBox has Frame input gates, not Button Enable/Disable. ClearFocus
+    -- delivers the existing save-on-focus-lost policy while it still owns focus.
+    if not enabled and field.mosEditing then ClearTextFocus(field) end
+end
+
+local function WriteSavedText(field, binding)
+    binding.set(field.settingKey, string.gsub(field:GetText() or "", "[%c]", " "))
+end
+
 function Settings.CreateSavedTextField(parent, settingKey, binding)
     local field = MOS.UI.Components.CreateFramedEditBox(parent, nil, 300)
     field.settingKey = settingKey; field:SetMaxLetters(512)
     field.CommitValue = function(self)
-        if not self.mosEditing then return end
-        binding.set(self.settingKey, string.gsub(self:GetText() or "", "[%c]", " "))
+        if not self.mosEditing or self.mosCommitting then return end
+        self.mosCommitting = true
+        local previousThis, previousEvent, previousArg = this, event, arg1
+        this = self
+        local ok, failure = pcall(WriteSavedText, self, binding)
+        self.mosCommitting = nil
+        this, event, arg1 = previousThis, previousEvent, previousArg
+        if not ok then error(failure, 0) end
         self.mosEditing = nil
     end
     field.RefreshValue = function(self)
         if not self.mosEditing then self:SetText(binding.get(self.settingKey) or "") end
     end
     field:SetScript("OnShow", function() this:RefreshValue() end)
-    field:SetScript("OnEditFocusGained", function() this.mosEditing = true end)
+    field:SetScript("OnEditFocusGained", function()
+        if this.mosEnabled == false then ClearTextFocus(this)
+        else this.mosEditing = true end
+    end)
     field:SetScript("OnEditFocusLost", function() this:CommitValue() end)
-    field:SetScript("OnEnterPressed", function() this:CommitValue(); this:ClearFocus() end)
-    field:SetScript("OnEscapePressed", function() this.mosEditing = nil; this:RefreshValue(); this:ClearFocus() end)
-    field:SetScript("OnHide", function() this:CommitValue(); this:ClearFocus() end)
+    field:SetScript("OnEnterPressed", function() this:CommitValue(); ClearTextFocus(this) end)
+    field:SetScript("OnEscapePressed", function() this.mosEditing = nil; this:RefreshValue(); ClearTextFocus(this) end)
+    field:SetScript("OnHide", function() this:CommitValue(); ClearTextFocus(this) end)
     return field
 end
 

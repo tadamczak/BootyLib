@@ -10,4 +10,6 @@ Windows, controls and menus use a consistent foreground order across installed B
 
 Settings keeps compact text and clear plus/minus controls for expanding sections.
 
+Dropdown captions keep their normal font while windows resize. Disabled text settings release keyboard focus and become read-only until enabled again.
+
 In standalone Booty addons, use the gear in the top-right corner of a feature window to open that addon's Settings. It also works while the window is minimized.
