@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.18 — 2026-10-07
+
+- Arrange Settings fields in up to four columns sized for their full labels.
+- Keep color labels left-aligned beside their swatches.
+
 ## 0.1.0-dev.17 — 2026-10-07
 
 - Keep dropdown captions readable through resizing and filter refreshes.
