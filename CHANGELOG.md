@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.19 — 2026-10-07
+
+- Reuse measured Settings labels and combine resize callbacks before arranging columns.
+- Keep resizing separate from refreshing values and profiles; stop pending work when Settings hides.
+
 ## 0.1.0-dev.18 — 2026-10-07
 
 - Arrange Settings fields in up to four columns sized for their full labels.
