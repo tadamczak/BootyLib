@@ -5,6 +5,11 @@
 - Restore the shared color picker's borrowed drawing order on close and stop the dismiss overlay immediately.
 - Remove unused navigation textures and obsolete persistence prompts; retain existing project borders and product reload guards.
 
+## 0.1.0-dev.23 — 2026-10-07
+
+- Share optional rounded action-bar effects and extend the existing native project border with independent corner radius and thickness.
+- Supply reusable cooldown and shadow masks for BootyActionBars.
+
 ## 0.1.0-dev.22 — 2026-10-07
 
 - Keep retained feature windows and actions unavailable after a failed startup until cleanup and a new activation succeed.
