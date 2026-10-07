@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.20 — 2026-10-07
+
+- Restore previous preferences and product state if loading or resetting settings fails during the final refresh.
+- Preserve the original failure and report any failed restoration.
+
 ## 0.1.0-dev.19 — 2026-10-07
 
 - Reuse measured Settings labels and combine resize callbacks before arranging columns.

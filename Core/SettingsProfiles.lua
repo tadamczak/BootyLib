@@ -36,11 +36,21 @@ end
 local function IsSetting(field)
     return field.profile~=false and field.persist~=false and settingTypes[field.type or "text"] and type(field.key)=="string"
 end
-local function Read(field,db)
+local function ReadRaw(field,db)
     local value
     if field.get then value=field.get(db) else value=db[field.key] end
+    return value
+end
+local function Read(field,db)
+    local value=ReadRaw(field,db)
     if value==nil then return field.default end
     return value
+end
+local function Change(provider,db,field,value)
+    local raw=ReadRaw(field,db)
+    local logical=raw
+    if logical==nil then logical=field.default end
+    return {provider=provider,db=db,field=field,value=Copy(value),old=Copy(logical),restore=Copy(raw)}
 end
 local function WriteField(field,db,value)
     if field.set then field.set(value,db) else db[field.key]=value end
@@ -85,6 +95,7 @@ local function Groups(changes)
         local group=byId[change.provider.id]
         if not group then group={provider=change.provider,keys={},changes={}};byId[change.provider.id]=group;table.insert(groups,group) end
         group.keys[change.field.key]=true;table.insert(group.changes,change)
+        change.group=group
     end
     return groups
 end
@@ -94,23 +105,118 @@ local function BeginBatches(groups)
     end
 end
 local function EndBatches(groups,success)
-    local failure
+    local failures={}
     for index=table.getn(groups),1,-1 do
         local group=groups[index]
         if group.begun and group.provider.EndSettingsBatch then
             local ok,message=pcall(group.provider.EndSettingsBatch,success)
-            if not ok and not failure then failure=tostring(message) end
-        end
-        group.begun=nil
+            if ok then group.begun=nil
+            else table.insert(failures,tostring(group.provider.id)..": "..tostring(message)) end
+        else group.begun=nil end
     end
-    return failure==nil,failure
+    return table.getn(failures)==0,table.concat(failures,"; ")
 end
-local function Rollback(changes,written)
-    for index=written,1,-1 do local change=changes[index];pcall(WriteField,change.field,change.db,change.old) end
+local function DurableSnapshots(changes)
+    local snapshots,stores={},{}
+    local function Capture(change,key)
+        local keys=stores[change.db]
+        if not keys then keys={};stores[change.db]=keys end
+        local snapshot=keys[key]
+        if not snapshot then
+            snapshot={db=change.db,key=key,value=Copy(rawget(change.db,key)),groups={}}
+            keys[key]=snapshot;table.insert(snapshots,snapshot)
+        end
+        snapshot.groups[change.group]=true
+    end
+    for _,change in ipairs(changes) do
+        Capture(change,change.field.durableKey or change.field.key)
+        for _,key in ipairs(change.field.rollbackKeys or {}) do Capture(change,key) end
+    end
+    return snapshots
+end
+local function NotifyGroup(group)
+    local provider=group.provider
+    if provider.OnSettingsProfileApplied then provider.OnSettingsProfileApplied(group.keys)
+    else
+        if provider.OnSettingChanged then provider.OnSettingChanged("profile") end
+        if provider.OnSettingsChanged then provider.OnSettingsChanged("profile") end
+    end
+end
+local function Notify(changes,groups)
+    for _,change in ipairs(changes) do
+        if not change.provider.OnSettingsProfileApplied and change.field.onChange then change.field.onChange(change.value) end
+    end
+    for _,group in ipairs(groups) do NotifyGroup(group) end
+end
+local function Attempt(failures,label,callback,a,b,c)
+    local ok,message=pcall(callback,a,b,c)
+    if not ok then table.insert(failures,label..": "..tostring(message)) end
+    return ok
+end
+local function RestoreRaw(snapshot) snapshot.db[snapshot.key]=snapshot.value end
+local function Rollback(changes,written,groups,snapshots,reapply,original)
+    local failures={}
+    -- End may fail before releasing its batch or while flushing after release.
+    -- Retry cancellation before acquiring a restoration batch. Product End(false)
+    -- handlers are idempotent at depth zero; uncertain owners remain diagnostic.
+    if reapply then
+        for index=table.getn(groups),1,-1 do
+            local group=groups[index]
+            if group.begun then
+                if Attempt(failures,group.provider.id.." cancel batch",group.provider.EndSettingsBatch,false) then group.begun=nil
+                else group.rollbackBlocked=true;group.cleanupFailed=true end
+            end
+        end
+        for _,group in ipairs(groups) do
+            if group.touched and not group.rollbackBlocked and group.provider.BeginSettingsBatch then
+                group.begun=true
+                if not Attempt(failures,group.provider.id.." begin restoration",group.provider.BeginSettingsBatch) then
+                    group.rollbackBlocked=true
+                end
+            end
+        end
+    end
+    -- Logical setters restore nested/external preferences; raw owned keys then
+    -- preserve absent values, complete masks and declared adapter side effects.
+    for index=written,1,-1 do
+        local change=changes[index]
+        if change.group.touched and change.field.set then
+            Attempt(failures,change.provider.id.." restore "..change.field.key,WriteField,change.field,change.db,change.restore)
+        end
+    end
+    for _,snapshot in ipairs(snapshots) do
+        local touched=false
+        for group in pairs(snapshot.groups) do if group.touched then touched=true;break end end
+        if touched then Attempt(failures,"restore durable "..snapshot.key,RestoreRaw,snapshot) end
+    end
     for index=1,written do
         local change=changes[index]
-        if not change.provider.OnSettingsProfileApplied and change.field.onChange then pcall(change.field.onChange,change.old) end
+        if change.group.touched and not change.group.rollbackBlocked and not change.provider.OnSettingsProfileApplied and change.field.onChange then
+            Attempt(failures,change.provider.id.." restore callback "..change.field.key,change.field.onChange,change.old)
+        end
     end
+    if reapply then
+        for _,group in ipairs(groups) do
+            if group.touched and not group.rollbackBlocked then Attempt(failures,group.provider.id.." restore owner",NotifyGroup,group) end
+        end
+    else
+        for _,group in ipairs(groups) do
+            if group.touched and not group.provider.BeginSettingsBatch then Attempt(failures,group.provider.id.." restore owner",NotifyGroup,group) end
+        end
+    end
+    for index=table.getn(groups),1,-1 do
+        local group=groups[index]
+        if group.begun and not group.cleanupFailed then
+            local apply=reapply and group.touched and not group.rollbackBlocked
+            if Attempt(failures,group.provider.id.." end restoration",group.provider.EndSettingsBatch,apply and true or false) then group.begun=nil
+            elseif apply then
+                if Attempt(failures,group.provider.id.." cancel restoration",group.provider.EndSettingsBatch,false) then group.begun=nil end
+            end
+        end
+    end
+    local message=tostring(original)
+    if table.getn(failures)>0 then message=message.." Rollback failed: "..table.concat(failures,"; ") end
+    return false,message
 end
 
 -- A context sees only loaded providers' declared preferences. Histories and
@@ -160,19 +266,6 @@ function Profiles.Create(providers,options)
         profiles[name]=snapshot
         return true,"Saved profile: "..name
     end
-    local function Notify(changes,groups)
-        for _,change in ipairs(changes) do
-            if not change.provider.OnSettingsProfileApplied and change.field.onChange then change.field.onChange(change.value) end
-        end
-        for _,group in ipairs(groups) do
-            local provider=group.provider
-            if provider.OnSettingsProfileApplied then provider.OnSettingsProfileApplied(group.keys)
-            else
-                if provider.OnSettingChanged then provider.OnSettingChanged("profile") end
-                if provider.OnSettingsChanged then provider.OnSettingsChanged("profile") end
-            end
-        end
-    end
     function context.List()
         local names={};for name in pairs(Root().settingsProfiles) do if type(name)=="string" then table.insert(names,name) end end
         table.sort(names);return names
@@ -221,23 +314,27 @@ function Profiles.Create(providers,options)
         local ok,failure=pcall(function()
             Schemas(function(provider,db,field)
                 local found,value=Saved(profile,provider.id,field)
-                if found then table.insert(changes,{provider=provider,db=db,field=field,value=Copy(value),old=Copy(Read(field,db))}) end
+                if found then table.insert(changes,Change(provider,db,field,value)) end
             end)
         end)
         if not ok then return false,tostring(failure) end
         local written=0
         local groups=Groups(changes)
+        local snapshots
+        ok,snapshots=pcall(DurableSnapshots,changes)
+        if not ok then return false,tostring(snapshots) end
+        local notifying=false
         ok,failure=pcall(function()
             BeginBatches(groups)
-            for index,change in ipairs(changes) do written=index;WriteField(change.field,change.db,change.value) end
+            for index,change in ipairs(changes) do written=index;change.group.touched=true;WriteField(change.field,change.db,change.value) end
+            notifying=true
             Notify(changes,groups)
         end)
         if not ok then
-            Rollback(changes,written);EndBatches(groups,false)
-            return false,tostring(failure)
+            return Rollback(changes,written,groups,snapshots,notifying,failure)
         end
         ok,failure=EndBatches(groups,true)
-        if not ok then return false,tostring(failure) end
+        if not ok then return Rollback(changes,written,groups,snapshots,true,failure) end
         Select(name);if options.onApplied then options.onApplied() end
         return true,"Loaded profile: "..name
     end
@@ -252,16 +349,21 @@ function Profiles.Create(providers,options)
         local ok,failure=pcall(function()
             Schemas(function(provider,db,field)
                 if not selected or selected[field.key] then
-                    local change={provider=provider,db=db,field=field,value=Copy(field.default),old=Copy(Read(field,db))}
+                    local change=Change(provider,db,field,field.default)
                     table.insert(changes,change)
                 end
             end)
         end)
         if not ok then return false,tostring(failure) end
         groups=Groups(changes)
+        local snapshots
+        ok,snapshots=pcall(DurableSnapshots,changes)
+        if not ok then return false,tostring(snapshots) end
+        local notifying=false
         ok,failure=pcall(function()
             BeginBatches(groups)
             for _,group in ipairs(groups) do
+                group.touched=true
                 -- Computed/masked preferences may clear different durable keys.
                 -- Their product owns that policy and its exact default values.
                 if group.provider.ResetSettings then group.provider.ResetSettings(group.keys)
@@ -270,13 +372,14 @@ function Profiles.Create(providers,options)
                 elseif group.provider.GetSettings then group.provider.GetSettings() end
             end
             for _,change in ipairs(changes) do change.value=Read(change.field,change.db) end
+            notifying=true
             Notify(changes,groups)
         end)
         if not ok then
-            Rollback(changes,table.getn(changes));EndBatches(groups,false)
-            return false,tostring(failure)
+            return Rollback(changes,table.getn(changes),groups,snapshots,notifying,failure)
         end
-        ok,failure=EndBatches(groups,true);if not ok then return false,tostring(failure) end
+        ok,failure=EndBatches(groups,true)
+        if not ok then return Rollback(changes,table.getn(changes),groups,snapshots,true,failure) end
         if options.onApplied then options.onApplied() end
         return true,"Reset settings to defaults."
     end
