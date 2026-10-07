@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.22 — 2026-10-07
+
+- Keep retained feature windows and actions unavailable after a failed startup until cleanup and a new activation succeed.
+
 ## 0.1.0-dev.21 — 2026-10-07
 
 - Clean prepared product resources after activation failure and retain failed cleanup for an explicit retry.

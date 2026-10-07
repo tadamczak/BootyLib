@@ -37,6 +37,11 @@ function ProductHost.Create(product, options)
             DEFAULT_CHAT_FRAME:AddMessage("|cffe0b95a" .. (product.title or product.name) .. "|r: " .. tostring(message))
         end
     end
+    local function Available()
+        local failure=product.failure or product.stopped and "This addon is paused. Resume it in Booty Suite Plugins."
+        if failure then host.Print(failure);return false end
+        return true
+    end
     host.GetPresentationSetting = function(key)
         local presentation = Store(product)
         return presentation[key]
@@ -118,6 +123,7 @@ function ProductHost.Create(product, options)
         if minimize then
             local clicked = minimize:GetScript("OnClick")
             minimize:SetScript("OnClick", function()
+                if not Available() then return false end
                 if not window.minimized then SaveGeometry(id); if controller.Hide then controller:Hide() end end
                 if clicked then clicked() end
                 if not window.minimized then
@@ -129,6 +135,7 @@ function ProductHost.Create(product, options)
         -- Window.Create supplies project chrome; its Settings-specific deferred
         -- scroll setup is not part of a standalone feature host.
         window.Open = function()
+            if not Available() then return false end
             host.window = window
             if window.minimized and minimize then Invoke(minimize, minimize:GetScript("OnClick")) end
             window:SetScript("OnUpdate", nil)
@@ -139,6 +146,7 @@ function ProductHost.Create(product, options)
             return controller
         end
         window.Toggle = function()
+            if not Available() then return false end
             if window:IsVisible() and not window.minimized then window:Hide()
             else return window.Open() end
             return controller
@@ -146,7 +154,7 @@ function ProductHost.Create(product, options)
         return controller
     end
     host.GetView = function(id)
-        if product.stopped then host.Print("This addon is paused. Resume it in Booty Suite Plugins."); return nil end
+        if not Available() then return nil end
         local definition = definitions[id]
         if not definition or definition.IsAvailable and not definition.IsAvailable() then return nil end
         local controller = host.controllers[id]

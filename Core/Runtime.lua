@@ -118,6 +118,9 @@ function Runtime.Activate(product)
         if not cleaned then return Failure(product, product.activationFailure .. " Activation cleanup failed: " .. reason) end
         product.activationCleanupPending, product.featureInitialized = nil, nil
     end
+    -- Retained failed hosts remain blocked until cleanup has completed. The
+    -- fresh host's OnHostReady may then open its own views during activation.
+    product.failure=nil
     if not product.featureInitialized then
         if product.Initialize then
             local ok, result, reason = pcall(product.Initialize)
