@@ -9,10 +9,52 @@ local function Compatible(value)
     return value.apiVersion == Lib.API_VERSION and
         (not value.namespace or value.namespace.API_VERSION == nil or value.namespace.API_VERSION == Lib.API_VERSION)
 end
+local function Message(value, fallback)
+    if type(value) == "table" then value = value.message or value.code end
+    return tostring(value or fallback or "Initialization failed.")
+end
 local function Failure(product, message)
-    product.failure = tostring(message or "Initialization failed.")
+    product.failure = Message(message)
     Lib.Print(product.name .. ": " .. product.failure)
     return false, product.failure
+end
+local function CleanupActivation(product)
+    local failures={}
+    local host=product.activationCleanupHost
+    if host then
+        local hostClean=true
+        if host.Hide then
+            local ok,result,reason=pcall(host.Hide)
+            if not ok or result==false then
+                hostClean=false;table.insert(failures,"Host cleanup failed: "..Message(reason or result))
+            end
+        end
+        if host.minimap and host.minimap.Hide then
+            local ok,result,reason=pcall(host.minimap.Hide,host.minimap)
+            if not ok or result==false then
+                hostClean=false;table.insert(failures,"Minimap cleanup failed: "..Message(reason or result))
+            end
+        end
+        if hostClean then product.activationCleanupHost=nil end
+    end
+    local cleanup = product.OnActivationFailed or product.Stop
+    if type(cleanup) == "function" then
+        local ok, result, reason = pcall(cleanup, product.activationFailure)
+        if not ok or result == false then table.insert(failures,Message(reason or result,"Activation cleanup failed.")) end
+    end
+    if table.getn(failures)>0 then return false,table.concat(failures," ") end
+    return true
+end
+local function ActivationFailure(product, reason, host)
+    product.activationFailure = Message(reason)
+    local failure = product.activationFailure
+    product.activationCleanupHost=host
+    Runtime.hosts[product.id] = nil
+    local cleaned, message = CleanupActivation(product)
+    product.activationCleanupPending = not cleaned or nil
+    if cleaned then product.featureInitialized = nil
+    else failure = failure .. " Activation cleanup failed: " .. message end
+    return Failure(product, failure)
 end
 -- Registration is metadata only: migration and feature startup wait for login.
 function Lib.RegisterProduct(product)
@@ -71,28 +113,30 @@ end
 function Runtime.Activate(product)
     if product.initialized then return true end
     if not Compatible(product) then return Failure(product, "Unsupported Booty integration API.") end
+    if product.activationCleanupPending then
+        local cleaned, reason = CleanupActivation(product)
+        if not cleaned then return Failure(product, product.activationFailure .. " Activation cleanup failed: " .. reason) end
+        product.activationCleanupPending, product.featureInitialized = nil, nil
+    end
     if not product.featureInitialized then
         if product.Initialize then
             local ok, result, reason = pcall(product.Initialize)
-            if not ok or result == false then return Failure(product, reason or result) end
+            if not ok or result == false then return ActivationFailure(product, reason or result) end
         end
         product.featureInitialized = true
     end
     local ok, host, reason
     if Runtime.suite then ok, host, reason = pcall(Runtime.suite.Attach, product)
     else ok, host, reason = pcall(Lib.Core.ProductHost.Create, product, {integrated = false}) end
-    if not ok or type(host) ~= "table" then return Failure(product, reason or host or "Presentation host is unavailable.") end
+    if not ok or type(host) ~= "table" then return ActivationFailure(product, reason or host or "Presentation host is unavailable.") end
     Runtime.hosts[product.id] = host
     if product.OnHostReady then
         local ready, result, failure = pcall(product.OnHostReady, host)
         if not ready or result == false then
-            if host.Hide then pcall(host.Hide) end
-            if host.minimap then host.minimap:Hide() end
-            Runtime.hosts[product.id] = nil
-            return Failure(product, failure or result)
+            return ActivationFailure(product, failure or result, host)
         end
     end
-    product.initialized, product.failure = true, nil
+    product.initialized, product.failure, product.activationFailure = true, nil, nil
     return true
 end
 local function WantsDirectory(product)
@@ -171,20 +215,30 @@ end
 function Runtime.StopProduct(id)
     local product = Runtime.products[id]
     if not product then return false, "Product is not loaded." end
-    if product.IsBusy then
-        local ok, busy = pcall(product.IsBusy)
-        if not ok then return false, tostring(busy) end
-        if Flag(busy) then return false, "Finish the active raid or recording before stopping this addon." end
+    if not product.stopCleanupPending then
+        if product.IsBusy then
+            local ok, busy = pcall(product.IsBusy)
+            if not ok then return false, Message(busy) end
+            if Flag(busy) then return false, "Finish the active raid or recording before stopping this addon." end
+        end
+        if product.Stop then
+            local ok, result, reason = pcall(product.Stop)
+            if not ok then return false, Message(result) end
+            if result == false then return false, Message(reason, "The addon could not stop safely.") end
+        end
+        -- Domain resources are already stopped. Keep entry points paused while
+        -- retrying presentation cleanup, without repeating the owner's Stop.
+        product.stopped, product.stopCleanupPending = true, true
     end
-    if product.Stop then
-        local ok, result = pcall(product.Stop)
-        if not ok then return false, tostring(result) end
-        if result == false then return false, "The addon could not stop safely." end
-    end
-    product.stopped = true
-    local host = Runtime.hosts[id]
-    if host and host.Hide then host.Hide() end
     Runtime.RefreshDirectory(false)
+    local host = Runtime.hosts[id]
+    if host and host.Hide then
+        local ok, result, reason = pcall(host.Hide)
+        if not ok or result == false or result == 0 then
+            return false, Message(reason or result, "The presentation host could not stop safely.")
+        end
+    end
+    product.stopCleanupPending = nil
     return true
 end
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.21 — 2026-10-07
+
+- Clean prepared product resources after activation failure and retain failed cleanup for an explicit retry.
+- Preserve owner diagnostics when Stop is refused.
+
 ## 0.1.0-dev.20 — 2026-10-07
 
 - Restore previous preferences and product state if loading or resetting settings fails during the final refresh.
