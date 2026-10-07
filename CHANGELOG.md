@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.17 — 2026-10-07
+
+- Keep dropdown captions readable through resizing and filter refreshes.
+- Enable and disable text settings using native input controls, preserving drafts and focus handling.
+
 ## 0.1.0-dev.16 — 2026-10-07
 
 - Open addon Settings from the top-right gear in every standalone feature window, including minimized windows.

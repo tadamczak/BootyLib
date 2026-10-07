@@ -150,6 +150,25 @@ function UI.ApplySelectionListStyle(buttons, items, selectedId, loadButton)
     return selectedAvailable
 end
 
+local function ReflowDropdown(control, width)
+    control.label:SetFont(control.mosTextFont, control.mosTextFontSize, control.mosTextFontFlags)
+    control.label:SetWidth(math.max(1, width - 28))
+    control.label:SetHeight(control.mosTextFontSize + 3)
+    control.mosTextWidth = width
+end
+
+function UI.ReflowControlText(control)
+    if not control or not control.mosDropdownText or control.mosTextReflowing then return end
+    local width = math.max(1, control:GetWidth())
+    if control.mosTextWidth == width then return end
+    control.mosTextReflowing = true
+    local previousThis, previousEvent, previousArg = this, event, arg1
+    local ok, reason = pcall(ReflowDropdown, control, width)
+    this, event, arg1 = previousThis, previousEvent, previousArg
+    control.mosTextReflowing = nil
+    if not ok then control.mosTextWidth = nil; error(reason, 0) end
+end
+
 function UI.CreateDropdownButton(parent, name, text, width)
     local button = UI.CreateControl(name, parent)
     button:SetWidth(width or 84); button:SetHeight(24)
@@ -159,15 +178,18 @@ function UI.CreateDropdownButton(parent, name, text, width)
     button.label = button:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     local font, size, flags = button.label:GetFont()
     if font then button.label:SetFont(font, size + math.min(0, UI.GetTextSizeDelta(parent) + 1), flags) end
+    button.mosTextFont, button.mosTextFontSize, button.mosTextFontFlags = button.label:GetFont()
+    button.mosDropdownText = true
     button.mosLabelJustify = "LEFT"
     button.label:SetPoint("LEFT", button, "LEFT", 4, 0); button.label:SetWidth(math.max(1,(width or 84)-28));button.label:SetJustifyH("LEFT");button.label:SetJustifyV("MIDDLE");button.label:SetText(text)
-    button.SetText = function(self, value) self.label:SetText(value); if UI.FitButtonLabel then UI.FitButtonLabel(self,math.max(1,self:GetWidth()-28)) end end
+    button.SetText = function(self, value) self.label:SetText(value); UI.ReflowControlText(self) end
     button.GetText = function(self) return self.label:GetText() end
     button.arrow = button:CreateTexture(nil, "OVERLAY")
     button.arrow:SetWidth(14); button.arrow:SetHeight(14); button.arrow:SetPoint("RIGHT", button, "RIGHT", -4, 0)
     button.arrow:SetTexture("Interface\\Buttons\\UI-ScrollBar-ScrollDownButton-Up")
     button.arrow:SetTexCoord(0.20, 0.80, 0.20, 0.80)
-    button:SetScript("OnSizeChanged",function() this.label:SetWidth(math.max(1,this:GetWidth()-28)) end)
+    button:SetScript("OnSizeChanged", function() UI.ReflowControlText(this) end)
+    UI.ReflowControlText(button)
     if UI.ApplyDropdownChoiceSurface then UI.ApplyDropdownChoiceSurface(button) end
     if UI.RegisterSkinCallback then UI.RegisterSkinCallback(function() UI.ApplyDropdownChoiceSurface(button) end) end
     return button
@@ -854,6 +876,9 @@ function UI.ApplyButtonCaptionBaseline(button)
 end
 
 function UI.FitButtonLabel(button, available)
+    -- Dropdown captions keep their readable logical font. Their layout owner
+    -- allocates space; transient or tight bounds must never scale that font.
+    if button.mosDropdownText then UI.ReflowControlText(button); return end
     local label = button.label or button
     if not label or not label.GetFont then return end
     local font, size, flags = label:GetFont()
