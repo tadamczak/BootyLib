@@ -99,9 +99,14 @@ function Settings.CreateSectionAccordion(parent, text, y, inset, headingLevel, i
     button.RefreshRule = function(self)
         -- A FontString's anchored bounds may still describe its previous text.
         -- Measure the caption instead of anchoring a rule to that stale edge.
+        local text = self.label:GetText()
+        local font, size, flags = self.label:GetFont()
+        local inset = (self.label.mosAccordionPrefixInset or 0) + (self.label.mosHeadingIconInset or 0)
+        if self.mosRuleText == text and self.mosRuleFont == font and self.mosRuleSize == size and self.mosRuleFlags == flags and self.mosRuleInset == inset then return end
+        self.mosRuleText, self.mosRuleFont, self.mosRuleSize, self.mosRuleFlags, self.mosRuleInset = text, font, size, flags, inset
         self.label:SetWidth(0)
         self.rule:ClearAllPoints()
-        self.rule:SetPoint("LEFT", self, "LEFT", (self.label.mosAccordionPrefixInset or 0) + (self.label.mosHeadingIconInset or 0) + self.label:GetStringWidth() + 10, 0)
+        self.rule:SetPoint("LEFT", self, "LEFT", inset + self.label:GetStringWidth() + 10, 0)
         self.rule:SetPoint("RIGHT", self.ruleCap, "LEFT", 0, 0)
         self.rule:SetHeight(8)
     end
@@ -467,9 +472,7 @@ local function MeasureSettingsWidth(width, page)
     return page.settingsContentHeight or page.mosRequestedHeight or 960
 end
 
-function Settings.UpdateScroll(viewport, page, pageHeight)
-    if not viewport or not page or viewport.mosScrollLayoutBusy then return end
-    viewport.mosScrollLayoutBusy = true
+local function UpdateSettingsScroll(viewport, page, pageHeight)
     local UI = MOS.UI.Components
     local fullWidth, height = UI.GetFrameSpan(viewport)
     local anchor = viewport.mosScrollAnchor
@@ -492,7 +495,14 @@ function Settings.UpdateScroll(viewport, page, pageHeight)
     viewport.mosScrollGutter = overflow and 20 or 0
     if viewport.UpdateScrollChildRect then viewport:UpdateScrollChildRect() end
     UI.ApplyScrollRange(viewport, getglobal(viewport:GetName() .. "ScrollBar"), maximum)
+end
+
+function Settings.UpdateScroll(viewport, page, pageHeight)
+    if not viewport or not page or viewport.mosScrollLayoutBusy then return end
+    viewport.mosScrollLayoutBusy = true
+    local ok, failure = pcall(UpdateSettingsScroll, viewport, page, pageHeight)
     viewport.mosScrollLayoutBusy = nil
+    if not ok then error(failure, 0) end
 end
 
 function Settings.CreateFactory(binding)

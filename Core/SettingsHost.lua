@@ -75,6 +75,7 @@ local function Confirm(state, title, message, action, yes, no)
     state.profileConfirm.no:SetText(no and "Discard" or "Cancel")
     state.profileConfirm:Open(message, yes, no)
 end
+local NaturalLabelWidth, NaturalLabelHeight
 local function CreateProfileControls(node, page, state)
     local api, view = state.ProfileContext, {rows = {}, first = 1}
     view.frame = UI.CreateContainer(nil, page)
@@ -166,20 +167,22 @@ local function CreateProfileControls(node, page, state)
     end
     view.frame:SetScript("OnHide", view.Close)
     view.Layout = function(x, y, width)
-        view.Refresh(); view.frame:ClearAllPoints(); view.frame:SetPoint("TOPLEFT", page, "TOPLEFT", x, y); view.frame:SetWidth(width)
+        if not state.geometryOnly then view.Refresh() end
+        view.frame:ClearAllPoints(); view.frame:SetPoint("TOPLEFT", page, "TOPLEFT", x, y); view.frame:SetWidth(width)
         local top = 0
         for _, controls in ipairs(view.flows) do
             for _, control in ipairs(controls) do
                 if control.GetStringWidth then
-                    control.mosFlowWidth = math.min(control == view.current and 180 or width, math.max(1, control:GetStringWidth()))
-                    control:SetWidth(control.mosFlowWidth); control:SetHeight(math.max(16, UI.MeasureTextHeight(control, control.mosFlowWidth)))
+                    control.mosFlowWidth = math.min(control == view.current and 180 or width, NaturalLabelWidth(control))
+                    control:SetWidth(control.mosFlowWidth); control:SetHeight(math.max(16, NaturalLabelHeight(control, control.mosFlowWidth)))
                 elseif control == view.name or control == view.select then control.mosFlowWidth = math.min(180, width)
                 else control.mosFlowWidth = 58; control.mosFlowFitLabel = true end
             end
             top = UI.LayoutFlow(view.frame, controls, 0, top, width, 6) + 8
         end
         if view.status:GetText() ~= "" then
-            view.status:SetWidth(width); view.status:SetHeight(math.max(16, UI.MeasureTextHeight(view.status, width)))
+            NaturalLabelWidth(view.status)
+            view.status:SetWidth(width); view.status:SetHeight(math.max(16, NaturalLabelHeight(view.status, width)))
             view.status:ClearAllPoints(); view.status:SetPoint("TOPLEFT", view.frame, "TOPLEFT", 0, -top); view.status:Show()
             top = top + view.status:GetHeight() + 6
         else view.status:Hide() end
@@ -240,13 +243,28 @@ local function Synchronize(node)
         control:SetText(caption)
     elseif control.RefreshValue then control:RefreshValue() end
 end
-local function NaturalLabelWidth(label)
+NaturalLabelWidth = function(label)
+    local text = label:GetText()
+    local font, size, flags
+    if label.GetFont then font, size, flags = label:GetFont() end
+    if label.mosNaturalText == text and label.mosNaturalFont == font and label.mosNaturalSize == size and label.mosNaturalFlags == flags and label.mosNaturalWidth then
+        return label.mosNaturalWidth
+    end
     label:SetWidth(0)
-    return math.max(1, math.ceil(label:GetStringWidth()) + 2)
+    local width = math.max(1, math.ceil(label:GetStringWidth()) + 2)
+    label.mosNaturalText, label.mosNaturalFont, label.mosNaturalSize, label.mosNaturalFlags = text, font, size, flags
+    label.mosNaturalWidth, label.mosNaturalHeight = width, nil
+    return width
+end
+NaturalLabelHeight = function(label, width)
+    if not label.mosNaturalHeight or label.mosNaturalHeightWidth ~= width then
+        label.mosNaturalHeight = math.max(14, UI.MeasureTextHeight(label, width))
+        label.mosNaturalHeightWidth = width
+    end
+    return label.mosNaturalHeight
 end
 local function MeasureField(node)
     local control, kind = node.control, node.field.type
-    Synchronize(node)
     if node.label then
         local width = math.max(180, NaturalLabelWidth(node.label))
         if kind == "choice" or kind == "dropdown" then
@@ -259,23 +277,34 @@ local function MeasureField(node)
     elseif kind == "slider" then
         local name = control:GetName()
         local label = getglobal(name .. "Text")
+        local font, size, flags = label:GetFont()
+        if node.mosSliderMeasureText == label:GetText() and node.mosSliderMeasureFont == font and node.mosSliderMeasureSize == size and node.mosSliderMeasureFlags == flags and node.mosSliderMeasureWidth then
+            return node.mosSliderMeasureWidth
+        end
         local caption, width = label:GetText(), NaturalLabelWidth(label)
         label:SetText(node.text .. ": " .. tostring(node.field.min or 0)); width = math.max(width, NaturalLabelWidth(label))
         label:SetText(node.text .. ": " .. tostring(node.field.max or 100)); width = math.max(width, NaturalLabelWidth(label))
         label:SetText(caption)
-        return math.max(170, width + 8,
+        width = math.max(170, width + 8,
             NaturalLabelWidth(getglobal(name .. "Low")) + NaturalLabelWidth(getglobal(name .. "High")) + 32)
+        node.mosSliderMeasureText, node.mosSliderMeasureFont, node.mosSliderMeasureSize, node.mosSliderMeasureFlags = caption, font, size, flags
+        node.mosSliderMeasureWidth = width
+        return width
     end
     return (kind == "color" and 26 or control:GetWidth() + 2) + NaturalLabelWidth(control.label) + 4
 end
 local function LayoutField(node, page, x, y, width)
     local control, kind = node.control, node.field.type
+    local label = node.label or control.label or kind == "slider" and getglobal(control:GetName() .. "Text")
+    local labelWidth = label and NaturalLabelWidth(label)
+    local labelHeight = label and NaturalLabelHeight(label, labelWidth)
+    if node.mosLayoutX == x and node.mosLayoutY == y and node.mosLayoutWidth == width and node.mosLayoutLabelWidth == labelWidth and node.mosLayoutLabelHeight == labelHeight and control:IsShown() then return node.height end
+    node.mosLayoutX, node.mosLayoutY, node.mosLayoutWidth = x, y, width
+    node.mosLayoutLabelWidth, node.mosLayoutLabelHeight = labelWidth, labelHeight
     control:ClearAllPoints()
     if node.label then
-        local labelWidth = NaturalLabelWidth(node.label)
         node.label:SetWidth(labelWidth)
         node.label:SetJustifyH("LEFT")
-        local labelHeight = math.max(14, UI.MeasureTextHeight(node.label, labelWidth))
         node.label:SetHeight(labelHeight); node.label:Show()
         node.label:ClearAllPoints(); node.label:SetPoint("TOPLEFT", page, "TOPLEFT", x, y)
         control:SetPoint("TOPLEFT", page, "TOPLEFT", x, y - labelHeight - 4)
@@ -293,13 +322,11 @@ local function LayoutField(node, page, x, y, width)
         control:SetPoint("TOPLEFT", page, "TOPLEFT", x, y - (kind == "slider" and 18 or 0))
         if kind == "slider" then
             control:SetWidth(width)
-            local label = getglobal(control:GetName() .. "Text")
-            label:SetWidth(NaturalLabelWidth(label)); label:SetJustifyH("LEFT")
+            label:SetWidth(labelWidth); label:SetJustifyH("LEFT")
             node.height = 52
         elseif control.label then
-            local labelWidth = NaturalLabelWidth(control.label)
             control.label:SetWidth(labelWidth); control.label:SetJustifyH("LEFT")
-            local height = math.max(control:GetHeight(), UI.MeasureTextHeight(control.label, labelWidth))
+            local height = math.max(control:GetHeight(), labelHeight)
             control.label:SetHeight(height)
             if kind == "color" then control:SetWidth(width) end
             if control.labelHit then control.labelHit:SetWidth(labelWidth); control.labelHit:SetHeight(height) end
@@ -338,7 +365,8 @@ local function LayoutNodes(nodes, page, state, depth, y)
                     local fieldNode = nodes[index]
                     if Visible(fieldNode) then
                         fieldNode.layoutVisible = true
-                        if not fieldNode.control then CreateField(fieldNode, page, state) end
+                        if not fieldNode.control then CreateField(fieldNode, page, state); Synchronize(fieldNode)
+                        elseif not state.geometryOnly then Synchronize(fieldNode) end
                         table.insert(items, fieldNode)
                     end
                     index = index + 1
@@ -354,11 +382,18 @@ local function LayoutNodes(nodes, page, state, depth, y)
                     node.control.mosSettingsState = state
                     node.control:SetScript("OnClick", ToggleAccordion)
                 end
-                node.control:ClearAllPoints(); node.control:SetPoint("TOPLEFT", page, "TOPLEFT", x, y)
-                node.control:SetPoint("TOPRIGHT", page, "TOPRIGHT", -4, y)
-                if node.control.indicator then node.control.indicator:SetText(node.expanded and "-" or "+") end
-                if node.control.SetExpanded then node.control:SetExpanded(node.expanded) end
-                node.control:Show(); y = y - (depth == 0 and 38 or 30)
+                if node.mosLayoutX ~= x or node.mosLayoutY ~= y then
+                    node.control:ClearAllPoints(); node.control:SetPoint("TOPLEFT", page, "TOPLEFT", x, y)
+                    node.control:SetPoint("TOPRIGHT", page, "TOPRIGHT", -4, y)
+                    node.mosLayoutX, node.mosLayoutY = x, y
+                end
+                if node.mosLayoutExpanded ~= node.expanded then
+                    if node.control.indicator then node.control.indicator:SetText(node.expanded and "-" or "+") end
+                    if node.control.SetExpanded then node.control:SetExpanded(node.expanded) end
+                    node.mosLayoutExpanded = node.expanded
+                end
+                if not node.control:IsShown() then node.control:Show() end
+                y = y - (depth == 0 and 38 or 30)
                 if node.expanded then y = LayoutNodes(node.children, page, state, depth + 1, y) end
             end
         end
@@ -424,7 +459,20 @@ local function ApplyFieldMinimum(state)
         state.applyingMinimum = true
         state.window:SetWidth(width)
         state.applyingMinimum = nil
-        if math.abs(state.page:GetWidth() - (width - inset - (state.viewport.mosScrollGutter or 0))) > 0.5 then state.Reflow() end
+        -- The native size event is suppressed by the outer reflow guard. Resolve
+        -- the new owner rectangle here, without entering a second outer refresh.
+        UI.Settings.UpdateScroll(state.viewport, state.page, state.page.settingsContentHeight)
+    end
+end
+local function ResizeSettingsTick()
+    local state = this.mosSettingsState
+    this:SetScript("OnUpdate", nil)
+    state.resizeQueued = nil
+    if state.window:IsVisible() and not state.window.minimized and (state.window:GetWidth() ~= state.lastWindowWidth or state.window:GetHeight() ~= state.lastWindowHeight or state.page:GetWidth() ~= state.lastPageWidth) then
+        state.geometryOnly = true
+        local ok, failure = pcall(state.Reflow)
+        state.geometryOnly = nil
+        if not ok then error(failure, 0) end
     end
 end
 function SettingsHost.Open(product, host, providers)
@@ -448,8 +496,7 @@ function SettingsHost.Open(product, host, providers)
         Lib.Core.SettingsSearch.Index(state.tree)
     end
     state.RefreshEnabled = function() RefreshNodes(state.tree) end
-    state.Reflow = function()
-        if state.window.minimized then return end
+    state.Layout = function()
         CloseChoices(state.tree); ClearLayout(state.tree)
         if state.profileNode and state.profileNode.control and state.profileNode.control.panel then state.profileNode.control.panel:Hide() end
         if state.reset then
@@ -460,10 +507,31 @@ function SettingsHost.Open(product, host, providers)
         y = LayoutNodes(state.tree, state.page, state, 0, y)
         HideUnused(state.tree)
         state.page.settingsContentHeight = math.max(1, -y + 4)
-        state.RefreshEnabled()
+        if not state.geometryOnly then state.RefreshEnabled() end
         if not state.layingOut then
             UI.Settings.UpdateScroll(state.viewport, state.page, state.page.settingsContentHeight)
             ApplyFieldMinimum(state)
+        end
+    end
+    state.Reflow = function()
+        if state.window.minimized then return end
+        if state.layingOut then return state.Layout() end
+        if state.reflowBusy then return end
+        state.reflowBusy = true
+        state.viewport:SetScript("OnUpdate", nil); state.resizeQueued = nil
+        local ok, failure = pcall(state.Layout)
+        state.reflowBusy = nil
+        if not ok then error(failure, 0) end
+        state.layoutReady = true
+        state.lastWindowWidth, state.lastWindowHeight, state.lastPageWidth = state.window:GetWidth(), state.window:GetHeight(), state.page:GetWidth()
+    end
+    state.Resize = function()
+        if state.reflowBusy or state.window.minimized or not state.window:IsVisible() then return end
+        if not state.layoutReady then state.Reflow(); return end
+        if state.window:GetWidth() == state.lastWindowWidth and state.window:GetHeight() == state.lastWindowHeight and state.page:GetWidth() == state.lastPageWidth then return end
+        if not state.resizeQueued then
+            state.resizeQueued = true
+            state.viewport:SetScript("OnUpdate", ResizeSettingsTick)
         end
     end
     window = UI.Window.Create({name = product.name .. "SettingsWindow", title = product.name .. " Settings", icon = "settings", compact = true, plainHeader = true, owner = host.window,
@@ -473,12 +541,13 @@ function SettingsHost.Open(product, host, providers)
             state.viewport:SetParent(content); state.viewport:SetPoint("TOPLEFT", content, "TOPLEFT", 4, -36); state.viewport:SetPoint("BOTTOMRIGHT", content, "BOTTOMRIGHT", -4, 4)
             state.viewport.mosScrollAnchor = content; state.viewport.mosScrollTop = 36
         end,
-        update = function() state.Reflow() end, refresh = function() state.Reflow() end})
+        update = function() state.Resize() end, refresh = function() state.Reflow() end})
     state.window = window
     local hidden = window:GetScript("OnHide")
     window:SetScript("OnHide", function()
         if hidden then hidden() end
         window:SetScript("OnUpdate", nil)
+        state.viewport:SetScript("OnUpdate", nil); state.resizeQueued = nil
         CommitPending(state.tree); CloseChoices(state.tree)
         if state.profiles then state.profiles.Close() end
         if state.profileConfirm then state.profileConfirm:Hide() end
@@ -519,6 +588,7 @@ function SettingsHost.Open(product, host, providers)
         UI.ApplyScrollRange(state.viewport, state.scrollBar, maximum)
     end)
     state.viewport:SetScript("OnHide", function()
+        state.viewport:SetScript("OnUpdate", nil); state.resizeQueued = nil
         CommitPending(state.tree); CloseChoices(state.tree); state.search:ClearFocus()
         if state.profiles then state.profiles.Close() end
         if state.profileConfirm then state.profileConfirm:Hide() end
@@ -527,9 +597,15 @@ function SettingsHost.Open(product, host, providers)
     -- Preserve the compact Settings typography used before the product split.
     -- This presentation scope does not alter any saved feature font preference.
     state.page.mosTextSizeDelta = -2
-    state.page.ReflowSettings = function() state.layingOut = true; state.Reflow(); state.layingOut = nil end
+    state.page.ReflowSettings = function()
+        state.layingOut = true
+        local ok, failure = pcall(state.Reflow)
+        state.layingOut = nil
+        if not ok then error(failure, 0) end
+    end
+    state.viewport.mosSettingsState = state
     state.viewport:SetScrollChild(state.page)
-    state.viewport:SetScript("OnSizeChanged", function() if state.page then state.Reflow() end end)
+    state.viewport:SetScript("OnSizeChanged", function() if state.page then state.Resize() end end)
     window.AttachView(state)
     Lib.Core.SettingsSearch.Apply(state.tree, "")
     SettingsHost.windows[owner] = state
