@@ -26,8 +26,9 @@ local function ClassicPath(path)
     return CLASSIC_ROOT .. path
 end
 
-local function CreateNineSlice(parent, path, width, height, inset, layer, region)
-    local set = { textures = {}, inset = inset }
+local function CreateNineSlice(parent, path, width, height, inset, layer, region, firstTexture, target)
+    local set = target or { textures = {}, inset = inset }
+    set.complete = false
     local x, y = inset / width, inset / height
     local coords = {
         { 0, x, 0, y }, { x, 1 - x, 0, y }, { 1 - x, 1, 0, y },
@@ -36,13 +37,14 @@ local function CreateNineSlice(parent, path, width, height, inset, layer, region
     }
     local index
     for index = 1, 9 do
-        local texture = parent:CreateTexture(nil, layer or "BACKGROUND")
-        texture:SetTexture(path)
+        local texture = set.textures[index] or index == 1 and firstTexture or parent:CreateTexture(nil, layer or "BACKGROUND")
+        set.textures[index] = texture
+        if target then texture:Hide(); texture:ClearAllPoints() else texture:SetTexture(path) end
         local uv = coords[index]
-        if region then
+        if target then -- The rounded painter checks its first texture/UV writes.
+        elseif region then
             texture:SetTexCoord(region[1] + uv[1] * (region[2] - region[1]), region[1] + uv[2] * (region[2] - region[1]), region[3] + uv[3] * (region[4] - region[3]), region[3] + uv[4] * (region[4] - region[3]))
         else texture:SetTexCoord(unpack(uv)) end
-        set.textures[index] = texture
     end
     local tl, top, tr = set.textures[1], set.textures[2], set.textures[3]
     local left, middle, right = set.textures[4], set.textures[5], set.textures[6]
@@ -56,18 +58,22 @@ local function CreateNineSlice(parent, path, width, height, inset, layer, region
     left:SetWidth(inset); left:SetPoint("TOPLEFT", tl, "BOTTOMLEFT", 0, 0); left:SetPoint("BOTTOMLEFT", bl, "TOPLEFT", 0, 0)
     right:SetWidth(inset); right:SetPoint("TOPRIGHT", tr, "BOTTOMRIGHT", 0, 0); right:SetPoint("BOTTOMRIGHT", br, "TOPRIGHT", 0, 0)
     middle:SetPoint("TOPLEFT", tl, "BOTTOMRIGHT", 0, 0); middle:SetPoint("BOTTOMRIGHT", br, "TOPLEFT", 0, 0)
+    set.inset, set.complete = inset, true
     return set
 end
 
 local function SizeNineSlice(set, inset)
     if set.inset == inset then return end
-    set.inset = inset
+    -- Publish only after every native write succeeds: a setter may mutate and
+    -- throw, and a retry with this same inset must repair the whole geometry.
+    set.inset = nil
     local t = set.textures
     local index
     for index = 1, 9 do
         if index == 1 or index == 3 or index == 7 or index == 9 then t[index]:SetWidth(inset); t[index]:SetHeight(inset) end
     end
     t[2]:SetHeight(inset); t[8]:SetHeight(inset); t[4]:SetWidth(inset); t[6]:SetWidth(inset)
+    set.inset = inset
 end
 
 local function SetAtlasArtwork(set, style)
@@ -111,7 +117,83 @@ local function CreateClassicHoverOutline(frame, path, fullEdges)
 end
 
 local projectOutlineGold = {1, 0.78, 0.2}
-function UI.SetProjectButtonOutline(button, visible, size, color, topInset, minimumLevel)
+local roundedGold = "Interface\\AddOns\\BootyLib\\Assets\\HoverNativeOutline"
+local roundedSurfaces = "Interface\\AddOns\\BootyLib\\Assets\\HoverRoundedSurfaces"
+local function RoundedArtwork(set, path, left, right, top, bottom, sourceInset, renderedInset, r, g, b, a)
+    set.ready = false
+    local inset = sourceInset / 16
+    for index = 1, 9 do
+        local column, row = math.mod(index - 1, 3), math.floor((index - 1) / 3)
+        local u0 = column == 0 and 0 or column == 1 and 15 / 16 or inset
+        local u1 = column == 0 and inset or column == 1 and 1 or 0
+        local v0 = row == 0 and 0 or row == 1 and 15 / 16 or inset
+        local v1 = row == 0 and inset or row == 1 and 1 or 0
+        local texture = set.textures[index]
+        if texture:SetTexture(path) == false then error("Rounded project artwork was declined.") end
+        if texture:SetTexCoord(left + u0 * (right - left), left + u1 * (right - left),
+            top + v0 * (bottom - top), top + v1 * (bottom - top)) == false then error("Rounded project coordinates were declined.") end
+        if texture:SetVertexColor(r, g, b, a) == false then error("Rounded project color was declined.") end
+    end
+    SizeNineSlice(set, renderedInset)
+end
+local function RoundedVisibility(set, visible, background)
+    local failure
+    set.visible = nil
+    for index = 1, 9 do
+        local texture, shown = set.textures[index], visible and (background or index ~= 5)
+        if texture then
+        local ok, reason = pcall(shown and texture.Show or texture.Hide, texture)
+        if ok and reason == false then ok, reason = false, "Rounded project visibility was declined." end
+        if ok then
+            ok, reason = pcall(texture.IsShown, texture)
+            if ok and (reason ~= nil and reason ~= false and reason ~= 0) ~= shown then ok, reason = false, "Rounded project visibility was declined." end
+        end
+        if not ok then failure = failure or tostring(reason) end
+        end
+    end
+    if failure then set.ready = false; error(failure) end
+    set.visible = visible
+end
+local function RoundedArea(set, parent, expansion)
+    local textures = set.textures
+    textures[1]:ClearAllPoints(); textures[1]:SetPoint("TOPLEFT", parent, "TOPLEFT", -expansion, expansion)
+    textures[3]:ClearAllPoints(); textures[3]:SetPoint("TOPRIGHT", parent, "TOPRIGHT", expansion, expansion)
+    textures[7]:ClearAllPoints(); textures[7]:SetPoint("BOTTOMLEFT", parent, "BOTTOMLEFT", -expansion, -expansion)
+    textures[9]:ClearAllPoints(); textures[9]:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", expansion, -expansion)
+end
+-- Both surfaces reuse one caller-owned primary texture. Extra slices are
+-- allocated only on the first visible hover and survive later style changes.
+function UI.SetRoundedHoverSurface(parent, primary, visible, kind, extent, radius, r, g, b, a)
+    local set = primary.mosRoundedHover
+    if not visible and not set then
+        if primary:Hide() == false then error("Rounded project visibility was declined.") end
+        local shown = primary:IsShown()
+        if shown ~= nil and shown ~= false and shown ~= 0 then error("Rounded project visibility was declined.") end
+        return
+    end
+    local background = kind == "background"
+    radius = math.ceil(math.min(radius, extent / 2))
+    local sourceInset = math.max(background and 2 or 8, radius)
+    local inset = math.min(sourceInset, extent / 2)
+    if not set then set = {textures = {}}; primary.mosRoundedHover = set end
+    if not visible and not set.complete then RoundedVisibility(set, false, background); return end
+    if not set.complete then
+        CreateNineSlice(parent, roundedSurfaces, 32, 32, sourceInset, background and "ARTWORK" or "OVERLAY", nil, primary, set)
+    end
+    if not set.ready or set.kind ~= kind or set.extent ~= extent or set.radius ~= radius
+        or set.r ~= r or set.g ~= g or set.b ~= b or set.a ~= a or set.ownerWidth ~= parent:GetWidth() then
+        local slot = radius * 2 + (background and 0 or 1)
+        local column, row = math.mod(slot, 8), math.floor(slot / 8)
+        RoundedArtwork(set, roundedSurfaces, (column * 18 + 1) / 256, (column * 18 + 17) / 256,
+            (row * 18 + 1) / 64, (row * 18 + 17) / 64, sourceInset, inset, r, g, b, a)
+        RoundedArea(set, parent, (extent - parent:GetWidth()) / 2)
+        for index = 1, 9 do set.textures[index]:SetBlendMode(background and "BLEND" or "ADD") end
+        set.kind, set.extent, set.radius, set.r, set.g, set.b, set.a, set.ownerWidth = kind, extent, radius, r, g, b, a, parent:GetWidth()
+    end
+    if not set.ready or set.visible ~= visible then RoundedVisibility(set, visible, background) end
+    set.ready = true
+end
+function UI.SetProjectButtonOutline(button, visible, size, color, topInset, minimumLevel, radius)
     if not button.mosProjectOutline then
         local border = UI.CreateContainer(nil, button)
         border:SetAllPoints(button); border:EnableMouse(false)
@@ -126,13 +208,40 @@ function UI.SetProjectButtonOutline(button, visible, size, color, topInset, mini
     border:SetPoint("TOPLEFT", button, "TOPLEFT", 0, -(topInset or 0))
     border:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", 0, 0)
     border:SetFrameLevel(math.max(button:GetFrameLevel() + 1, minimumLevel or 0))
+    color = color or projectOutlineGold
+    if radius ~= nil then
+        local thickness = math.floor(math.max(1, math.min(10, tonumber(size) or 2)))
+        radius = math.floor(math.max(0, math.min(10, tonumber(radius) or 0)))
+        local inset = math.max(radius, thickness)
+        local set = border.mosRoundedOutline
+        if visible and not set then set = {textures = {}}; border.mosRoundedOutline = set end
+        if set and not set.complete and visible then
+            CreateNineSlice(border, roundedGold, 32, 32, inset, "OVERLAY", nil, nil, set)
+        end
+        if set and set.complete then
+            if not set.ready or set.radius ~= radius or set.thickness ~= thickness
+                or set.r ~= color[1] or set.g ~= color[2] or set.b ~= color[3] then
+                local slot = radius * 10 + thickness - 1
+                local column, row = math.mod(slot, 16), math.floor(slot / 16)
+                RoundedArtwork(set, roundedGold, (column * 18 + 1) / 512, (column * 18 + 17) / 512,
+                    (row * 18 + 1) / 128, (row * 18 + 17) / 128, inset, inset, color[1], color[2], color[3], 1)
+                set.radius, set.thickness, set.r, set.g, set.b = radius, thickness, color[1], color[2], color[3]
+            end
+            if not set.ready or set.visible ~= visible then RoundedVisibility(set, visible, false) end
+            set.ready = true
+        elseif set then RoundedVisibility(set, false, false)
+        end
+        border:SetBackdropBorderColor(0, 0, 0, 0); border.mosRoundedOutlineActive = true
+    else
+        if border.mosRoundedOutline then RoundedVisibility(border.mosRoundedOutline, false, false) end
+        border.mosRoundedOutlineActive = nil; border:SetAlpha(1)
+    end
     local edgeSize = math.max(1, math.min(6, tonumber(size) or 2)) * 4
-    if border.mosEdgeSize ~= edgeSize then
+    if radius == nil and border.mosEdgeSize ~= edgeSize then
         local backdrop = border:GetBackdrop(); backdrop.edgeSize = edgeSize
         border:SetBackdrop(backdrop); border:SetBackdropColor(0, 0, 0, 0); border.mosEdgeSize = edgeSize
     end
-    color = color or projectOutlineGold
-    border:SetBackdropBorderColor(color[1], color[2], color[3], 1)
+    if radius == nil then border:SetBackdropBorderColor(color[1], color[2], color[3], 1) end
     if visible then button.mosProjectOutline:Show() else button.mosProjectOutline:Hide() end
 end
 
