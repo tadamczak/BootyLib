@@ -110,6 +110,10 @@ function Components.CreateScrollFrame(name, parent, template)
     return TrackFrame(CreateFrame("ScrollFrame", name, parent, template))
 end
 
+function Components.CreateMessageFrame(name, parent, template)
+    return TrackFrame(CreateFrame("ScrollingMessageFrame", name, parent, template))
+end
+
 function Components.CreateSliderFrame(name, parent, template)
     return TrackFrame(CreateFrame("Slider", name, parent, template))
 end
