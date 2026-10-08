@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.27 - 2026-10-08
+
+- Add shared rounded-square and octagonal minimap masks.
+
 ## 0.1.0-dev.26 — 2026-10-08
 
 - Supply a shared native message preview for BootyChat history with consistent window ownership.
