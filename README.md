@@ -8,6 +8,9 @@ Install the `BootyLib` folder in `Interface/AddOns` alongside any Booty product.
 
 Windows, controls and menus use a consistent foreground order across installed Booty addons.
 
+Booty Suite can open a feature in its dashboard or in a separate window. Both
+presentations retain the same addon state and use the shared Settings gear.
+
 Settings keeps compact text and clear plus/minus controls for expanding sections.
 
 Settings fields use one to four columns as space permits. Each column fits its full labels; color labels stay next to their swatches.

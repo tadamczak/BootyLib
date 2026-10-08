@@ -102,11 +102,13 @@ function Navigation.Create(options)
         order = newOrder
         options.order = newOrder
         options.items = items
+        for _, button in pairs(controller.buttons) do button.navigationIncluded = false; button:Hide() end
         for index, item in ipairs(items) do
             if not controller.buttons[item.key] then
                 CreateButton(item.key, item.text, -10 - (index - 1) * 43, item.icon)
             end
             local button = controller.buttons[item.key]
+            button.navigationIncluded = true
             button.navigationText = item.text
             button.navigationShortText = item.shortText
         end
@@ -116,7 +118,7 @@ function Navigation.Create(options)
     function controller.RefreshAvailability()
         local changed = false
         for name, button in pairs(controller.buttons) do
-            local enabled = not options.isAvailable or options.isAvailable(name) and true or false
+            local enabled = button.navigationIncluded ~= false and (not options.isAvailable or options.isAvailable(name)) and true or false
             if button.navigationEnabled ~= enabled then
                 button.navigationEnabled = enabled
                 if enabled then button:Enable(); button:SetAlpha(1)

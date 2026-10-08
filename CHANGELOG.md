@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.0-dev.25 — 2026-10-08
+
+- Reuse each integrated feature controller when Suite opens it in a separate project window.
+- Preserve window ownership, geometry and Settings access while moving existing content.
+- Hide removed navigation buttons and reuse them when restored to the menu.
+
 ## 0.1.0-dev.24 — 2026-10-08
 
 - Restore the shared color picker's borrowed drawing order on close and stop the dismiss overlay immediately.

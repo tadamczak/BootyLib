@@ -30,6 +30,10 @@ function ProductHost.Create(product, options)
     local instance = serial
     local host = { product = product, standalone = not options.integrated, integrated = options.integrated and true or false,
         controllers = {}, windows = {}, window = options.window }
+    -- Detached presentation keeps the same host and controller as a Suite tab.
+    -- The public windows map contains only current detached owners.
+    local windows = {}
+    if host.standalone then host.windows = windows end
     local definitions = {}
     for _, definition in ipairs(product.views or {}) do definitions[definition.id] = definition end
     host.Print = options.Print or function(message)
@@ -42,7 +46,7 @@ function ProductHost.Create(product, options)
         if failure then host.Print(failure);return false end
         return true
     end
-    host.GetPresentationSetting = function(key)
+    host.GetPresentationSetting = options.GetPresentationSetting or function(key)
         local presentation = Store(product)
         return presentation[key]
     end
@@ -53,7 +57,7 @@ function ProductHost.Create(product, options)
         return geometry
     end
     local function SaveGeometry(id)
-        local window = host.windows[id]
+        local window = windows[id]
         if not window or window.minimized then return end
         local geometry = Geometry(id)
         local width, height = window:GetWidth(), window:GetHeight()
@@ -63,13 +67,14 @@ function ProductHost.Create(product, options)
         if Finite(left) and Finite(bottom) then geometry.left, geometry.bottom = left, bottom end
     end
     local function ResizeContent(id)
-        local window, controller = host.windows[id], host.controllers[id]
+        local window, controller = windows[id], host.controllers[id]
         if not window or window.minimized then return end
         -- Permanent chrome owns the rectangle; there is no scrollbar gutter at
         -- this layer. A feature's own viewport reserves actual overflow space.
         window.content:SetWidth(math.max(1, window:GetWidth() - 8))
         window.content:SetHeight(math.max(1, window:GetHeight() - 34))
-        if controller and controller.OnResize then controller:OnResize() end
+        local mount = options.GetParent and options.GetParent(id)
+        if controller and controller.OnResize and (host.standalone or mount and mount:GetParent() == window.content) then controller:OnResize() end
     end
     local function RestoreBounds(window, definition, geometry)
         local screenWidth, screenHeight = UI.GetFrameSpan(UIParent)
@@ -100,35 +105,61 @@ function ProductHost.Create(product, options)
                 return host.OpenSettings()
             end,
         })
-        host.windows[id] = window
+        windows[id] = window
         host.window = window
         local geometry = Geometry(id)
         RestoreBounds(window, definition, geometry)
         window.content.mosWidthOwner, window.content.mosWidthInset = window, 8
         window.content.mosHeightOwner, window.content.mosHeightInset = window, 34
         ResizeContent(id)
-        local controller = definition.create(window.content, host)
+        local controller
+        if host.standalone then controller = definition.create(window.content, host)
+        else controller = host.GetView(id) end
         host.controllers[id] = controller
         window.AttachView({ viewport = window.content, page = controller.frame })
+        local function HideView()
+            if not window.mosViewShown then return true end
+            if controller.Hide then
+                local result, reason = controller:Hide()
+                if result == false then return false, reason end
+            end
+            window.mosViewShown = nil
+            return true
+        end
+        window.HideView = HideView
         local hidden = window:GetScript("OnHide")
         window:SetScript("OnHide", function()
             SaveGeometry(id)
             if hidden then hidden() end
-            if controller.Hide then controller:Hide() end
+            HideView()
             if host.menu then host.menu:Close() end
         end)
         local dragged = window:GetScript("OnDragStop")
         window:SetScript("OnDragStop", function() if dragged then dragged() end; SaveGeometry(id) end)
         local minimize = window.minimizeButton
+        local close = window.closeButton
+        if close then
+            local clicked = close:GetScript("OnClick")
+            close:SetScript("OnClick", function()
+                local ready, reason = HideView()
+                if not ready then host.Print(reason or "Cannot close this addon window."); return false end
+                if clicked then clicked() end
+            end)
+        end
         if minimize then
             local clicked = minimize:GetScript("OnClick")
             minimize:SetScript("OnClick", function()
                 if not Available() then return false end
-                if not window.minimized then SaveGeometry(id); if controller.Hide then controller:Hide() end end
+                if not window.minimized then
+                    SaveGeometry(id)
+                    local ready, reason = HideView()
+                    if not ready then host.Print(reason or "Cannot minimize this addon window."); return false end
+                end
                 if clicked then clicked() end
                 if not window.minimized then
                     RestoreBounds(window, definition, Geometry(id)); ResizeContent(id)
                     if controller.Show then controller:Show() end
+                    window.mosViewShown = true
                 end
             end)
         end
@@ -137,11 +168,24 @@ function ProductHost.Create(product, options)
         window.Open = function()
             if not Available() then return false end
             host.window = window
+            host.windows = windows
+            if not host.standalone then
+                local mount = options.GetParent(id)
+                if mount:GetParent() ~= window.content then
+                    mount:Hide(); mount:SetParent(window.content); mount:ClearAllPoints(); mount:SetAllPoints(window.content)
+                    mount.mosContentPanel = window.content
+                    mount.mosWidthOwner, mount.mosWidthInset = window, 8
+                    mount.mosHeightOwner, mount.mosHeightInset = window, 34
+                end
+                mount:Show()
+            end
             if window.minimized and minimize then Invoke(minimize, minimize:GetScript("OnClick")) end
             window:SetScript("OnUpdate", nil)
             window.content:Show(); window.resizeGrip:Show(); window:Show(); window:Raise()
             ResizeContent(id)
             if controller.Show then controller:Show() end
+            window.mosViewShown = true
+            if UI.WindowStack then UI.WindowStack.Sync(window) end
             host.activeView = id
             return controller
         end
@@ -179,18 +223,57 @@ function ProductHost.Create(product, options)
         host.activeView = id
         return controller
     end
+    host.OpenDetachedView = function(id)
+        local controller = host.GetView(id)
+        if not controller then return false end
+        if not windows[id] then CreateWindow(definitions[id]) end
+        return windows[id].Open()
+    end
+    host.CloseDetachedViews = function()
+        -- Cleanup refusal must leave the presentation choice unchanged.
+        local suspended = {}
+        for id, window in pairs(windows) do
+            if window.mosViewShown then
+                table.insert(suspended, id)
+                local ok, ready, reason = pcall(window.HideView)
+                if not ok or not ready then
+                    local failure = reason or tostring(ready)
+                    for _, key in ipairs(suspended) do
+                        local controller = host.controllers[key]
+                        if controller.Show then
+                            local restored, result, detail = pcall(controller.Show, controller)
+                            if not restored or result == false then failure = failure .. " Restore failed: " .. tostring(detail or result)
+                            else windows[key].mosViewShown = true end
+                        end
+                    end
+                    return false, failure
+                end
+            end
+        end
+        for _, window in pairs(windows) do window:Hide() end
+        if not host.standalone then host.windows = {}; host.window = options.window end
+        return true
+    end
     host.OpenSettings = function()
         if host.menu then host.menu:Close() end
         local settings = Lib.Core.SettingsHost
         if not settings or not settings.Open then return false end
+        if options.OpenSettings then return options.OpenSettings(host.window) end
         return settings.Open(product, host)
     end
     host.Close = function()
         if host.menu then host.menu:Close() end
         for id, controller in pairs(host.controllers) do
-            if host.windows[id] then host.windows[id]:Hide() end
-            if controller.Hide then controller:Hide() end
+            if windows[id] and windows[id].mosViewShown then
+                local ready, reason = windows[id].HideView()
+                if not ready then return false, reason end
+            elseif controller.Hide then
+                local ready, reason = controller:Hide()
+                if ready == false then return false, reason end
+            end
         end
+        for _, window in pairs(windows) do window:Hide() end
+        return true
     end
     host.Hide = host.Close
     host.ToggleMenu = function(anchor)
