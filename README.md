@@ -21,7 +21,7 @@ Settings fields use one to four columns as space permits. Each column fits its f
 
 Resizing Settings reuses its measured labels and leaves current values and drafts intact.
 
-Dropdown captions keep their normal font while windows resize. Disabled text settings release keyboard focus and become read-only until enabled again.
+Dropdown captions keep their normal font while windows resize. Menu choices use the same surface in both skins. Disabled text settings release keyboard focus and become read-only until enabled again.
 
 In standalone Booty addons, use the gear in the top-right corner of a feature window to open that addon's Settings. It also works while the window is minimized.
 

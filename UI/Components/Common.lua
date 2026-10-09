@@ -255,7 +255,11 @@ function UI.CreateDropdownPanel(parent, toggle, width, height, levelOffset)
 end
 
 function UI.StyleDropdownChoice(button)
+    -- Choices share the toggle's surface in both skins; keep pressed/relief
+    -- artwork out of the same rectangle when skin state is reapplied.
+    button.bootyClassicKeepNormalSurface = true
     if UI.SetClassicButtonCompact then UI.SetClassicButtonCompact(button, true) end
+    if UI.ApplyDropdownChoiceSurface then UI.ApplyDropdownChoiceSurface(button) end
     if UI.AttachGoldHoverBorder then UI.AttachGoldHoverBorder(button, 0.35, 0.35, 0.35, 1) end
     if button.label and button.label.GetFont then
         local font, _, flags = button.label:GetFont()

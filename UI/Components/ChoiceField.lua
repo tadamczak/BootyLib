@@ -4,22 +4,23 @@ local function ToggleChoices()
     if this.panel:IsVisible() then this.panel:Hide() else this.panel:Show() end
 end
 
-local function RefreshChoice()
-    local value = this.getValue()
+local function RefreshChoiceValue(owner)
+    local value = owner.getValue()
     local index
-    for index = 1, table.getn(this.choices) do
-        local choice = this.choices[index]
+    for index = 1, table.getn(owner.choices) do
+        local choice = owner.choices[index]
         if choice.value == value then
-            if this.labelValue then this.label:SetText(choice.text) else this:SetText(choice.text) end
+            if owner.labelValue then owner.label:SetText(choice.text) else owner:SetText(choice.text) end
             return
         end
     end
 end
+local function RefreshChoice() RefreshChoiceValue(this) end
 
 local function SelectChoice()
-    local owner, value, text = this.choiceOwner, this.choiceValue, this.choiceText
+    local owner, value = this.choiceOwner, this.choiceValue
     owner.onSelect(value)
-    if owner.labelValue then owner.label:SetText(text) else owner:SetText(text) end
+    RefreshChoiceValue(owner)
     owner.panel:Hide()
     if owner.onChanged then owner.onChanged(value) end
 end
