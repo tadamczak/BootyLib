@@ -28,3 +28,5 @@ In standalone Booty addons, use the gear in the top-right corner of a feature wi
 If loading a profile or resetting Settings fails, the previous preferences are restored. The error remains visible; a failed restoration is reported separately.
 
 If an addon cannot start or stop safely, Booty reports the reason. Failed startup cleanup must finish before another startup attempt. Feature views remain unavailable until the addon starts successfully; its Settings remains accessible.
+
+BootyFrame uses ten shared decorative unit-frame styles supplied by BootyLib.

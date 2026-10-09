@@ -2,7 +2,7 @@
 ## Title: BootyLib
 ## Notes: Shared UI and integration library for Booty addons.
 ## Author: Mukla
-## Version: 0.1.0-dev.28
+## Version: 0.1.0-dev.30
 ## SavedVariables: BootyLibDB
 
 Core\Bootstrap.lua

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.30 — 2026-10-09
+
+- Add ten shared unit-frame decorations for BootyFrame; existing controls are unchanged.
+
 ## 0.1.0-dev.28 — 2026-10-09
 
 - Use Booty names in shared controls and settings profiles; read previous preferences without resetting data.
