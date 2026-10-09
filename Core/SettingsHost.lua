@@ -60,7 +60,7 @@ local function SetValue(node, value, state)
 end
 local function CommitPending(nodes)
     for _, node in ipairs(nodes) do
-        if node.field and node.control and node.control.CommitValue and node.control.mosEditing then
+        if node.field and node.control and node.control.CommitValue and node.control.bootyEditing then
             node.control:CommitValue(); node.control:ClearFocus()
         end
         if node.children then CommitPending(node.children) end
@@ -173,10 +173,10 @@ local function CreateProfileControls(node, page, state)
         for _, controls in ipairs(view.flows) do
             for _, control in ipairs(controls) do
                 if control.GetStringWidth then
-                    control.mosFlowWidth = math.min(control == view.current and 180 or width, NaturalLabelWidth(control))
-                    control:SetWidth(control.mosFlowWidth); control:SetHeight(math.max(16, NaturalLabelHeight(control, control.mosFlowWidth)))
-                elseif control == view.name or control == view.select then control.mosFlowWidth = math.min(180, width)
-                else control.mosFlowWidth = 58; control.mosFlowFitLabel = true end
+                    control.bootyFlowWidth = math.min(control == view.current and 180 or width, NaturalLabelWidth(control))
+                    control:SetWidth(control.bootyFlowWidth); control:SetHeight(math.max(16, NaturalLabelHeight(control, control.bootyFlowWidth)))
+                elseif control == view.name or control == view.select then control.bootyFlowWidth = math.min(180, width)
+                else control.bootyFlowWidth = 58; control.bootyFlowFitLabel = true end
             end
             top = UI.LayoutFlow(view.frame, controls, 0, top, width, 6) + 8
         end
@@ -247,21 +247,21 @@ NaturalLabelWidth = function(label)
     local text = label:GetText()
     local font, size, flags
     if label.GetFont then font, size, flags = label:GetFont() end
-    if label.mosNaturalText == text and label.mosNaturalFont == font and label.mosNaturalSize == size and label.mosNaturalFlags == flags and label.mosNaturalWidth then
-        return label.mosNaturalWidth
+    if label.bootyNaturalText == text and label.bootyNaturalFont == font and label.bootyNaturalSize == size and label.bootyNaturalFlags == flags and label.bootyNaturalWidth then
+        return label.bootyNaturalWidth
     end
     label:SetWidth(0)
     local width = math.max(1, math.ceil(label:GetStringWidth()) + 2)
-    label.mosNaturalText, label.mosNaturalFont, label.mosNaturalSize, label.mosNaturalFlags = text, font, size, flags
-    label.mosNaturalWidth, label.mosNaturalHeight = width, nil
+    label.bootyNaturalText, label.bootyNaturalFont, label.bootyNaturalSize, label.bootyNaturalFlags = text, font, size, flags
+    label.bootyNaturalWidth, label.bootyNaturalHeight = width, nil
     return width
 end
 NaturalLabelHeight = function(label, width)
-    if not label.mosNaturalHeight or label.mosNaturalHeightWidth ~= width then
-        label.mosNaturalHeight = math.max(14, UI.MeasureTextHeight(label, width))
-        label.mosNaturalHeightWidth = width
+    if not label.bootyNaturalHeight or label.bootyNaturalHeightWidth ~= width then
+        label.bootyNaturalHeight = math.max(14, UI.MeasureTextHeight(label, width))
+        label.bootyNaturalHeightWidth = width
     end
-    return label.mosNaturalHeight
+    return label.bootyNaturalHeight
 end
 local function MeasureField(node)
     local control, kind = node.control, node.field.type
@@ -278,8 +278,8 @@ local function MeasureField(node)
         local name = control:GetName()
         local label = getglobal(name .. "Text")
         local font, size, flags = label:GetFont()
-        if node.mosSliderMeasureText == label:GetText() and node.mosSliderMeasureFont == font and node.mosSliderMeasureSize == size and node.mosSliderMeasureFlags == flags and node.mosSliderMeasureWidth then
-            return node.mosSliderMeasureWidth
+        if node.bootySliderMeasureText == label:GetText() and node.bootySliderMeasureFont == font and node.bootySliderMeasureSize == size and node.bootySliderMeasureFlags == flags and node.bootySliderMeasureWidth then
+            return node.bootySliderMeasureWidth
         end
         local caption, width = label:GetText(), NaturalLabelWidth(label)
         label:SetText(node.text .. ": " .. tostring(node.field.min or 0)); width = math.max(width, NaturalLabelWidth(label))
@@ -287,8 +287,8 @@ local function MeasureField(node)
         label:SetText(caption)
         width = math.max(170, width + 8,
             NaturalLabelWidth(getglobal(name .. "Low")) + NaturalLabelWidth(getglobal(name .. "High")) + 32)
-        node.mosSliderMeasureText, node.mosSliderMeasureFont, node.mosSliderMeasureSize, node.mosSliderMeasureFlags = caption, font, size, flags
-        node.mosSliderMeasureWidth = width
+        node.bootySliderMeasureText, node.bootySliderMeasureFont, node.bootySliderMeasureSize, node.bootySliderMeasureFlags = caption, font, size, flags
+        node.bootySliderMeasureWidth = width
         return width
     end
     return (kind == "color" and 26 or control:GetWidth() + 2) + NaturalLabelWidth(control.label) + 4
@@ -298,9 +298,9 @@ local function LayoutField(node, page, x, y, width)
     local label = node.label or control.label or kind == "slider" and getglobal(control:GetName() .. "Text")
     local labelWidth = label and NaturalLabelWidth(label)
     local labelHeight = label and NaturalLabelHeight(label, labelWidth)
-    if node.mosLayoutX == x and node.mosLayoutY == y and node.mosLayoutWidth == width and node.mosLayoutLabelWidth == labelWidth and node.mosLayoutLabelHeight == labelHeight and control:IsShown() then return node.height end
-    node.mosLayoutX, node.mosLayoutY, node.mosLayoutWidth = x, y, width
-    node.mosLayoutLabelWidth, node.mosLayoutLabelHeight = labelWidth, labelHeight
+    if node.bootyLayoutX == x and node.bootyLayoutY == y and node.bootyLayoutWidth == width and node.bootyLayoutLabelWidth == labelWidth and node.bootyLayoutLabelHeight == labelHeight and control:IsShown() then return node.height end
+    node.bootyLayoutX, node.bootyLayoutY, node.bootyLayoutWidth = x, y, width
+    node.bootyLayoutLabelWidth, node.bootyLayoutLabelHeight = labelWidth, labelHeight
     control:ClearAllPoints()
     if node.label then
         node.label:SetWidth(labelWidth)
@@ -311,7 +311,7 @@ local function LayoutField(node, page, x, y, width)
         control:SetWidth(width)
         node.height = labelHeight + 4 + control:GetHeight() + 10
         if kind == "choice" or kind == "dropdown" then
-            if control.mosDropdownText then control.mosTextWidth = nil; UI.ReflowControlText(control) end
+            if control.bootyDropdownText then control.bootyTextWidth = nil; UI.ReflowControlText(control) end
             control.panel:SetWidth(control:GetWidth())
             for _, option in ipairs(control.panel.options) do
                 option:SetWidth(math.max(1, width - 14))
@@ -340,8 +340,8 @@ local function Visible(node) return node.visible ~= false end
 local function ToggleAccordion()
     -- Lua 5.0 clears a generic-for variable after traversal.
     -- Resolve the clicked node from its pooled control instead.
-    local selected = this.mosSettingsNode
-    selected.expanded = not selected.expanded; this.mosSettingsState.Reflow()
+    local selected = this.bootySettingsNode
+    selected.expanded = not selected.expanded; this.bootySettingsState.Reflow()
 end
 local function LayoutNodes(nodes, page, state, depth, y)
     local index = 1
@@ -357,7 +357,7 @@ local function LayoutNodes(nodes, page, state, depth, y)
             elseif node.field then
                 local items = node.gridItems
                 if not items then
-                    items = {mosNoWrap = true, mosMeasureItem = MeasureField, mosLayoutItem = LayoutField}
+                    items = {bootyNoWrap = true, bootyMeasureItem = MeasureField, bootyLayoutItem = LayoutField}
                     node.gridItems = items
                 end
                 while table.getn(items) > 0 do table.remove(items) end
@@ -372,25 +372,25 @@ local function LayoutNodes(nodes, page, state, depth, y)
                     index = index + 1
                 end
                 y = y - UI.Settings.LayoutGrid(page, items, x, y, math.max(1, page:GetWidth() - x - 4), 0)
-                state.requiredContentWidth = math.max(state.requiredContentWidth, x + items.mosRequiredWidth + 4)
+                state.requiredContentWidth = math.max(state.requiredContentWidth, x + items.bootyRequiredWidth + 4)
                 index = index - 1
             else
                 if not node.control then
                     if depth == 0 then node.control = UI.Settings.CreateSectionAccordion(page, node.text, 0, 0, 2, node.icon or icons[node.text] or "list")
                     else node.control = UI.Settings.CreateAccordion(page, node.text, 0) end
-                    node.control.mosSettingsNode = node
-                    node.control.mosSettingsState = state
+                    node.control.bootySettingsNode = node
+                    node.control.bootySettingsState = state
                     node.control:SetScript("OnClick", ToggleAccordion)
                 end
-                if node.mosLayoutX ~= x or node.mosLayoutY ~= y then
+                if node.bootyLayoutX ~= x or node.bootyLayoutY ~= y then
                     node.control:ClearAllPoints(); node.control:SetPoint("TOPLEFT", page, "TOPLEFT", x, y)
                     node.control:SetPoint("TOPRIGHT", page, "TOPRIGHT", -4, y)
-                    node.mosLayoutX, node.mosLayoutY = x, y
+                    node.bootyLayoutX, node.bootyLayoutY = x, y
                 end
-                if node.mosLayoutExpanded ~= node.expanded then
+                if node.bootyLayoutExpanded ~= node.expanded then
                     if node.control.indicator then node.control.indicator:SetText(node.expanded and "-" or "+") end
                     if node.control.SetExpanded then node.control:SetExpanded(node.expanded) end
-                    node.mosLayoutExpanded = node.expanded
+                    node.bootyLayoutExpanded = node.expanded
                 end
                 if not node.control:IsShown() then node.control:Show() end
                 y = y - (depth == 0 and 38 or 30)
@@ -446,9 +446,9 @@ local function RefreshNodes(nodes)
 end
 local function ApplyFieldMinimum(state)
     if state.applyingMinimum then return end
-    local inset = state.viewport.mosWidthInset or 16
+    local inset = state.viewport.bootyWidthInset or 16
     local maximum = math.max(320, math.min(1100, UIParent:GetWidth() - 32))
-    local required = math.max(math.min(350, maximum), state.requiredContentWidth + inset + (state.viewport.mosScrollGutter or 0))
+    local required = math.max(math.min(350, maximum), state.requiredContentWidth + inset + (state.viewport.bootyScrollGutter or 0))
     local width = math.min(required, maximum)
     state.requiredWindowWidth, state.maximumWindowWidth = required, maximum
     state.minimumWidthFailure = required > maximum and "Natural settings fields exceed the available window width." or nil
@@ -465,7 +465,7 @@ local function ApplyFieldMinimum(state)
     end
 end
 local function ResizeSettingsTick()
-    local state = this.mosSettingsState
+    local state = this.bootySettingsState
     this:SetScript("OnUpdate", nil)
     state.resizeQueued = nil
     if state.window:IsVisible() and not state.window.minimized and (state.window:GetWidth() ~= state.lastWindowWidth or state.window:GetHeight() ~= state.lastWindowHeight or state.page:GetWidth() ~= state.lastPageWidth) then
@@ -539,7 +539,7 @@ function SettingsHost.Open(product, host, providers)
         attach = function(_, content)
             state.toolbar:SetParent(content); state.toolbar:SetPoint("TOPLEFT", content, "TOPLEFT", 4, -2); state.toolbar:SetPoint("TOPRIGHT", content, "TOPRIGHT", -4, -2)
             state.viewport:SetParent(content); state.viewport:SetPoint("TOPLEFT", content, "TOPLEFT", 4, -36); state.viewport:SetPoint("BOTTOMRIGHT", content, "BOTTOMRIGHT", -4, 4)
-            state.viewport.mosScrollAnchor = content; state.viewport.mosScrollTop = 36
+            state.viewport.bootyScrollAnchor = content; state.viewport.bootyScrollTop = 36
         end,
         update = function() state.Resize() end, refresh = function() state.Reflow() end})
     state.window = window
@@ -596,14 +596,14 @@ function SettingsHost.Open(product, host, providers)
     state.page = UI.CreateContainer(nil, state.viewport); state.page:SetWidth(700); state.page:SetHeight(1)
     -- Preserve the compact Settings typography used before the product split.
     -- This presentation scope does not alter any saved feature font preference.
-    state.page.mosTextSizeDelta = -2
+    state.page.bootyTextSizeDelta = -2
     state.page.ReflowSettings = function()
         state.layingOut = true
         local ok, failure = pcall(state.Reflow)
         state.layingOut = nil
         if not ok then error(failure, 0) end
     end
-    state.viewport.mosSettingsState = state
+    state.viewport.bootySettingsState = state
     state.viewport:SetScrollChild(state.page)
     state.viewport:SetScript("OnSizeChanged", function() if state.page then state.Resize() end end)
     window.AttachView(state)

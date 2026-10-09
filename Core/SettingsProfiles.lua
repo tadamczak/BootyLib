@@ -55,21 +55,40 @@ end
 local function WriteField(field,db,value)
     if field.set then field.set(value,db) else db[field.key]=value end
 end
+local function SavedValue(field,value)
+    if field.readSaved then return field.readSaved(value) end
+    return value
+end
+local function ProviderSaved(section,field)
+    if section and type(section.settings)=="table" then
+        if section.keys and section.keys[field.key] or section.settings[field.key]~=nil then return true,SavedValue(field,section.settings[field.key]) end
+        if field.legacyKey and field.legacyKey~=field.key and (section.keys and section.keys[field.legacyKey] or section.settings[field.legacyKey]~=nil) then
+            local value=section.settings[field.legacyKey]
+            if field.readLegacy then value=field.readLegacy(value,section.settings) end
+            return true,SavedValue(field,value)
+        end
+    end
+    return false
+end
 local function Saved(profile,id,field)
     local section=profile.version==2 and profile.providers and profile.providers[id]
-    if section and type(section.settings)=="table" then
-        if section.keys and section.keys[field.key] or section.settings[field.key]~=nil then return true,section.settings[field.key] end
-    end
+    local found,value=ProviderSaved(section,field)
+    if found then return true,value end
     local legacy=profile.version==1 and profile or profile.legacy
+    -- Unscoped V1 keys belong to the declared legacy namespace. Only an
+    -- explicit retiredKey rename permits its new spelling in the old shape.
+    if field.retiredKey and type(legacy)=="table" and type(legacy.settings)=="table" and legacy.settings[field.key]~=nil then
+        return true,SavedValue(field,legacy.settings[field.key])
+    end
     local key=field.legacyKey or field.key
     if type(legacy)=="table" and type(legacy.settings)=="table" and field.legacyGet then
         local value=field.legacyGet(legacy.settings)
-        if value~=nil then return true,value end
+        if value~=nil then return true,SavedValue(field,value) end
     end
     if type(legacy)=="table" and type(legacy.settings)=="table" then
         local value=legacy.settings[key]
         if field.readLegacy then value=field.readLegacy(value,legacy.settings) end
-        if value~=nil then return true,value end
+        if value~=nil then return true,SavedValue(field,value) end
     end
     return false
 end
@@ -253,6 +272,9 @@ function Profiles.Create(providers,options)
             if not section then section={settings={},keys={}};snapshot.providers[provider.id]=section end
             section.settings=section.settings or {};section.keys=section.keys or {}
             section.settings[field.key]=Copy(Read(field,db));section.keys[field.key]=true
+            if field.retiredKey and field.retiredKey~=field.key then
+                section.settings[field.retiredKey],section.keys[field.retiredKey]=nil,nil
+            end
         end)
         return snapshot
     end
@@ -388,7 +410,32 @@ function Profiles.Create(providers,options)
         if not Valid(profile) then return nil,"Profile not found or unsupported. Save or Add it first." end
         local ok,text=pcall(function()
             local checked=Copy(profile)
-            local lines={checked.version==1 and "MOS_SETTINGS_PROFILE_V1" or "BOOTY_SETTINGS_PROFILE_V2","name="..Encode(name)}
+            -- Preserve the version and normalize only declared owned values in
+            -- this copy. Never capture current preferences or create an absent
+            -- provider; unknown data and the retained legacy source survive.
+            Schemas(function(provider,db,field)
+                if not field.retiredKey and not field.readSaved then return end
+                local settings,keys,found,value
+                if checked.version==1 then
+                    settings=checked.settings
+                    found,value=Saved(checked,provider.id,field)
+                else
+                    local section=checked.providers[provider.id]
+                    if section and type(section.settings)=="table" then
+                        settings,keys=section.settings,section.keys
+                        found,value=ProviderSaved(section,field)
+                    end
+                end
+                if found then
+                    settings[field.key]=Copy(value)
+                    if keys then keys[field.key]=true end
+                    if field.retiredKey and field.retiredKey~=field.key then
+                        settings[field.retiredKey]=nil
+                        if keys then keys[field.retiredKey]=nil end
+                    end
+                end
+            end)
+            local lines={checked.version==1 and "BOOTY_SETTINGS_PROFILE_V1" or "BOOTY_SETTINGS_PROFILE_V2","name="..Encode(name)}
             if checked.version==1 then
                 for _,key in ipairs(Keys(checked.settings or {})) do
                     local value=checked.settings[key]

@@ -11,42 +11,42 @@ local function Find(frame, depth)
     depth = depth or 0
     if depth > 64 then return nil end
     while frame do
-        local record = frame.mosWindowStackRecord
+        local record = frame.bootyWindowStackRecord
         if record then
             if record.kind == "window" then return record end
             return Find(Source(record.owner), depth + 1) or record
         end
-        local attachment = frame.mosWindowStackAttachment
+        local attachment = frame.bootyWindowStackAttachment
         if attachment then return Find(Source(attachment.owner), depth + 1) end
         frame = frame.GetParent and frame:GetParent()
     end
 end
 function Stack.GetWindow(frame) local record = Find(frame); return record and record.frame end
 function Stack.GetOwner(frame)
-    local record = frame and frame.mosWindowStackRecord
+    local record = frame and frame.bootyWindowStackRecord
     local owner = record and Source(record.owner)
     return Stack.GetWindow(owner) or owner or nil
 end
 function Stack.GetBand(frame) local record = Find(frame); if record then return record.low, record.high end end
 local function NativeLevel(frame, value)
-    if frame:GetFrameLevel() ~= value then (frame.mosStackSetLevel or frame.SetFrameLevel)(frame, value) end
+    if frame:GetFrameLevel() ~= value then (frame.bootyStackSetLevel or frame.SetFrameLevel)(frame, value) end
 end
 local function NativeStrata(frame)
-    if frame:GetFrameStrata() ~= "FULLSCREEN_DIALOG" then (frame.mosStackSetStrata or frame.SetFrameStrata)(frame, "FULLSCREEN_DIALOG") end
+    if frame:GetFrameStrata() ~= "FULLSCREEN_DIALOG" then (frame.bootyStackSetStrata or frame.SetFrameStrata)(frame, "FULLSCREEN_DIALOG") end
 end
 local function Bound(record, value) return math.max(record.low + 1, math.min(record.low + CHILD_LIMIT, value)) end
 local function SetLevel(self, value)
     local record = Find(self)
-    if applying or not record or not record.low then return self.mosStackSetLevel(self, value) end
+    if applying or not record or not record.low then return self.bootyStackSetLevel(self, value) end
     if self == record.frame then return end -- A root's order belongs to the stack.
     local parent = self:GetParent()
     local parentLevel = parent and parent.GetFrameLevel and parent:GetFrameLevel() or record.frame:GetFrameLevel()
-    self.mosStackLevelOffset = math.max(0, math.min(100, value - parentLevel))
-    return self.mosStackSetLevel(self, Bound(record, parentLevel + self.mosStackLevelOffset))
+    self.bootyStackLevelOffset = math.max(0, math.min(100, value - parentLevel))
+    return self.bootyStackSetLevel(self, Bound(record, parentLevel + self.bootyStackLevelOffset))
 end
 local function SetStrata(self, value)
     if not applying and Find(self) then value = "FULLSCREEN_DIALOG" end
-    return self.mosStackSetStrata(self, value)
+    return self.bootyStackSetStrata(self, value)
 end
 local function FocusInput(frame, handler)
     return function()
@@ -55,34 +55,34 @@ local function FocusInput(frame, handler)
     end
 end
 local function TrackInput(frame)
-    if frame.mosStackInputSetScript or not frame.SetScript then return end
-    frame.mosStackInputSetScript = frame.SetScript
+    if frame.bootyStackInputSetScript or not frame.SetScript then return end
+    frame.bootyStackInputSetScript = frame.SetScript
     frame.SetScript = function(self, eventName, handler)
         if eventName == "OnMouseDown" or eventName == "OnDragStart" then
             handler = FocusInput(self, handler)
         end
-        return self.mosStackInputSetScript(self, eventName, handler)
+        return self.bootyStackInputSetScript(self, eventName, handler)
     end
     frame:SetScript("OnMouseDown", frame:GetScript("OnMouseDown"))
     frame:SetScript("OnDragStart", frame:GetScript("OnDragStart"))
 end
 function Stack.Track(frame)
-    if not frame or frame.mosStackSetLevel or not frame.SetFrameLevel then return frame end
-    frame.mosStackSetLevel, frame.mosStackSetStrata = frame.SetFrameLevel, frame.SetFrameStrata
+    if not frame or frame.bootyStackSetLevel or not frame.SetFrameLevel then return frame end
+    frame.bootyStackSetLevel, frame.bootyStackSetStrata = frame.SetFrameLevel, frame.SetFrameStrata
     local parent = frame.GetParent and frame:GetParent()
     local parentLevel = parent and parent.GetFrameLevel and parent:GetFrameLevel() or 0
-    frame.mosStackLevelOffset = math.max(1, math.min(100, frame:GetFrameLevel() - parentLevel))
+    frame.bootyStackLevelOffset = math.max(1, math.min(100, frame:GetFrameLevel() - parentLevel))
     frame.SetFrameLevel, frame.SetFrameStrata = SetLevel, SetStrata
     TrackInput(frame)
     local record = not applying and Find(frame)
     if record and record.low and frame ~= record.frame then
         NativeStrata(frame)
-        NativeLevel(frame, Bound(record, parentLevel + frame.mosStackLevelOffset))
+        NativeLevel(frame, Bound(record, parentLevel + frame.bootyStackLevelOffset))
     end
     return frame
 end
 local function CaptureTree(frame, root)
-    if frame ~= root and frame.mosWindowStackRecord and frame.mosWindowStackRecord.kind == "window" then return end
+    if frame ~= root and frame.bootyWindowStackRecord and frame.bootyWindowStackRecord.kind == "window" then return end
     Stack.Track(frame)
     if frame.GetChildren then
         local children = {frame:GetChildren()}
@@ -90,14 +90,14 @@ local function CaptureTree(frame, root)
     end
 end
 local function ApplyTree(frame, record, root, level)
-    if frame ~= root and frame.mosWindowStackRecord and frame.mosWindowStackRecord.kind == "window" then return end
+    if frame ~= root and frame.bootyWindowStackRecord and frame.bootyWindowStackRecord.kind == "window" then return end
     Stack.Track(frame)
     NativeStrata(frame)
     if frame == root then NativeLevel(frame, level)
     else
         local parent = frame:GetParent()
         local base = parent and parent.GetFrameLevel and parent:GetFrameLevel() or level
-        NativeLevel(frame, Bound(record, base + (frame.mosStackLevelOffset or 1)))
+        NativeLevel(frame, Bound(record, base + (frame.bootyStackLevelOffset or 1)))
     end
     if frame.GetChildren then
         local children = {frame:GetChildren()}
@@ -107,7 +107,7 @@ end
 local function PopupDepth(record)
     local depth, owner = 0, Source(record.owner)
     while owner and depth < 4 do
-        local popup = owner.mosWindowStackRecord
+        local popup = owner.bootyWindowStackRecord
         if not popup or popup.kind ~= "popup" then break end
         depth = depth + 1; owner = Source(popup.owner)
     end
@@ -197,7 +197,7 @@ local function ResolveOpener(record)
     if proposed then SetLogicalOwner(record, proposed) end
 end
 function Stack.SetOwner(frame, owner)
-    local record = frame and frame.mosWindowStackRecord
+    local record = frame and frame.bootyWindowStackRecord
     if record then
         local previous = ParentRecord(record)
         record.defaultOwner = owner; SetLogicalOwner(record, owner)
@@ -227,12 +227,12 @@ function Stack.Sync(frame)
             CaptureTree(overlay.frame, overlay.frame)
         end
     end
-    local own = frame.mosWindowStackRecord or frame.mosWindowStackAttachment
+    local own = frame.bootyWindowStackRecord or frame.bootyWindowStackAttachment
     if own and own ~= record then ApplyOverlay(own, record)
     else
         local parent = frame.GetParent and frame:GetParent()
         local level = frame == record.frame and record.low + 2
-            or Bound(record, (parent and parent.GetFrameLevel and parent:GetFrameLevel() or record.frame:GetFrameLevel()) + (frame.mosStackLevelOffset or 1))
+            or Bound(record, (parent and parent.GetFrameLevel and parent:GetFrameLevel() or record.frame:GetFrameLevel()) + (frame.bootyStackLevelOffset or 1))
         ApplyTree(frame, record, frame, level)
     end
     for _, overlay in ipairs(Stack.overlays) do
@@ -256,14 +256,14 @@ local function CloseOverlays(owner)
 end
 local function OnEvent(frame, eventName, handler)
     return function()
-        local record = frame.mosWindowStackRecord
+        local record = frame.bootyWindowStackRecord
         if eventName == "OnMouseDown" or eventName == "OnDragStart" then Stack.FocusFrom(frame) end
         if handler then handler() end
         if eventName == "OnShow" then
-            frame.mosStackShowRevision = (frame.mosStackShowRevision or 0) + 1
+            frame.bootyStackShowRevision = (frame.bootyStackShowRevision or 0) + 1
             Stack.Sync(frame)
         elseif eventName == "OnHide" then
-            frame.mosStackHideRevision = (frame.mosStackHideRevision or 0) + 1
+            frame.bootyStackHideRevision = (frame.bootyStackHideRevision or 0) + 1
             if record and record.kind == "window" then CloseOverlays(record) end
             if record and OwnsBand(record) then
                 if Stack.focused == record then Stack.focused = nil end
@@ -273,21 +273,21 @@ local function OnEvent(frame, eventName, handler)
     end
 end
 local function Hook(frame)
-    if frame.mosStackSetScript then return end
-    frame.mosStackSetScript = frame.SetScript
+    if frame.bootyStackSetScript then return end
+    frame.bootyStackSetScript = frame.SetScript
     frame.SetScript = function(self, eventName, handler)
         if eventName == "OnShow" or eventName == "OnHide" or eventName == "OnMouseDown" or eventName == "OnDragStart" then
-            return self.mosStackSetScript(self, eventName, OnEvent(self, eventName, handler))
+            return self.bootyStackSetScript(self, eventName, OnEvent(self, eventName, handler))
         end
-        return self.mosStackSetScript(self, eventName, handler)
+        return self.bootyStackSetScript(self, eventName, handler)
     end
     for _, eventName in ipairs({"OnShow", "OnHide", "OnMouseDown", "OnDragStart"}) do
         frame:SetScript(eventName, frame:GetScript(eventName))
     end
-    frame.mosStackShow, frame.mosStackHide = frame.Show, frame.Hide
+    frame.bootyStackShow, frame.bootyStackHide = frame.Show, frame.Hide
     frame.Show = function(self)
-        local record = self.mosWindowStackRecord
-        local visible, revision = Visible(self), self.mosStackShowRevision
+        local record = self.bootyWindowStackRecord
+        local visible, revision = Visible(self), self.bootyStackShowRevision
         if record and OwnsBand(record) then
             local previous = ParentRecord(record)
             ResolveOpener(record)
@@ -295,15 +295,15 @@ local function Hook(frame)
             record.opening = true
             if not BringForward(record) and not visible then Reflow() end
         end
-        self.mosStackShow(self)
+        self.bootyStackShow(self)
         if record then record.opening = nil end
-        if revision == self.mosStackShowRevision then Stack.Sync(self) end
+        if revision == self.bootyStackShowRevision then Stack.Sync(self) end
     end
     frame.Hide = function(self)
-        local visible, revision = Visible(self), self.mosStackHideRevision
-        self.mosStackHide(self)
-        local record = self.mosWindowStackRecord
-        if revision == self.mosStackHideRevision then
+        local visible, revision = Visible(self), self.bootyStackHideRevision
+        self.bootyStackHide(self)
+        local record = self.bootyWindowStackRecord
+        if revision == self.bootyStackHideRevision then
             if record and record.kind == "window" then CloseOverlays(record) end
             if record and OwnsBand(record) and visible then
                 if Stack.focused == record then Stack.focused = nil end
@@ -317,10 +317,10 @@ end
 function Stack.Register(frame, options)
     if not frame then return end
     options = options or {}
-    local record = frame.mosWindowStackRecord
+    local record = frame.bootyWindowStackRecord
     if not record then
         record = {frame = frame, kind = options.kind or "window", owner = options.owner, defaultOwner = options.owner}
-        frame.mosWindowStackRecord = record
+        frame.bootyWindowStackRecord = record
         Stack.Track(frame); Hook(frame)
         if record.kind == "window" then table.insert(Stack.windows, record); table.insert(order, record)
         else table.insert(Stack.overlays, record); table.insert(order, record) end
@@ -336,10 +336,10 @@ function Stack.Register(frame, options)
 end
 function Stack.Attach(frame, owner, offset)
     if not frame then return end
-    local attachment = frame.mosWindowStackAttachment
+    local attachment = frame.bootyWindowStackAttachment
     if not attachment then
         attachment = {frame = frame, owner = owner, offset = offset or 1, kind = "attachment"}
-        frame.mosWindowStackAttachment = attachment
+        frame.bootyWindowStackAttachment = attachment
         table.insert(Stack.overlays, attachment)
         Stack.Track(frame); Hook(frame)
     else

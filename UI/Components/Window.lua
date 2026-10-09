@@ -1,14 +1,14 @@
-local MOS = BootyLib
+local Booty = BootyLib
 local Window = {}
 local projectBackdrop = { bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", tile = true, tileSize = 16, edgeSize = 12, insets = { left = 4, right = 4, top = 4, bottom = 4 } }
-MOS.UI.Components.Window = Window
-Window.MinimizedHeight = MOS.UI.Components.MinimizedWindowHeight or 30
+Booty.UI.Components.Window = Window
+Window.MinimizedHeight = Booty.UI.Components.MinimizedWindowHeight or 30
 
 function Window.ApplyProjectSurface(frame)
     -- Registered dropdowns may already own a skinned nine-slice. Hide it before
     -- applying the native project border, including after a skin change.
-    frame.mosUseNativeSurface = true
-    if MOS.UI.Components.SetSurfaceCompact then MOS.UI.Components.SetSurfaceCompact(frame, false) end
+    frame.bootyUseNativeSurface = true
+    if Booty.UI.Components.SetSurfaceCompact then Booty.UI.Components.SetSurfaceCompact(frame, false) end
     frame:SetBackdrop(projectBackdrop)
     frame:SetBackdropColor(0.015, 0.015, 0.015, 1)
     frame:SetBackdropBorderColor(0.68, 0.54, 0.27, 1)
@@ -16,7 +16,7 @@ end
 
 function Window.Create(options)
     local view
-    local window = MOS.UI.Components.CreateContainer(options.name, UIParent)
+    local window = Booty.UI.Components.CreateContainer(options.name, UIParent)
     window:SetWidth(780); window:SetHeight(620)
     window:SetPoint("CENTER", UIParent, "CENTER", 40, 10)
     window:SetFrameStrata("FULLSCREEN_DIALOG"); window:SetFrameLevel(200); window:SetMovable(true); window:SetResizable(true)
@@ -28,7 +28,7 @@ function Window.Create(options)
     local windowBackdrop = projectBackdrop
     Window.ApplyProjectSurface(window)
 
-    local titleBar = MOS.UI.Components.CreateContainer(nil, window)
+    local titleBar = Booty.UI.Components.CreateContainer(nil, window)
     titleBar:SetFrameLevel(window:GetFrameLevel() + 1)
     local function ApplyTitleBarGeometry(minimized)
         local inset = (minimized or options.plainHeader) and -4 or -8
@@ -37,35 +37,35 @@ function Window.Create(options)
     end
     ApplyTitleBarGeometry(false)
     if not options.plainHeader then
-        MOS.UI.Components.RegisterSkinnedSurface(titleBar, "title", { bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 12, insets = { left = 3, right = 3, top = 3, bottom = 3 } }, { 0.025, 0.022, 0.018, 0.98 }, { 0.42, 0.42, 0.40, 1 })
+        Booty.UI.Components.RegisterSkinnedSurface(titleBar, "title", { bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 12, insets = { left = 3, right = 3, top = 3, bottom = 3 } }, { 0.025, 0.022, 0.018, 0.98 }, { 0.42, 0.42, 0.40, 1 })
     end
-    local title = MOS.UI.Components.CreateHeading(titleBar, "", options.compact and 3 or 1, "gold", options.icon or "settings")
+    local title = Booty.UI.Components.CreateHeading(titleBar, "", options.compact and 3 or 1, "gold", options.icon or "settings")
     if options.compact then local font, size, flags = title:GetFont(); title:SetFont(font, size - 1, flags) end
     title:SetPoint("LEFT", titleBar, "LEFT", options.plainHeader and 4 or 8, 0); title:SetText(options.title)
-    local close = MOS.UI.Components.CreateWindowButton(titleBar, nil, "close")
+    local close = Booty.UI.Components.CreateWindowButton(titleBar, nil, "close")
     close:SetPoint("RIGHT", titleBar, "RIGHT", -4, 0)
-    local minimize = MOS.UI.Components.CreateWindowButton(titleBar, nil, "minimize")
+    local minimize = Booty.UI.Components.CreateWindowButton(titleBar, nil, "minimize")
     minimize:SetPoint("RIGHT", close, "LEFT", -4, 0)
     local settings
     if options.onSettings then
-        settings = MOS.UI.Components.CreateSettingsButton(titleBar)
+        settings = Booty.UI.Components.CreateSettingsButton(titleBar)
         settings:SetPoint("RIGHT", minimize, "LEFT", -4, 0)
         settings:SetScript("OnClick", function() return options.onSettings(window) end)
-        MOS.UI.Components.AttachTooltip(settings, "Settings", "Open settings for this addon.")
+        Booty.UI.Components.AttachTooltip(settings, "Settings", "Open settings for this addon.")
         title:SetPoint("RIGHT", settings, "LEFT", -6, 0)
     end
-    local content = MOS.UI.Components.CreateContainer(nil, window)
+    local content = Booty.UI.Components.CreateContainer(nil, window)
     content:SetFrameLevel(window:GetFrameLevel() + 1)
     content:SetPoint("TOPLEFT", titleBar, "BOTTOMLEFT", 0, 0); content:SetPoint("BOTTOMRIGHT", window, "BOTTOMRIGHT", -4, options.compact and 4 or 14)
-    content.mosUseNativeSurface = false
-    MOS.UI.Components.RegisterSkinnedSurface(content, "content", options.plainHeader and windowBackdrop or { bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", tile = true, tileSize = 16, edgeSize = 16, insets = { left = 4, right = 4, top = 4, bottom = 4 } }, { 0.02, 0.02, 0.02, 1 }, options.plainHeader and {0.68,0.54,0.27,1} or { 0.36, 0.36, 0.34, 1 })
-    if options.plainHeader then MOS.UI.Components.JoinSurfaceEdges(content, true, false) end
-    local resize = MOS.UI.Components.CreateResizeGrip(window)
+    content.bootyUseNativeSurface = false
+    Booty.UI.Components.RegisterSkinnedSurface(content, "content", options.plainHeader and windowBackdrop or { bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", tile = true, tileSize = 16, edgeSize = 16, insets = { left = 4, right = 4, top = 4, bottom = 4 } }, { 0.02, 0.02, 0.02, 1 }, options.plainHeader and {0.68,0.54,0.27,1} or { 0.36, 0.36, 0.34, 1 })
+    if options.plainHeader then Booty.UI.Components.JoinSurfaceEdges(content, true, false) end
+    local resize = Booty.UI.Components.CreateResizeGrip(window)
     if options.compact then
         resize.texture:Hide(); resize:ClearAllPoints(); resize:SetPoint("BOTTOMRIGHT", window, "BOTTOMRIGHT", 0, 0)
     end
     resize:SetFrameLevel(window:GetFrameLevel() + 1); resize:EnableMouse(true)
-    MOS.UI.Components.AttachTooltip(resize, "Resize Settings", "Drag to change the window size.")
+    Booty.UI.Components.AttachTooltip(resize, "Resize Settings", "Drag to change the window size.")
     resize:SetScript("OnMouseDown", function() window:StartSizing("BOTTOMRIGHT") end)
     resize:SetScript("OnMouseUp", function() window:StopMovingOrSizing(); if view then options.update(view) end end)
 
@@ -75,14 +75,14 @@ function Window.Create(options)
         if options.minimizedWidth then
             local left = window.GetLeft and window:GetLeft()
             local top = window.GetTop and window:GetTop()
-            if left and top then window.mosCompactLeft, window.mosCompactTop = left, top end
+            if left and top then window.bootyCompactLeft, window.bootyCompactTop = left, top end
         end
     end
     local function ResizeKeepingTop(width, height)
         RememberTop()
         if options.minimizedWidth then
-            if window.mosCompactLeft and window.mosCompactTop then
-                window:ClearAllPoints(); window:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", window.mosCompactLeft, window.mosCompactTop)
+            if window.bootyCompactLeft and window.bootyCompactTop then
+                window:ClearAllPoints(); window:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", window.bootyCompactLeft, window.bootyCompactTop)
             end
         end
         window:SetWidth(width); window:SetHeight(height)
@@ -110,7 +110,7 @@ function Window.Create(options)
             ApplyTitleBarGeometry(false)
             if options.minimizedWidth then ApplyResizeBounds(window.expandedWidth, window.expandedHeight)
             else window:SetHeight(window.expandedHeight or 620) end
-            content:Show(); resize:Show(); view.viewport:Show(); MOS.UI.Components.SetWindowButtonAction(minimize, "minimize")
+            content:Show(); resize:Show(); view.viewport:Show(); Booty.UI.Components.SetWindowButtonAction(minimize, "minimize")
             options.update(view)
         else
             window.minimized = true; window.expandedHeight = window:GetHeight(); window.expandedWidth = window:GetWidth()
@@ -123,7 +123,7 @@ function Window.Create(options)
                 window:SetMinResize(width, height); window:SetMaxResize(width, height)
                 ResizeKeepingTop(width, height)
             else window:SetHeight(height) end
-            MOS.UI.Components.SetWindowButtonAction(minimize, "maximize")
+            Booty.UI.Components.SetWindowButtonAction(minimize, "maximize")
         end
     end)
     local function FinishOpen()
@@ -146,7 +146,7 @@ function Window.Create(options)
         local minimized = window.minimized
         window.minimized = false
         ApplyResizeBounds(minimized and window.expandedWidth or nil, minimized and window.expandedHeight or nil)
-        content:Show(); resize:Show(); MOS.UI.Components.SetWindowButtonAction(minimize, "minimize")
+        content:Show(); resize:Show(); Booty.UI.Components.SetWindowButtonAction(minimize, "minimize")
         window:Show(); view.viewport:SetVerticalScroll(0); view.viewport:Show()
         if view.scrollBar then view.scrollBar:SetValue(0) end
         if options.refresh then options.refresh(view) end
@@ -156,10 +156,10 @@ function Window.Create(options)
     window.Toggle = function() if window:IsVisible() then CloseWindow() else window.Open() end end
     window.AttachView = function(settingsView)
         view = settingsView
-        view.viewport.mosWidthOwner = window
-        view.viewport.mosWidthInset = options.viewportWidthInset
-        view.viewport.mosHeightOwner = window
-        view.viewport.mosHeightInset = options.viewportHeightInset
+        view.viewport.bootyWidthOwner = window
+        view.viewport.bootyWidthInset = options.viewportWidthInset
+        view.viewport.bootyHeightOwner = window
+        view.viewport.bootyHeightInset = options.viewportHeightInset
         options.attach(view, content)
         view.viewport:Hide()
     end
@@ -172,13 +172,13 @@ function Window.Create(options)
     window.resizeGrip = resize
     window.ApplyResizeBounds = ApplyResizeBounds
     window:Hide()
-    if MOS.UI.Components.WindowStack then MOS.UI.Components.WindowStack.Register(window, {owner = options.owner}) end
+    if Booty.UI.Components.WindowStack then Booty.UI.Components.WindowStack.Register(window, {owner = options.owner}) end
     return window
 end
 
 -- Attached panels inherit visibility from their feature page and follow the owner's anchors.
 function Window.CreateAttached(parent, owner, width, height, onClose)
-    local C = MOS.UI.Components
+    local C = Booty.UI.Components
     local frame = C.CreateContainer(nil, parent)
     frame:SetWidth(width); frame:SetHeight(height)
     frame:SetPoint("TOPLEFT", owner, "TOPRIGHT", 0, 0)
@@ -197,19 +197,19 @@ end
 
 -- Compact project dialog chrome shared by feature dialogs.
 function Window.StyleProjectDialog(frame, iconKey)
-    local UI = MOS.UI.Components
+    local UI = Booty.UI.Components
     Window.ApplyProjectSurface(frame)
     UI.RegisterSkinCallback(function() Window.ApplyProjectSurface(frame) end)
     frame:SetMovable(true); frame:EnableMouse(true); frame:RegisterForDrag("LeftButton")
     frame:SetScript("OnDragStart", function() frame:StartMoving() end)
     frame:SetScript("OnDragStop", function() frame:StopMovingOrSizing() end)
     if frame.title then
-        UI.SetHeadingIcon(frame.title, iconKey or frame.title.mosHeadingIconKey or "info")
+        UI.SetHeadingIcon(frame.title, iconKey or frame.title.bootyHeadingIconKey or "info")
         local font, _, flags = frame.title:GetFont()
         frame.title:SetFont(font, 13, flags); frame.title:SetTextColor(unpack(UI.Theme.colors.goldText))
         -- The header interior is y=4..24. Center anchors keep text and its icon
         -- balanced even when a caller supplies a different title rectangle.
-        if frame.title.mosHeadingIcon then frame.title.mosHeadingIconInset = 19 end
+        if frame.title.bootyHeadingIcon then frame.title.bootyHeadingIconInset = 19 end
         frame.title:ClearAllPoints(); frame.title:SetPoint("LEFT", frame, "TOPLEFT", 8, -14)
         frame.title:SetPoint("RIGHT", frame, "TOPRIGHT", -42, -14)
         frame.title:SetHeight(13); frame.title:SetJustifyH("LEFT"); frame.title:SetJustifyV("MIDDLE")
@@ -224,7 +224,7 @@ function Window.StyleProjectDialog(frame, iconKey)
 end
 
 function Window.CreateProjectConfirmation(name, title, action, iconKey, options)
-    local UI = MOS.UI.Components
+    local UI = Booty.UI.Components
     local frame = UI.CreateConfirmation(name, options)
     frame.title:SetText(title); Window.StyleProjectDialog(frame, iconKey or "info")
     frame:SetWidth(320); frame:SetHeight(118)

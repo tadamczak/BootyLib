@@ -1,8 +1,8 @@
-local MOS = BootyLib
+local Booty = BootyLib
 
-MOS.Core = MOS.Core or {}
-MOS.Core.Compatibility = MOS.Core.Compatibility or {}
-local Compatibility = MOS.Core.Compatibility
+Booty.Core = Booty.Core or {}
+Booty.Core.Compatibility = Booty.Core.Compatibility or {}
+local Compatibility = Booty.Core.Compatibility
 
 -- Keep the client implementation when an extension provides it. Never install a
 -- global shim: other addons retain their own standard-library contract.

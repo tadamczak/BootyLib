@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.28 — 2026-10-09
+
+- Use Booty names in shared controls and settings profiles; read previous preferences without resetting data.
+- Remove the unused previous-title texture.
+
 ## 0.1.0-dev.27 - 2026-10-08
 
 - Add shared rounded-square and octagonal minimap masks.

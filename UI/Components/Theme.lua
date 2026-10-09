@@ -1,5 +1,5 @@
-local MOS = BootyLib
-local UI = MOS.UI.Components
+local Booty = BootyLib
+local UI = Booty.UI.Components
 
 UI.Theme = {
     classColors = {
@@ -52,10 +52,10 @@ function UI.StyleButton(button, text)
     button.label:SetText(text or "")
     button.SetText = function(self, value) self.label:SetText(value) end
     button.GetText = function(self) return self.label:GetText() end
-    if not button.mosHighlight then
-        button.mosHighlight = button:CreateTexture(nil, "HIGHLIGHT")
-        button.mosHighlight:SetAllPoints(button)
-        button.mosHighlight:SetTexture(colors.highlight[1], colors.highlight[2], colors.highlight[3], colors.highlight[4])
+    if not button.bootyHighlight then
+        button.bootyHighlight = button:CreateTexture(nil, "HIGHLIGHT")
+        button.bootyHighlight:SetAllPoints(button)
+        button.bootyHighlight:SetTexture(colors.highlight[1], colors.highlight[2], colors.highlight[3], colors.highlight[4])
     end
     UI.RegisterSkinnedControl(button, backdrop, { colors.button[1], colors.button[2], colors.button[3], colors.button[4] }, { colors.buttonBorder[1], colors.buttonBorder[2], colors.buttonBorder[3], colors.buttonBorder[4] }, { colors.highlight[1], colors.highlight[2], colors.highlight[3], colors.highlight[4] })
     return button
@@ -70,7 +70,7 @@ end
 
 function UI.CreateSelectionButton(parent, name, text, width, height)
     local button = CreateFrame("Button", name, parent)
-    button.mosClassicKeepNormalSurface = true
+    button.bootyClassicKeepNormalSurface = true
     button:SetWidth(width or 120); button:SetHeight(height or UI.Theme.sizes.buttonHeight)
     UI.StyleButton(button, text)
     UI.AttachGoldHoverBorder(button, 0.35, 0.35, 0.35, 1)
@@ -78,7 +78,7 @@ function UI.CreateSelectionButton(parent, name, text, width, height)
 end
 
 function UI.SetButtonLabelInsets(button, left, right)
-    button.mosLabelInsets = { left, right }
+    button.bootyLabelInsets = { left, right }
     button.label:ClearAllPoints()
     button.label:SetPoint("LEFT", button, "LEFT", left, 0)
     button.label:SetPoint("RIGHT", button, "RIGHT", -right, 0)
@@ -94,7 +94,7 @@ UI.HeadingSizes = { 18, 16, 14 }
 
 function UI.GetTextSizeDelta(parent)
     while parent do
-        if parent.mosTextSizeDelta then return parent.mosTextSizeDelta end
+        if parent.bootyTextSizeDelta then return parent.bootyTextSizeDelta end
         parent = parent.GetParent and parent:GetParent()
     end
     return 0
@@ -122,7 +122,7 @@ end
 -- Keep a native FontString contract while reserving a stable icon gutter.
 -- Callers provide semantic icon keys; the reusable control owns no page rules.
 function UI.SetHeadingIcon(label, key)
-    if not label.mosHeadingIcon then
+    if not label.bootyHeadingIcon then
         local anchors = {}
         if label.GetPoint then
             for index = 1, label.GetNumPoints and label:GetNumPoints() or 1 do
@@ -133,32 +133,32 @@ function UI.SetHeadingIcon(label, key)
         local icon = UI.CreateTexture(label:GetParent(), nil, "OVERLAY")
         local _, size = label:GetFont()
         local iconSize = math.max(10, math.min(20, size or 14))
-        label.mosHeadingIcon, label.mosHeadingIconInset = icon, iconSize + 6
+        label.bootyHeadingIcon, label.bootyHeadingIconInset = icon, iconSize + 6
         icon:SetWidth(iconSize); icon:SetHeight(iconSize)
         icon:SetPoint("RIGHT", label, "LEFT", -6, 0)
         local point, width, show, hide, text, font = label.SetPoint, label.SetWidth, label.Show, label.Hide, label.SetText, label.SetFont
         label.SetPoint = function(self, anchor, relative, relativeAnchor, x, y)
-            local inset = string.find(anchor, "LEFT", 1, true) and self.mosHeadingIconInset or anchor == "CENTER" and self.mosHeadingIconInset / 2 or 0
+            local inset = string.find(anchor, "LEFT", 1, true) and self.bootyHeadingIconInset or anchor == "CENTER" and self.bootyHeadingIconInset / 2 or 0
             if type(relative) == "number" then return point(self, anchor, relative + inset, relativeAnchor) end
             if type(relativeAnchor) == "number" then return point(self, anchor, relative, relativeAnchor + inset, x) end
             return point(self, anchor, relative, relativeAnchor, (x or 0) + inset, y or 0)
         end
         label.SetWidth = function(self, value)
-            return width(self, value > 0 and math.max(1, value - self.mosHeadingIconInset) or value)
+            return width(self, value > 0 and math.max(1, value - self.bootyHeadingIconInset) or value)
         end
         label.Show = function(self)
             show(self)
-            if self:GetText() and self:GetText() ~= "" then self.mosHeadingIcon:Show() end
+            if self:GetText() and self:GetText() ~= "" then self.bootyHeadingIcon:Show() end
         end
-        label.Hide = function(self) hide(self); self.mosHeadingIcon:Hide() end
+        label.Hide = function(self) hide(self); self.bootyHeadingIcon:Hide() end
         label.SetText = function(self, value)
             text(self, value)
-            if value and value ~= "" and self:IsShown() then self.mosHeadingIcon:Show() else self.mosHeadingIcon:Hide() end
+            if value and value ~= "" and self:IsShown() then self.bootyHeadingIcon:Show() else self.bootyHeadingIcon:Hide() end
         end
         label.SetFont = function(self, path, value, flags)
             local result = font(self, path, value, flags)
             local fitted = math.max(10, math.min(20, value or 14))
-            self.mosHeadingIcon:SetWidth(fitted); self.mosHeadingIcon:SetHeight(fitted)
+            self.bootyHeadingIcon:SetWidth(fitted); self.bootyHeadingIcon:SetHeight(fitted)
             return result
         end
         if table.getn(anchors) > 0 then
@@ -167,10 +167,10 @@ function UI.SetHeadingIcon(label, key)
         end
         label:SetJustifyH("LEFT")
     end
-    label.mosHeadingIconKey = key
-    label.mosHeadingIcon:SetTexture("Interface\\AddOns\\BootyLib\\Assets\\Skins\\Classic\\Icons\\" .. key .. ".tga")
-    label.mosHeadingIcon:SetVertexColor(unpack(UI.Theme.colors.goldIcon))
-    if label:GetText() and label:GetText() ~= "" and label:IsShown() then label.mosHeadingIcon:Show() else label.mosHeadingIcon:Hide() end
+    label.bootyHeadingIconKey = key
+    label.bootyHeadingIcon:SetTexture("Interface\\AddOns\\BootyLib\\Assets\\Skins\\Classic\\Icons\\" .. key .. ".tga")
+    label.bootyHeadingIcon:SetVertexColor(unpack(UI.Theme.colors.goldIcon))
+    if label:GetText() and label:GetText() ~= "" and label:IsShown() then label.bootyHeadingIcon:Show() else label.bootyHeadingIcon:Hide() end
     return label
 end
 
@@ -189,15 +189,15 @@ function UI.CreateColumnLabel(parent, text, color)
 end
 
 function UI.SetWindowButtonAction(button, action)
-    if button.mosWindowAction == action then return end
-    button.mosWindowAction = action
+    if button.bootyWindowAction == action then return end
+    button.bootyWindowAction = action
     button:SetText(action == "close" and "X" or action == "minimize" and "_" or "[]")
     UI.SetClassicButtonCompact(button, true)
-    if button.mosClassicIconKey then UI.SetClassicButtonIcon(button, nil) end
+    if button.bootyClassicIconKey then UI.SetClassicButtonIcon(button, nil) end
     UI.SetButtonTextColor(button, UI.TextColors.gold)
     UI.SetClassicButtonLabelOffset(button, action == "minimize" and 2 or 0)
-    if action == "maximize" and not button.mosSquare then
-        button.mosSquare = {}
+    if action == "maximize" and not button.bootySquare then
+        button.bootySquare = {}
         local index
         for index = 1, 4 do
             local edge = UI.CreateTexture(button, nil, "OVERLAY")
@@ -205,13 +205,13 @@ function UI.SetWindowButtonAction(button, action)
             edge:SetVertexColor(unpack(UI.TextColors.gold))
             edge:SetWidth(index <= 2 and 8 or 1); edge:SetHeight(index <= 2 and 1 or 8)
             edge:SetPoint("CENTER", button, "CENTER", index == 3 and -4 or index == 4 and 4 or 0, index == 1 and 4 or index == 2 and -4 or 0)
-            button.mosSquare[index] = edge
+            button.bootySquare[index] = edge
         end
     end
-    if button.mosSquare then
+    if button.bootySquare then
         local index
         for index = 1, 4 do
-            if action == "maximize" then button.mosSquare[index]:Show() else button.mosSquare[index]:Hide() end
+            if action == "maximize" then button.bootySquare[index]:Show() else button.bootySquare[index]:Hide() end
         end
     end
     if action == "maximize" then button.label:Hide() else button.label:Show() end
@@ -226,18 +226,18 @@ end
 
 function UI.SetButtonEnabled(button, enabled)
     if enabled then button:Enable() else button:Disable() end
-    if button.mosClassicVariant == "red" then
-        button.mosTextColor = nil
+    if button.bootyClassicVariant == "red" then
+        button.bootyTextColor = nil
         if UI.SetClassicButtonDisabled then UI.SetClassicButtonDisabled(button, not enabled) end
         if button.label then
-            local hovered = button.mosSkinEntry and button.mosSkinEntry.hovered
+            local hovered = button.bootySkinEntry and button.bootySkinEntry.hovered
             if not enabled then button.label:SetTextColor(unpack(UI.TextColors.gray))
             elseif hovered then button.label:SetTextColor(0.82, 0.82, 0.78)
-            elseif button.mosClassicGold then button.label:SetTextColor(1, 0.82, 0.28)
+            elseif button.bootyClassicGold then button.label:SetTextColor(1, 0.82, 0.28)
             else button.label:SetTextColor(1, 1, 1) end
         end
     else UI.SetButtonTextColor(button, enabled and UI.TextColors.white or UI.TextColors.gray) end
-    if button.mosActionIcon then button.mosActionIcon:SetAlpha(enabled and 1 or 0.35) end
+    if button.bootyActionIcon then button.bootyActionIcon:SetAlpha(enabled and 1 or 0.35) end
 end
 
 function UI.SetAlternatingRowColor(row, background, index, percentage)
@@ -255,19 +255,19 @@ function UI.UpdateWarmListBorder(button, visible)
     UI.SetProjectButtonOutline(button, visible)
     if visible then button.warmListSelection:Show() else button.warmListSelection:Hide() end
 end
-function UI.WarmListEnter() this.mosWarmListHovered = true; UI.UpdateWarmListBorder(this, true) end
-function UI.WarmListLeave() this.mosWarmListHovered = nil; UI.UpdateWarmListBorder(this, this.mosWarmListSelected) end
+function UI.WarmListEnter() this.bootyWarmListHovered = true; UI.UpdateWarmListBorder(this, true) end
+function UI.WarmListLeave() this.bootyWarmListHovered = nil; UI.UpdateWarmListBorder(this, this.bootyWarmListSelected) end
 
 local warmListNormal = {0.12, 0.07, 0.02}
 function UI.StyleWarmListRow(button, selected)
-    button.mosWarmListRow = true; button.mosWarmListSelected = selected
-    local entry = button.mosSkinEntry
+    button.bootyWarmListRow = true; button.bootyWarmListSelected = selected
+    local entry = button.bootySkinEntry
     if entry and entry.classicSkin then entry.classicSkin.textures[5]:Hide() end
     UI.SetRowColor(button, warmListNormal, 0.96)
     if button.SetNormalTexture then button:SetNormalTexture("") end
     if button.SetPushedTexture then button:SetPushedTexture("") end
     if button.SetHighlightTexture then button:SetHighlightTexture("") end
-    if button.mosHighlight then button.mosHighlight:Hide() end
+    if button.bootyHighlight then button.bootyHighlight:Hide() end
     if not button.warmListSelection then
         button.warmListSelection = button:CreateTexture(nil, "ARTWORK")
         button.warmListSelection:SetAllPoints(button)
@@ -276,32 +276,32 @@ function UI.StyleWarmListRow(button, selected)
         button:SetScript("OnLeave", UI.WarmListLeave)
         button.warmListHover = button.warmListSelection
     end
-    UI.UpdateWarmListBorder(button, selected or button.mosWarmListHovered)
+    UI.UpdateWarmListBorder(button, selected or button.bootyWarmListHovered)
 end
 
 local selectableTableColor={1,1,1}
 function UI.SelectableTableRowEnter()
-    this.mosTableRowHovered=true;this.mosTableRowHover:Show()
-    if this.mosTableRowSelected then this.mosTableRowSelection:SetAlpha(1) end
+    this.bootyTableRowHovered=true;this.bootyTableRowHover:Show()
+    if this.bootyTableRowSelected then this.bootyTableRowSelection:SetAlpha(1) end
 end
 function UI.SelectableTableRowLeave()
-    this.mosTableRowHovered=nil;this.mosTableRowHover:Hide()
-    if this.mosTableRowSelected then this.mosTableRowSelection:SetAlpha(0.68) end
+    this.bootyTableRowHovered=nil;this.bootyTableRowHover:Hide()
+    if this.bootyTableRowSelected then this.bootyTableRowSelection:SetAlpha(0.68) end
 end
 function UI.StyleSelectableTableRow(button, even, selected)
-    button.mosSelectableTableRow=true;button.mosTableRowEven=even and true or false;button.mosTableRowSelected=selected and true or false
+    button.bootySelectableTableRow=true;button.bootyTableRowEven=even and true or false;button.bootyTableRowSelected=selected and true or false
     UI.SetRowColor(button,selectableTableColor,even and 0.14 or 0.025)
     button:SetBackdropBorderColor(0,0,0,0)
     if button.SetNormalTexture then button:SetNormalTexture("") end
     if button.SetPushedTexture then button:SetPushedTexture("") end
     if button.SetHighlightTexture then button:SetHighlightTexture("") end
-    if button.mosHighlight then button.mosHighlight:Hide() end
-    if not button.mosTableRowSelection then
-        button.mosTableRowSelection=button:CreateTexture(nil,"ARTWORK");button.mosTableRowSelection:SetAllPoints(button);UI.ApplyGoldRadialHighlight(button.mosTableRowSelection)
-        button.mosTableRowHover=button:CreateTexture(nil,"ARTWORK");button.mosTableRowHover:SetAllPoints(button);button.mosTableRowHover:SetTexture(1,1,1,1);button.mosTableRowHover:SetAlpha(0.07);button.mosTableRowHover:Hide()
+    if button.bootyHighlight then button.bootyHighlight:Hide() end
+    if not button.bootyTableRowSelection then
+        button.bootyTableRowSelection=button:CreateTexture(nil,"ARTWORK");button.bootyTableRowSelection:SetAllPoints(button);UI.ApplyGoldRadialHighlight(button.bootyTableRowSelection)
+        button.bootyTableRowHover=button:CreateTexture(nil,"ARTWORK");button.bootyTableRowHover:SetAllPoints(button);button.bootyTableRowHover:SetTexture(1,1,1,1);button.bootyTableRowHover:SetAlpha(0.07);button.bootyTableRowHover:Hide()
         button:SetScript("OnEnter",UI.SelectableTableRowEnter);button:SetScript("OnLeave",UI.SelectableTableRowLeave)
     end
     UI.SetProjectButtonOutline(button,selected)
-    if selected then button.mosTableRowSelection:SetAlpha(button.mosTableRowHovered and 1 or 0.68);button.mosTableRowSelection:Show()
-    else button.mosTableRowSelection:Hide() end
+    if selected then button.bootyTableRowSelection:SetAlpha(button.bootyTableRowHovered and 1 or 0.68);button.bootyTableRowSelection:Show()
+    else button.bootyTableRowSelection:Hide() end
 end

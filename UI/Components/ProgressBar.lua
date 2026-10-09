@@ -1,5 +1,5 @@
-local MOS = BootyLib
-local UI = MOS.UI.Components
+local Booty = BootyLib
+local UI = Booty.UI.Components
 
 local ProgressBar = {}
 UI.ProgressBar = ProgressBar

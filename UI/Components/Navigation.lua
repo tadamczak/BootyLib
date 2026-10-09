@@ -1,7 +1,7 @@
-local MOS = BootyLib
+local Booty = BootyLib
 
-MOS.UI.Components.Navigation = MOS.UI.Components.Navigation or {}
-local Navigation = MOS.UI.Components.Navigation
+Booty.UI.Components.Navigation = Booty.UI.Components.Navigation or {}
+local Navigation = Booty.UI.Components.Navigation
 
 function Navigation.FitTabCaption(button, available)
     local label = button.label
@@ -18,39 +18,39 @@ function Navigation.SetActive(buttons, activeName)
         button.navigationSelected = selected
         button.selectedFill:Hide(); button.hoverFill:Show()
         if button.navigationMode == "tabs" then
-            MOS.UI.Components.ApplyGoldRadialHighlight(button.selectedFill)
-            MOS.UI.Components.ApplyGoldRadialHighlight(button.hoverFill)
+            Booty.UI.Components.ApplyGoldRadialHighlight(button.selectedFill)
+            Booty.UI.Components.ApplyGoldRadialHighlight(button.hoverFill)
         else
             button.hoverFill:SetTexture("Interface\\Buttons\\WHITE8X8"); button.hoverFill:SetVertexColor(0.82, 0.70, 0.43, 0.14)
         end
         if button.navigationMode == "tabs" then
-            button:SetBackdrop({ bgFile = MOS.UI.Components.IsClassicSkin() and MOS.UI.Components.ClassicAsset("Surfaces\\sidebar.tga") or "Interface\\DialogFrame\\UI-DialogBox-Background", tile = true, tileSize = 16, edgeSize = 0, insets = { left = 0, right = 0, top = 0, bottom = 0 } })
-            if MOS.UI.Components.IsClassicSkin() then button:SetBackdropColor(1, 1, 1, 1)
+            button:SetBackdrop({ bgFile = Booty.UI.Components.IsClassicSkin() and Booty.UI.Components.ClassicAsset("Surfaces\\sidebar.tga") or "Interface\\DialogFrame\\UI-DialogBox-Background", tile = true, tileSize = 16, edgeSize = 0, insets = { left = 0, right = 0, top = 0, bottom = 0 } })
+            if Booty.UI.Components.IsClassicSkin() then button:SetBackdropColor(1, 1, 1, 1)
             else button:SetBackdropColor(0.04, 0.03, 0.02, 0.98) end; button:SetBackdropBorderColor(0, 0, 0, 0)
             button:SetHeight(selected and 30 or 26)
             button:ClearAllPoints()
             button:SetPoint(button.navigationBottom and "TOPLEFT" or "BOTTOMLEFT", button.navigationContent, button.navigationBottom and "BOTTOMLEFT" or "TOPLEFT", button.navigationX, selected and (button.navigationBottom and 1 or -1) or (button.navigationBottom and -(button.navigationEdgeInset or 4) or (button.navigationEdgeInset or 4)))
             if selected then button.selectedFill:Show(); button.hoverFill:Hide() end
-            if button.icon then button.icon:SetVertexColor(unpack(selected and MOS.UI.Components.Theme.colors.activeGoldIcon or MOS.UI.Components.Theme.colors.goldIcon)) end
+            if button.icon then button.icon:SetVertexColor(unpack(selected and Booty.UI.Components.Theme.colors.activeGoldIcon or Booty.UI.Components.Theme.colors.goldIcon)) end
             button:SetFrameLevel(button:GetParent():GetFrameLevel() + (selected and 24 or 20))
-            if button.mosHighlight then button.mosHighlight:Hide() end
+            if button.bootyHighlight then button.bootyHighlight:Hide() end
             button.label:SetTextColor(selected and 1 or 0.82, selected and 1 or 0.70, selected and 1 or 0.43)
             button.SetTabBorderVisible(true)
-        elseif MOS.UI.Components.IsClassicSkin() then
-            button:SetBackdrop({ bgFile = MOS.UI.Components.ClassicAsset("Surfaces\\nav-" .. (selected and "selected" or "normal") .. ".tga"), tile = false, tileSize = 0, edgeSize = 0, insets = { left = 0, right = 0, top = 0, bottom = 0 } })
+        elseif Booty.UI.Components.IsClassicSkin() then
+            button:SetBackdrop({ bgFile = Booty.UI.Components.ClassicAsset("Surfaces\\nav-" .. (selected and "selected" or "normal") .. ".tga"), tile = false, tileSize = 0, edgeSize = 0, insets = { left = 0, right = 0, top = 0, bottom = 0 } })
             button:SetBackdropColor(1, 1, 1, 1)
             button.label:SetTextColor(selected and 1 or 0.82, selected and 0.82 or 0.70, selected and 0.28 or 0.43)
-            if button.icon then button.icon:SetVertexColor(unpack(selected and MOS.UI.Components.Theme.colors.activeGoldIcon or MOS.UI.Components.Theme.colors.goldIcon)) end
+            if button.icon then button.icon:SetVertexColor(unpack(selected and Booty.UI.Components.Theme.colors.activeGoldIcon or Booty.UI.Components.Theme.colors.goldIcon)) end
         elseif selected then
             button:SetBackdropColor(0.32, 0.19, 0.02, 0.96)
             button:SetBackdropBorderColor(1, 0.72, 0.08, 1)
             button.label:SetTextColor(1, 0.82, 0.18)
-            if button.icon and MOS.UI.Components.IsClassicSkin() then button.icon:SetVertexColor(unpack(MOS.UI.Components.Theme.colors.activeGoldIcon)) end
+            if button.icon and Booty.UI.Components.IsClassicSkin() then button.icon:SetVertexColor(unpack(Booty.UI.Components.Theme.colors.activeGoldIcon)) end
         else
             button:SetBackdropColor(0.12, 0.07, 0.02, 0.92)
             button:SetBackdropBorderColor(0.52, 0.31, 0.07, 1)
             button.label:SetTextColor(0.95, 0.72, 0.18)
-            if button.icon and MOS.UI.Components.IsClassicSkin() then button.icon:SetVertexColor(unpack(MOS.UI.Components.Theme.colors.goldIcon)) end
+            if button.icon and Booty.UI.Components.IsClassicSkin() then button.icon:SetVertexColor(unpack(Booty.UI.Components.Theme.colors.goldIcon)) end
         end
         if button.navigationEnabled == false then
             button.label:SetTextColor(0.5, 0.5, 0.5)
@@ -65,18 +65,18 @@ function Navigation.Create(options)
     local order = options.order
 
     local function CreateButton(name, text, y, iconPath)
-        local button = MOS.UI.Components.CreateControl(nil, options.dashboard)
+        local button = Booty.UI.Components.CreateControl(nil, options.dashboard)
         button:SetPoint("TOPLEFT", options.sidebar, "TOPLEFT", 10, y)
         button:SetWidth(154)
         button:SetHeight(40)
         button:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", tile = true, tileSize = 8, edgeSize = 12, insets = { left = 3, right = 3, top = 3, bottom = 3 } })
-        local icon = MOS.UI.Components.CreateTexture(button, nil, "ARTWORK")
+        local icon = Booty.UI.Components.CreateTexture(button, nil, "ARTWORK")
         icon:SetWidth(28); icon:SetHeight(28); icon:SetPoint("LEFT", button, "LEFT", 9, 0); icon:SetTexture(iconPath)
         button.icon = icon; button.navigationText = text
-        local iconBorder = MOS.UI.Components.CreateTexture(button, nil, "OVERLAY")
+        local iconBorder = Booty.UI.Components.CreateTexture(button, nil, "OVERLAY")
         iconBorder:SetWidth(36); iconBorder:SetHeight(36); iconBorder:SetPoint("CENTER", icon, "CENTER", 0, 0); iconBorder:SetTexture("Interface\\Buttons\\UI-Quickslot2")
         button.iconBorder = iconBorder
-        button.label = MOS.UI.Components.CreateLabel(button, nil, "OVERLAY", "GameFontNormalSmall")
+        button.label = Booty.UI.Components.CreateLabel(button, nil, "OVERLAY", "GameFontNormalSmall")
         button.label:SetPoint("LEFT", button, "LEFT", 44, 0); button.label:SetWidth(108); button.label:SetHeight(14); button.label:SetJustifyH("LEFT"); button.label:SetText(text)
         local font, size, flags = button.label:GetFont()
         if font then button.label:SetFont(font, math.min(10, size or 10), flags) end
@@ -85,16 +85,16 @@ function Navigation.Create(options)
             options.showPage(name)
         end)
         button.SetTabBorderVisible = function(visible)
-            MOS.UI.Components.SetNavigationTabBorder(button, visible)
+            Booty.UI.Components.SetNavigationTabBorder(button, visible)
         end
         button.SetTabBorderVisible(false)
-        button.selectedFill = MOS.UI.Components.CreateTexture(button, nil, "BORDER")
+        button.selectedFill = Booty.UI.Components.CreateTexture(button, nil, "BORDER")
         button.selectedFill:SetAllPoints(button); button.selectedFill:SetTexture("Interface\\Buttons\\WHITE8X8"); button.selectedFill:SetVertexColor(0.82, 0.70, 0.43, 0.14); button.selectedFill:Hide()
-        button.hoverFill = MOS.UI.Components.CreateTexture(button, nil, "HIGHLIGHT")
+        button.hoverFill = Booty.UI.Components.CreateTexture(button, nil, "HIGHLIGHT")
         button.hoverFill:SetAllPoints(button); button.hoverFill:SetTexture("Interface\\Buttons\\WHITE8X8"); button.hoverFill:SetVertexColor(0.82, 0.70, 0.43, 0.14)
         button:SetScript("OnEnter", function() if this.navigationEnabled ~= false and this.navigationMode == "tabs" then this.SetTabBorderVisible(true) end end)
         button:SetScript("OnLeave", function() if this.navigationMode == "tabs" then this.SetTabBorderVisible(true) end end)
-        MOS.UI.Components.RegisterSkinnedNavigation(button, name, iconPath)
+        Booty.UI.Components.RegisterSkinnedNavigation(button, name, iconPath)
         controller.buttons[name] = button
     end
 
@@ -144,7 +144,7 @@ function Navigation.Create(options)
     end
 
     function controller.Apply()
-        if options.dashboard.mosMinimized then
+        if options.dashboard.bootyMinimized then
             options.sidebar:Hide(); options.contentPanel:Hide()
             for _, button in pairs(controller.buttons) do button:Hide() end
             return
@@ -153,14 +153,14 @@ function Navigation.Create(options)
         controller.RefreshAvailability()
         local bottomTabs = options.get("menuStyle") == "bottomTabs"
         local tabs = options.get("menuStyle") == "tabs" or bottomTabs
-        local _, sectionTop, sectionBottom, tabTop = MOS.UI.Components.Dashboard.GetChromeLayout(options.get, MOS.UI.Components.IsClassicSkin(), options.dashboard:GetWidth())
+        local _, sectionTop, sectionBottom, tabTop = Booty.UI.Components.Dashboard.GetChromeLayout(options.get, Booty.UI.Components.IsClassicSkin(), options.dashboard:GetWidth())
         if tabs then
             options.sidebar:Hide(); options.toggleButton:Hide()
-            local margin = MOS.UI.Components.IsClassicSkin() and 4 or 9
-            local bottom = options.get("hideStatusVersionBar") and 4 or ((bottomTabs or MOS.UI.Components.IsClassicSkin()) and 4 or 9) + 22
+            local margin = Booty.UI.Components.IsClassicSkin() and 4 or 9
+            local bottom = options.get("hideStatusVersionBar") and 4 or ((bottomTabs or Booty.UI.Components.IsClassicSkin()) and 4 or 9) + 22
             options.contentPanel:ClearAllPoints(); options.contentPanel:SetPoint("TOPLEFT", options.dashboard, "TOPLEFT", margin, sectionTop); options.contentPanel:SetPoint("BOTTOMRIGHT", options.dashboard, "BOTTOMRIGHT", -4, bottomTabs and bottom + 30 or bottom)
             local iconTabs = options.get("useIconTabs")
-            local classic = MOS.UI.Components.IsClassicSkin()
+            local classic = Booty.UI.Components.IsClassicSkin()
             -- Reserve controls only when they actually share the top-tab row.
             local controlsWidth = not bottomTabs and not options.get("hideHeaderBar") and options.get("hideHeaderLogo") and options.get("hideHeaderName") and 66 or 0
             local width = iconTabs and 38 or ((options.dashboard:GetWidth() - 2 * margin - 12 - controlsWidth) / table.getn(order))
@@ -170,7 +170,7 @@ function Navigation.Create(options)
                 button.navigationBottom = bottomTabs
                 button.navigationEdgeInset = bottomTabs and 1 or not bottomTabs and not options.get("hideHeaderBar") and options.get("hideHeaderLogo") and options.get("hideHeaderName") and 1 or 2
                 button.navigationMode = "tabs"
-                button.navigationContent = bottomTabs and not options.get("hideStatusVersionBar") and options.dashboard.mosStatusBar or not bottomTabs and not options.get("hideHeaderBar") and not (options.get("hideHeaderLogo") and options.get("hideHeaderName")) and options.contentPanel.mosHeaderAnchor or options.contentPanel
+                button.navigationContent = bottomTabs and not options.get("hideStatusVersionBar") and options.dashboard.bootyStatusBar or not bottomTabs and not options.get("hideHeaderBar") and not (options.get("hideHeaderLogo") and options.get("hideHeaderName")) and options.contentPanel.bootyHeaderAnchor or options.contentPanel
                 button.navigationX = 6 + ((index - 1) * width)
                 button.SetTabBorderVisible(false)
                 button:SetScale(1); button:ClearAllPoints(); button:SetPoint(bottomTabs and "BOTTOMLEFT" or "TOPLEFT", options.dashboard, bottomTabs and "BOTTOMLEFT" or "TOPLEFT", 20 + ((index - 1) * width), bottomTabs and bottom or tabTop)
@@ -189,7 +189,7 @@ function Navigation.Create(options)
         else
             options.sidebar:Show(); options.toggleButton:Show()
             local collapsed = options.get("sidebarCollapsed")
-            local classic = MOS.UI.Components.IsClassicSkin()
+            local classic = Booty.UI.Components.IsClassicSkin()
             if options.sidebar.classicMenuTitle then
                 if classic and not collapsed then options.sidebar.classicMenuTitle:Show() else options.sidebar.classicMenuTitle:Hide() end
             end
@@ -216,12 +216,12 @@ function Navigation.Create(options)
             end
             if classic and options.toggleButtonClassicIcon then
                 options.toggleButton:SetText("")
-                options.toggleButtonClassicIcon:SetTexture(MOS.UI.Components.ClassicAsset("Icons\\chevron_" .. (collapsed and "right" or "left") .. ".tga"))
+                options.toggleButtonClassicIcon:SetTexture(Booty.UI.Components.ClassicAsset("Icons\\chevron_" .. (collapsed and "right" or "left") .. ".tga"))
                 options.toggleButtonClassicIcon:Show()
             else options.toggleButton:SetText(collapsed and ">>" or "<<") end
         end
-        local leftInset = tabs and (MOS.UI.Components.IsClassicSkin() and 4 or 9) or (MOS.UI.Components.IsClassicSkin() and (options.get("sidebarCollapsed") and 49 or 153) or (options.get("sidebarCollapsed") and 64 or 184))
-        options.contentPanel.mosMinimumWidth = 350 - leftInset - 4 - 3
+        local leftInset = tabs and (Booty.UI.Components.IsClassicSkin() and 4 or 9) or (Booty.UI.Components.IsClassicSkin() and (options.get("sidebarCollapsed") and 49 or 153) or (options.get("sidebarCollapsed") and 64 or 184))
+        options.contentPanel.bootyMinimumWidth = 350 - leftInset - 4 - 3
         if options.applyChrome then options.applyChrome() end
         Navigation.SetActive(controller.buttons, controller.activeName or options.order[1])
         if options.refreshLayout then options.refreshLayout() end
@@ -234,7 +234,7 @@ function Navigation.Create(options)
         return true
     end
 
-    MOS.UI.Components.RegisterSkinCallback(function()
+    Booty.UI.Components.RegisterSkinCallback(function()
         controller.Apply()
         Navigation.SetActive(controller.buttons, controller.activeName or options.order[1])
     end)

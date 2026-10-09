@@ -1,5 +1,5 @@
-local MOS = BootyLib
-local UI = MOS.UI.Components
+local Booty = BootyLib
+local UI = Booty.UI.Components
 
 UI.FilterPanel = UI.FilterPanel or {}
 local FilterPanel = UI.FilterPanel
@@ -31,8 +31,8 @@ local function RefreshToggleCaption(panel)
 end
 
 function FilterPanel.SetCaption(toggle,values,selected,allSelectedCaption)
-    toggle.mosCaptionOwner=toggle.mosCaptionOwner or {}
-    SetCaption(toggle,values,selected,allSelectedCaption,toggle.mosCaptionOwner)
+    toggle.bootyCaptionOwner=toggle.bootyCaptionOwner or {}
+    SetCaption(toggle,values,selected,allSelectedCaption,toggle.bootyCaptionOwner)
 end
 
 function FilterPanel.Refresh(panel, values, selected, onChanged, dynamicWidth, preserveOrder)

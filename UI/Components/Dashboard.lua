@@ -1,7 +1,7 @@
-local MOS = BootyLib
+local Booty = BootyLib
 
-MOS.UI.Components.Dashboard = MOS.UI.Components.Dashboard or {}
-local Dashboard = MOS.UI.Components.Dashboard
+Booty.UI.Components.Dashboard = Booty.UI.Components.Dashboard or {}
+local Dashboard = Booty.UI.Components.Dashboard
 
 function Dashboard.HeaderNeedsCompactTitle(get, classic, width)
     if get("hideHeaderName") or not width then return false end
@@ -42,9 +42,9 @@ function Dashboard.SetTabBody(view, protruding, topInset)
     local frame = view.frame
     if protruding or topInset > 0 then
         if not view.tabBody then
-            local body = MOS.UI.Components.CreateContainer(nil, frame)
+            local body = Booty.UI.Components.CreateContainer(nil, frame)
             body:EnableMouse(false); body:SetFrameLevel(frame:GetFrameLevel())
-            body:SetBackdrop(frame.mosWindowBackdrop)
+            body:SetBackdrop(frame.bootyWindowBackdrop)
             body:SetBackdropColor(0.02, 0.02, 0.02, 0.98); body:SetBackdropBorderColor(0.68, 0.54, 0.27, 1)
             body:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0); body:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 30)
             view.tabBody = body
@@ -68,9 +68,9 @@ function Dashboard.SetBottomTabSeam(view, shown)
     local seam = view.bottomTabSeam
     if shown then
         if not seam then
-            seam = MOS.UI.Components.CreateContainer(nil, view.frame)
+            seam = Booty.UI.Components.CreateContainer(nil, view.frame)
             seam:EnableMouse(false)
-            seam:SetBackdrop(view.frame.mosWindowBackdrop)
+            seam:SetBackdrop(view.frame.bootyWindowBackdrop)
             seam:SetBackdropColor(0, 0, 0, 0)
             seam:SetBackdropBorderColor(0.68, 0.54, 0.27, 1)
             view.bottomTabSeam = seam
@@ -96,11 +96,11 @@ end
 function Dashboard.ApplyMinimizedChrome(view)
     local frame = view.frame
     Dashboard.SetTabBody(view, false); Dashboard.SetBottomTabSeam(view, false)
-    frame:SetBackdrop(frame.mosWindowBackdrop)
+    frame:SetBackdrop(frame.bootyWindowBackdrop)
     frame:SetBackdropColor(0, 0, 0, 1); frame:SetBackdropBorderColor(0.68, 0.54, 0.27, 1)
     -- One project outline owns the compact shell. Keep the inner header plain
     -- and center its controls; expanded TOPRIGHT anchors leave unequal margins.
-    MOS.UI.Components.SetSurfaceTransparent(view.titleBar, true)
+    Booty.UI.Components.SetSurfaceTransparent(view.titleBar, true)
     view.titleBar:ClearAllPoints()
     view.titleBar:SetPoint("TOPLEFT", frame, "TOPLEFT", 5, -5)
     view.titleBar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -5, 5)
@@ -109,10 +109,10 @@ function Dashboard.ApplyMinimizedChrome(view)
     view.windowControls:SetPoint("RIGHT", view.titleBar, "RIGHT", -5, 0); view.windowControls:Show()
     view.title:ClearAllPoints(); view.title:SetPoint("LEFT", view.titleBar, "LEFT", 5, 0)
     view.title:SetWidth(156); view.title:SetHeight(18); view.title:SetJustifyH("LEFT"); view.title:SetFontObject(GameFontNormal)
-    view.title:SetText(view.titleText or "Booty Suite"); view.title:SetTextColor(unpack(MOS.UI.Components.Theme.colors.goldText))
+    view.title:SetText(view.titleText or "Booty Suite"); view.title:SetTextColor(unpack(Booty.UI.Components.Theme.colors.goldText))
     view.classicTitle:Hide(); view.classicLogo:Hide(); view.classicTitleLeft:Hide(); view.classicTitleRight:Hide(); view.title:Show()
     view.sidebar:Hide(); view.contentPanel:Hide(); view.versionText:Hide(); view.resizeGrip:Hide(); view.sidebarToggle:Hide()
-    if frame.mosStatusBar then frame.mosStatusBar:Hide() end
+    if frame.bootyStatusBar then frame.bootyStatusBar:Hide() end
     if view.lootBorder then view.lootBorder:Hide() end
 end
 
@@ -121,7 +121,7 @@ function Dashboard.ApplyChrome(view, get)
         Dashboard.ApplyMinimizedChrome(view)
         return
     end
-    local classic = MOS.UI.Components.IsClassicSkin()
+    local classic = Booty.UI.Components.IsClassicSkin()
     local height = Dashboard.GetChromeLayout(get, classic, view.frame:GetWidth())
     view.titleBar:ClearAllPoints()
     view.titleBar:SetPoint("TOPLEFT", view.frame, "TOPLEFT", classic and 4 or 9, -4)
@@ -163,29 +163,29 @@ function Dashboard.ApplyChrome(view, get)
     end
     local footer = not get("hideStatusVersionBar")
     local tabs = get("menuStyle") == "tabs" or get("menuStyle") == "bottomTabs"
-    view.titleBar.mosBorderOutsetLeft = (classic and 4 or 9) - 4
-    view.titleBar.mosBorderOutsetRight = 0
-    view.contentPanel.mosBorderOutsetLeft = tabs and ((classic and 4 or 9) - 4) or 0
-    view.contentPanel.mosBorderOutsetRight = 0
-    MOS.UI.Components.SetSurfaceHorizontalBorders(view.titleBar, false, get("menuStyle") ~= "tabs")
+    view.titleBar.bootyBorderOutsetLeft = (classic and 4 or 9) - 4
+    view.titleBar.bootyBorderOutsetRight = 0
+    view.contentPanel.bootyBorderOutsetLeft = tabs and ((classic and 4 or 9) - 4) or 0
+    view.contentPanel.bootyBorderOutsetRight = 0
+    Booty.UI.Components.SetSurfaceHorizontalBorders(view.titleBar, false, get("menuStyle") ~= "tabs")
     -- Each shared seam has one owner; adjacent strips must not overlap.
-    MOS.UI.Components.SetSurfaceHorizontalBorders(view.contentPanel, get("menuStyle") == "tabs", false)
-    if view.frame.mosStatusBar then
-        view.frame.mosStatusBar.mosBorderOutsetLeft = (classic and 4 or 9) - 4
-        view.frame.mosStatusBar.mosBorderOutsetRight = 0
-        MOS.UI.Components.SetSurfaceHorizontalBorders(view.frame.mosStatusBar, true, false, true)
+    Booty.UI.Components.SetSurfaceHorizontalBorders(view.contentPanel, get("menuStyle") == "tabs", false)
+    if view.frame.bootyStatusBar then
+        view.frame.bootyStatusBar.bootyBorderOutsetLeft = (classic and 4 or 9) - 4
+        view.frame.bootyStatusBar.bootyBorderOutsetRight = 0
+        Booty.UI.Components.SetSurfaceHorizontalBorders(view.frame.bootyStatusBar, true, false, true)
     end
     view.bottomTabsWithStatus = get("menuStyle") == "bottomTabs" and footer
     local footerBottom = get("menuStyle") == "bottomTabs" and 34 or (classic and 4 or 9)
-    if view.frame.mosStatusBar then
-        local bar = view.frame.mosStatusBar
+    if view.frame.bootyStatusBar then
+        local bar = view.frame.bootyStatusBar
         bar:ClearAllPoints(); bar:SetPoint("BOTTOMLEFT", view.frame, "BOTTOMLEFT", classic and 4 or 9, footerBottom)
         bar:SetPoint("BOTTOMRIGHT", view.frame, "BOTTOMRIGHT", -126, footerBottom)
     end
     view.versionText:ClearAllPoints(); view.versionText:SetPoint("BOTTOMRIGHT", view.frame, "BOTTOMRIGHT", -32, footerBottom + 5)
     Dashboard.SetTabBody(view, get("menuStyle") == "bottomTabs" and not (view.lootBorder and view.lootBorder:IsVisible()), hiddenHeader and get("menuStyle") == "tabs" and 24 or 0)
     Dashboard.SetBottomTabSeam(view, get("menuStyle") == "bottomTabs")
-    if view.frame.mosStatusBar then SetChromeVisible(view.frame.mosStatusBar, footer) end
+    if view.frame.bootyStatusBar then SetChromeVisible(view.frame.bootyStatusBar, footer) end
     SetChromeVisible(view.versionText, footer)
     SetChromeVisible(view.resizeGrip.texture, footer)
     view.resizeGrip:ClearAllPoints()
@@ -205,8 +205,8 @@ function Dashboard.CreateWindow(version, options)
     if frame.SetClampedToScreen then frame:SetClampedToScreen(true) end
     frame:SetMinResize(350, 380); frame:SetMaxResize(1100, 760)
     frame:EnableMouse(true); frame:RegisterForDrag("LeftButton")
-    frame.mosWindowBackdrop = { bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", tile = true, tileSize = 16, edgeSize = 12, insets = { left = 4, right = 4, top = 4, bottom = 4 } }
-    frame:SetBackdrop(frame.mosWindowBackdrop)
+    frame.bootyWindowBackdrop = { bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", tile = true, tileSize = 16, edgeSize = 12, insets = { left = 4, right = 4, top = 4, bottom = 4 } }
+    frame:SetBackdrop(frame.bootyWindowBackdrop)
     frame:SetBackdropColor(0.02, 0.02, 0.02, 0.98); frame:SetBackdropBorderColor(0.68, 0.54, 0.27, 1)
     view.lootBorder = CreateFrame("Frame", nil, frame)
     view.lootBorder:SetAllPoints(frame); view.lootBorder:EnableMouse(false)
@@ -214,11 +214,11 @@ function Dashboard.CreateWindow(version, options)
     view.lootBorder:SetBackdrop({ edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 12, insets = { left = 4, right = 4, top = 4, bottom = 4 } })
     view.lootBorder:SetBackdropBorderColor(0.68, 0.54, 0.27, 1)
     view.lootBorder:Hide()
-    frame.mosLootBorder = view.lootBorder
+    frame.bootyLootBorder = view.lootBorder
     frame:Hide()
 
-    view.resizeGrip = MOS.UI.Components.CreateResizeGrip(frame)
-    frame.mosResizeGrip = view.resizeGrip
+    view.resizeGrip = Booty.UI.Components.CreateResizeGrip(frame)
+    frame.bootyResizeGrip = view.resizeGrip
 
     view.titleBar = CreateFrame("Frame", nil, frame)
     view.titleBar:SetPoint("TOPLEFT", frame, "TOPLEFT", 9, -14)
@@ -226,40 +226,40 @@ function Dashboard.CreateWindow(version, options)
     view.titleBar:SetHeight(32)
     view.titleBar:SetBackdrop({ bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", tile = true, tileSize = 16, edgeSize = 12, insets = { left = 3, right = 3, top = 3, bottom = 3 } })
     view.titleBar:SetBackdropColor(0.025, 0.022, 0.018, 0.98); view.titleBar:SetBackdropBorderColor(0.42, 0.42, 0.40, 1)
-    MOS.UI.Components.RegisterSkinnedSurface(view.titleBar, "title", { bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", tile = true, tileSize = 16, edgeSize = 12, insets = { left = 3, right = 3, top = 3, bottom = 3 } }, { 0.025, 0.022, 0.018, 0.98 }, { 0.42, 0.42, 0.40, 1 })
-    MOS.UI.Components.SetSurfaceHorizontalBorders(view.titleBar, false, true)
+    Booty.UI.Components.RegisterSkinnedSurface(view.titleBar, "title", { bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", tile = true, tileSize = 16, edgeSize = 12, insets = { left = 3, right = 3, top = 3, bottom = 3 } }, { 0.025, 0.022, 0.018, 0.98 }, { 0.42, 0.42, 0.40, 1 })
+    Booty.UI.Components.SetSurfaceHorizontalBorders(view.titleBar, false, true)
     view.title = view.titleBar:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     view.title:SetPoint("CENTER", view.titleBar, "CENTER", 0, 2); view.title:SetText(view.titleText or "Booty Suite")
-    view.title:SetTextColor(unpack(MOS.UI.Components.Theme.colors.goldText))
+    view.title:SetTextColor(unpack(Booty.UI.Components.Theme.colors.goldText))
     view.classicTitle = view.titleBar:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-    view.classicTitle:SetText(view.titleText); view.classicTitle:SetTextColor(unpack(MOS.UI.Components.Theme.colors.goldText))
+    view.classicTitle:SetText(view.titleText); view.classicTitle:SetTextColor(unpack(Booty.UI.Components.Theme.colors.goldText))
     -- Decorations follow the rendered title, not the old fixed-width wordmark.
     Dashboard.UpdateTitleMetrics(view)
     view.classicTitle:SetPoint("CENTER", view.titleBar, "CENTER", 0, 1); view.classicTitle:Hide()
     view.classicLogo = view.titleBar:CreateTexture(nil, "ARTWORK")
-    view.classicLogo:SetTexture(MOS.UI.Components.ClassicAsset("logo.tga")); view.classicLogo:SetTexCoord(0, 1, 0.08203125, 0.9140625)
+    view.classicLogo:SetTexture(Booty.UI.Components.ClassicAsset("logo.tga")); view.classicLogo:SetTexCoord(0, 1, 0.08203125, 0.9140625)
     view.classicLogo:SetWidth(100); view.classicLogo:SetHeight(40); view.classicLogo:SetPoint("LEFT", view.titleBar, "LEFT", 20, 0); view.classicLogo:Hide()
-    view.classicTitleLeft = view.titleBar:CreateTexture(nil, "ARTWORK"); view.classicTitleLeft:SetTexture(MOS.UI.Components.ClassicAsset("Decor\\title-left.tga")); view.classicTitleLeft:SetWidth(65); view.classicTitleLeft:SetHeight(8); view.classicTitleLeft:SetPoint("RIGHT", view.classicTitle, "LEFT", -8, 0); view.classicTitleLeft:Hide()
-    view.classicTitleRight = view.titleBar:CreateTexture(nil, "ARTWORK"); view.classicTitleRight:SetTexture(MOS.UI.Components.ClassicAsset("Decor\\title-right.tga")); view.classicTitleRight:SetWidth(65); view.classicTitleRight:SetHeight(8); view.classicTitleRight:SetPoint("LEFT", view.classicTitle, "RIGHT", 8, 0); view.classicTitleRight:Hide()
-    view.windowControls = MOS.UI.Components.CreateContainer(nil, frame)
+    view.classicTitleLeft = view.titleBar:CreateTexture(nil, "ARTWORK"); view.classicTitleLeft:SetTexture(Booty.UI.Components.ClassicAsset("Decor\\title-left.tga")); view.classicTitleLeft:SetWidth(65); view.classicTitleLeft:SetHeight(8); view.classicTitleLeft:SetPoint("RIGHT", view.classicTitle, "LEFT", -8, 0); view.classicTitleLeft:Hide()
+    view.classicTitleRight = view.titleBar:CreateTexture(nil, "ARTWORK"); view.classicTitleRight:SetTexture(Booty.UI.Components.ClassicAsset("Decor\\title-right.tga")); view.classicTitleRight:SetWidth(65); view.classicTitleRight:SetHeight(8); view.classicTitleRight:SetPoint("LEFT", view.classicTitle, "RIGHT", 8, 0); view.classicTitleRight:Hide()
+    view.windowControls = Booty.UI.Components.CreateContainer(nil, frame)
     view.windowControls:SetWidth(58); view.windowControls:SetHeight(18); view.windowControls:SetFrameLevel(frame:GetFrameLevel() + 60)
-    frame.mosWindowControls = view.windowControls
+    frame.bootyWindowControls = view.windowControls
     view.windowControls:SetPoint("RIGHT", view.titleBar, "RIGHT", -6, 0)
-    view.closeButton = MOS.UI.Components.CreateWindowButton(view.windowControls, nil, "close")
+    view.closeButton = Booty.UI.Components.CreateWindowButton(view.windowControls, nil, "close")
     view.closeButton:SetPoint("RIGHT", view.windowControls, "RIGHT", 0, 0)
     view.closeButton:SetScript("OnClick", function() frame:Hide() end)
-    view.minimizeButton = MOS.UI.Components.CreateWindowButton(view.windowControls, nil, "minimize")
+    view.minimizeButton = Booty.UI.Components.CreateWindowButton(view.windowControls, nil, "minimize")
     view.minimizeButton:SetPoint("RIGHT", view.closeButton, "LEFT", -2, 0)
-    view.settingsButton = MOS.UI.Components.CreateSettingsButton(view.windowControls)
+    view.settingsButton = Booty.UI.Components.CreateSettingsButton(view.windowControls)
     view.settingsButton:SetPoint("RIGHT", view.minimizeButton, "LEFT", -2, 0)
-    MOS.UI.Components.AttachTooltip(view.settingsButton, "Settings", "Open Settings in a separate movable window.")
-    view.sidebarToggle = MOS.UI.Components.CreateButton(view.titleBar, nil, "<<", 28, 20)
-    MOS.UI.Components.SetClassicButtonCompact(view.sidebarToggle, true)
+    Booty.UI.Components.AttachTooltip(view.settingsButton, "Settings", "Open Settings in a separate movable window.")
+    view.sidebarToggle = Booty.UI.Components.CreateButton(view.titleBar, nil, "<<", 28, 20)
+    Booty.UI.Components.SetClassicButtonCompact(view.sidebarToggle, true)
     view.sidebarToggle:SetPoint("LEFT", view.titleBar, "LEFT", 5, 0)
-    MOS.UI.Components.AttachTooltip(view.sidebarToggle, "Navigation", "Collapse or restore the left navigation menu.")
+    Booty.UI.Components.AttachTooltip(view.sidebarToggle, "Navigation", "Collapse or restore the left navigation menu.")
     local navigationTooltipEnter = view.sidebarToggle:GetScript("OnEnter")
     local navigationTooltipLeave = view.sidebarToggle:GetScript("OnLeave")
-    MOS.UI.Components.AttachGoldHoverBorder(view.sidebarToggle, 0.35, 0.35, 0.35, 1)
+    Booty.UI.Components.AttachGoldHoverBorder(view.sidebarToggle, 0.35, 0.35, 0.35, 1)
     local navigationBorderEnter = view.sidebarToggle:GetScript("OnEnter")
     local navigationBorderLeave = view.sidebarToggle:GetScript("OnLeave")
     view.sidebarToggle:SetScript("OnEnter", function()
@@ -277,23 +277,23 @@ function Dashboard.CreateWindow(version, options)
     view.sidebar:SetPoint("TOPLEFT", frame, "TOPLEFT", 20, -68); view.sidebar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 20, 42); view.sidebar:SetWidth(174)
     view.sidebar:SetBackdrop({ bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", tile = true, tileSize = 16, edgeSize = 16, insets = { left = 4, right = 4, top = 4, bottom = 4 } })
     view.sidebar:SetBackdropColor(0.05, 0.04, 0.02, 0.92); view.sidebar:SetBackdropBorderColor(0.36, 0.36, 0.34, 1)
-    MOS.UI.Components.RegisterSkinnedSurface(view.sidebar, "sidebar", { bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", tile = true, tileSize = 16, edgeSize = 16, insets = { left = 4, right = 4, top = 4, bottom = 4 } }, { 0.05, 0.04, 0.02, 0.92 }, { 0.36, 0.36, 0.34, 1 })
+    Booty.UI.Components.RegisterSkinnedSurface(view.sidebar, "sidebar", { bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", tile = true, tileSize = 16, edgeSize = 16, insets = { left = 4, right = 4, top = 4, bottom = 4 } }, { 0.05, 0.04, 0.02, 0.92 }, { 0.36, 0.36, 0.34, 1 })
     view.sidebarToggleClassicIcon = view.sidebarToggle:CreateTexture(nil, "OVERLAY")
     view.sidebarToggleClassicIcon:SetWidth(11); view.sidebarToggleClassicIcon:SetHeight(11); view.sidebarToggleClassicIcon:SetPoint("CENTER", view.sidebarToggle, "CENTER", 0, 0); view.sidebarToggleClassicIcon:Hide()
     view.classicMenuTitle = view.sidebar:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    view.classicMenuTitle:SetTextColor(unpack(MOS.UI.Components.Theme.colors.goldText))
-    view.sidebarToggleClassicIcon:SetVertexColor(unpack(MOS.UI.Components.Theme.colors.goldText))
+    view.classicMenuTitle:SetTextColor(unpack(Booty.UI.Components.Theme.colors.goldText))
+    view.sidebarToggleClassicIcon:SetVertexColor(unpack(Booty.UI.Components.Theme.colors.goldText))
     view.classicMenuTitle:SetPoint("TOPLEFT", view.sidebar, "TOPLEFT", 10, -9); view.classicMenuTitle:SetText("Menu"); view.classicMenuTitle:Hide()
     view.sidebar.classicMenuTitle = view.classicMenuTitle
     view.contentPanel = CreateFrame("Frame", nil, frame)
-    view.contentPanel.mosHeaderAnchor = view.titleBar
+    view.contentPanel.bootyHeaderAnchor = view.titleBar
     view.contentPanel:SetPoint("TOPLEFT", frame, "TOPLEFT", 204, -68); view.contentPanel:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -20, 46)
     view.contentPanel:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", tile = true, tileSize = 16, edgeSize = 16, insets = { left = 4, right = 4, top = 4, bottom = 4 } })
     view.contentPanel:SetBackdropColor(0.02, 0.02, 0.02, 0.90); view.contentPanel:SetBackdropBorderColor(0.36, 0.36, 0.34, 1)
-    MOS.UI.Components.RegisterSkinnedSurface(view.contentPanel, "content", { bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", tile = true, tileSize = 16, edgeSize = 16, insets = { left = 4, right = 4, top = 4, bottom = 4 } }, { 0.02, 0.02, 0.02, 0.90 }, { 0.36, 0.36, 0.34, 1 })
-    MOS.UI.Components.SetSurfaceHorizontalBorders(view.contentPanel)
-    view.pageHost = MOS.UI.Components.CreateContainer(nil, view.contentPanel)
-    view.pageHost:SetAllPoints(view.contentPanel); view.contentPanel.mosPageHost = view.pageHost
+    Booty.UI.Components.RegisterSkinnedSurface(view.contentPanel, "content", { bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", tile = true, tileSize = 16, edgeSize = 16, insets = { left = 4, right = 4, top = 4, bottom = 4 } }, { 0.02, 0.02, 0.02, 0.90 }, { 0.36, 0.36, 0.34, 1 })
+    Booty.UI.Components.SetSurfaceHorizontalBorders(view.contentPanel)
+    view.pageHost = Booty.UI.Components.CreateContainer(nil, view.contentPanel)
+    view.pageHost:SetAllPoints(view.contentPanel); view.contentPanel.bootyPageHost = view.pageHost
     local background = view.sidebar:CreateTexture(nil, "BACKGROUND")
     background:SetPoint("TOPLEFT", view.sidebar, "TOPLEFT", 5, -5); background:SetPoint("BOTTOMRIGHT", view.sidebar, "BOTTOMRIGHT", -5, 5)
     background:SetTexture("Interface\\AddOns\\BootyLib\\Textures\\DashboardBackground"); background:SetTexCoord(0.22, 0.58, 0, 1); background:SetAlpha(0.72)
@@ -302,7 +302,7 @@ function Dashboard.CreateWindow(version, options)
     view.contentShade = view.contentPanel:CreateTexture(nil, "BACKGROUND")
     view.contentShade:SetPoint("TOPLEFT", view.contentPanel, "TOPLEFT", 5, -5); view.contentShade:SetPoint("BOTTOMRIGHT", view.contentPanel, "BOTTOMRIGHT", -5, 5)
     view.contentShade:SetTexture(0.025, 0.022, 0.018, 0.96)
-    MOS.UI.Components.RegisterSkinCallback(function(skin)
+    Booty.UI.Components.RegisterSkinCallback(function(skin)
         local classic = skin == "classic"
         if view.minimized then
             Dashboard.ApplyChrome(view, function() end)
@@ -328,10 +328,10 @@ function Dashboard.CreateWindow(version, options)
         view.contentPanel:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -margin, sectionBottom)
         view.versionText:ClearAllPoints()
         view.versionText:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -32, footerBottom + 5)
-        if frame.mosStatusBar then
-            frame.mosStatusBar:ClearAllPoints()
-            frame.mosStatusBar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", margin, footerBottom)
-            frame.mosStatusBar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -126, footerBottom)
+        if frame.bootyStatusBar then
+            frame.bootyStatusBar:ClearAllPoints()
+            frame.bootyStatusBar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", margin, footerBottom)
+            frame.bootyStatusBar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -126, footerBottom)
         end
         background:SetAlpha(classic and 0 or 0.72); backgroundShade:SetAlpha(classic and 0 or 1); view.contentShade:SetAlpha(classic and 0 or 1)
         if classic then
@@ -342,22 +342,22 @@ function Dashboard.CreateWindow(version, options)
             view.sidebarToggleClassicIcon:Hide()
         end
     end)
-    if MOS.UI.Components.WindowStack then MOS.UI.Components.WindowStack.Register(frame, {owner = false}) end
+    if Booty.UI.Components.WindowStack then Booty.UI.Components.WindowStack.Register(frame, {owner = false}) end
     return view
 end
 
 function Dashboard.CreateStatusBar(parent)
     local bar = CreateFrame("Frame", nil, parent)
-    parent.mosStatusBar = bar
-    local margin = MOS.UI.Components.IsClassicSkin() and 4 or 9
+    parent.bootyStatusBar = bar
+    local margin = Booty.UI.Components.IsClassicSkin() and 4 or 9
     bar:SetPoint("BOTTOMLEFT", parent, "BOTTOMLEFT", margin, margin)
     bar:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -126, margin)
     bar:SetHeight(22)
     bar:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", tile = true, tileSize = 8, edgeSize = 8, insets = { left = 2, right = 2, top = 2, bottom = 2 } })
     bar:SetBackdropColor(0.025, 0.022, 0.018, 0.94)
     bar:SetBackdropBorderColor(0.30, 0.30, 0.28, 1)
-    MOS.UI.Components.RegisterSkinnedSurface(bar, "status", { bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", tile = true, tileSize = 8, edgeSize = 8, insets = { left = 2, right = 2, top = 2, bottom = 2 } }, { 0.025, 0.022, 0.018, 0.94 }, { 0.30, 0.30, 0.28, 1 })
-    MOS.UI.Components.SetSurfaceHorizontalBorders(bar, true, false, true)
+    Booty.UI.Components.RegisterSkinnedSurface(bar, "status", { bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", tile = true, tileSize = 8, edgeSize = 8, insets = { left = 2, right = 2, top = 2, bottom = 2 } }, { 0.025, 0.022, 0.018, 0.94 }, { 0.30, 0.30, 0.28, 1 })
+    Booty.UI.Components.SetSurfaceHorizontalBorders(bar, true, false, true)
     bar.message = bar:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     bar.message:SetPoint("LEFT", bar, "LEFT", 8, 0)
     bar.message:SetWidth(270)
@@ -375,13 +375,13 @@ end
 
 function Dashboard.CreatePages(contentPanel, definitions)
     local ownerPanel = contentPanel
-    contentPanel = contentPanel.mosPageHost or contentPanel
+    contentPanel = contentPanel.bootyPageHost or contentPanel
     local pages = {}
     local index
     for index = 1, table.getn(definitions) do
         local definition = definitions[index]
         local page = CreateFrame("Frame", nil, contentPanel)
-        page.mosContentPanel = ownerPanel
+        page.bootyContentPanel = ownerPanel
         if definition.anchor then page:SetAllPoints(pages[definition.anchor])
 
         else
@@ -395,7 +395,7 @@ function Dashboard.CreatePages(contentPanel, definitions)
 end
 
 function Dashboard.RestoreGeometry(frame, settings)
-    if frame.mosDashboardView then frame.mosDashboardView.geometrySettings = settings end
+    if frame.bootyDashboardView then frame.bootyDashboardView.geometrySettings = settings end
     local width, height = tonumber(settings.windowWidth), tonumber(settings.windowHeight)
     if not width or width < 350 or not height or height < 380 then
         width, height = 840, 540
@@ -452,7 +452,7 @@ function Dashboard.BindWindow(view, options)
         Dashboard.RestoreGeometry(frame, view.geometrySettings or {})
         options.applyOrRefreshLayout()
     end)
-    frame.mosDashboardView = view
+    frame.bootyDashboardView = view
     grip.UpdateLayout = function()
         this.layoutElapsed = this.layoutElapsed + arg1
         if this.layoutElapsed >= 0.08 then
@@ -490,9 +490,9 @@ function Dashboard.BindWindow(view, options)
         CancelRestoreLayout()
         if view.minimized then
             view.minimizedLeft, view.minimizedBottom = frame:GetLeft(), frame:GetBottom()
-            view.minimized = false; frame.mosMinimized = false
-            frame:SetBackdrop(frame.mosWindowBackdrop); frame:SetBackdropColor(0.02,0.02,0.02,0.98); frame:SetBackdropBorderColor(0.68,0.54,0.27,1)
-            MOS.UI.Components.SetSurfaceTransparent(view.titleBar, false)
+            view.minimized = false; frame.bootyMinimized = false
+            frame:SetBackdrop(frame.bootyWindowBackdrop); frame:SetBackdropColor(0.02,0.02,0.02,0.98); frame:SetBackdropBorderColor(0.68,0.54,0.27,1)
+            Booty.UI.Components.SetSurfaceTransparent(view.titleBar, false)
             Dashboard.SetTabBody(view, false)
             frame:SetMinResize(350, 380); frame:SetMaxResize(1100, 760)
             frame:SetWidth(view.widthBeforeMinimize or 840); frame:SetHeight(view.heightBeforeMinimize or 540)
@@ -500,10 +500,10 @@ function Dashboard.BindWindow(view, options)
             if view.leftBeforeMinimize and view.bottomBeforeMinimize then frame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", view.leftBeforeMinimize, view.bottomBeforeMinimize) else frame:SetPoint("CENTER", UIParent, "CENTER", 0, 10) end
             view.title:ClearAllPoints(); view.title:SetPoint("CENTER", view.titleBar, "CENTER", 0, 2)
             view.title:SetFontObject(GameFontNormalLarge)
-            view.title:SetTextColor(unpack(MOS.UI.Components.Theme.colors.goldText))
-            MOS.UI.Components.SetWindowButtonAction(view.minimizeButton, "minimize"); view.title:SetText(view.titleText or "Booty Suite")
+            view.title:SetTextColor(unpack(Booty.UI.Components.Theme.colors.goldText))
+            Booty.UI.Components.SetWindowButtonAction(view.minimizeButton, "minimize"); view.title:SetText(view.titleText or "Booty Suite")
             view.classicTitle:ClearAllPoints(); view.classicTitle:SetPoint("CENTER", view.titleBar, "CENTER", 0, 1); Dashboard.UpdateTitleMetrics(view)
-            if MOS.UI.Components.IsClassicSkin() then
+            if Booty.UI.Components.IsClassicSkin() then
                 view.title:Hide(); view.classicTitle:Show(); view.classicLogo:Show(); view.classicTitleLeft:Show(); view.classicTitleRight:Show()
                 view.titleBar:ClearAllPoints(); view.titleBar:SetPoint("TOPLEFT", frame, "TOPLEFT", 8, -8); view.titleBar:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -8, -8); view.titleBar:SetHeight(44)
             end
@@ -519,14 +519,14 @@ function Dashboard.BindWindow(view, options)
             options.saveGeometry()
             Dashboard.SetTabBody(view, false)
             view.titleBar:Show(); Dashboard.PlaceWindowControls(view, false)
-            view.minimized = true; frame.mosMinimized = true
+            view.minimized = true; frame.bootyMinimized = true
             view.sidebar:Hide(); view.contentPanel:Hide(); options.statusBar:Hide(); view.versionText:Hide(); view.resizeGrip:Hide(); view.sidebarToggle:Hide()
             if options.setNavigationVisible then options.setNavigationVisible(false) end
-            local minimizedHeight = MOS.UI.Components.MinimizedWindowHeight or 30
+            local minimizedHeight = Booty.UI.Components.MinimizedWindowHeight or 30
             frame:SetMinResize(250, minimizedHeight); frame:SetMaxResize(250, minimizedHeight); frame:SetWidth(250); frame:SetHeight(minimizedHeight)
             frame:ClearAllPoints()
             frame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", view.minimizedLeft or view.leftBeforeMinimize or 0, view.minimizedBottom or ((view.bottomBeforeMinimize or 0) + view.heightBeforeMinimize - minimizedHeight))
-            MOS.UI.Components.SetWindowButtonAction(view.minimizeButton, "maximize")
+            Booty.UI.Components.SetWindowButtonAction(view.minimizeButton, "maximize")
             Dashboard.ApplyMinimizedChrome(view)
         end
     end
@@ -540,8 +540,8 @@ function Dashboard.ResolveMinimapPosition(x, y, width, height)
 end
 
 function Dashboard.CreateMinimapButton(options)
-    local UI = MOS.UI.Components
-    local button = MOS.UI.Components.CreateControl(options.name or "BootyLibMinimapButton", UIParent)
+    local UI = Booty.UI.Components
+    local button = Booty.UI.Components.CreateControl(options.name or "BootyLibMinimapButton", UIParent)
     button:SetWidth(32); button:SetHeight(32); button:SetFrameStrata("MEDIUM"); button:SetFrameLevel(8)
     button:SetMovable(true)
     if button.SetClampedToScreen then button:SetClampedToScreen(true) end
@@ -594,7 +594,7 @@ function Dashboard.CreateMinimapButton(options)
     local rightHint = prefix .. "Right click:|r |cffffffffquick menu|r"
     local dragHint = prefix .. "Shift + left drag:|r |cffffffffmove anywhere on screen|r"
     button:SetScript("OnEnter", function()
-        MOS.UI.Components.AnchorTooltipRightOfCursor(this)
+        Booty.UI.Components.AnchorTooltipRightOfCursor(this)
         GameTooltip:AddLine(options.title or "Booty Suite", unpack(UI.Theme.colors.goldText))
         GameTooltip:AddLine(leftHint, 1, 1, 1)
         GameTooltip:AddLine(rightHint, 1, 1, 1)

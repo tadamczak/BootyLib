@@ -1,7 +1,7 @@
-local MOS = BootyLib
-MOS.UI = MOS.UI or {}
-MOS.UI.Components = MOS.UI.Components or {}
-local Components = MOS.UI.Components
+local Booty = BootyLib
+Booty.UI = Booty.UI or {}
+Booty.UI.Components = Booty.UI.Components or {}
+local Components = Booty.UI.Components
 
 -- A sibling control must receive the same click that dismisses a popup.
 -- The lower outside catcher cannot see clicks already handled by that control.
@@ -10,7 +10,7 @@ function Components.DismissDropdownForControl(control)
     if not panel or control == panel.toggle then return end
     local ancestor = control
     while ancestor do
-        if ancestor == panel or ancestor.mosDropdownRoot == panel then return end
+        if ancestor == panel or ancestor.bootyDropdownRoot == panel then return end
         ancestor = ancestor.GetParent and ancestor:GetParent()
     end
     panel:Hide()
@@ -32,17 +32,17 @@ local function WrapControlMouseDown(handler)
 end
 
 function Components.InstallControlInput(control)
-    if control.mosInputInstalled then return control end
-    control.mosInputInstalled = true
+    if control.bootyInputInstalled then return control end
+    control.bootyInputInstalled = true
     local setScript = control.SetScript
-    control.mosMouseDownHandler = control:GetScript("OnMouseDown")
+    control.bootyMouseDownHandler = control:GetScript("OnMouseDown")
     control.SetScript = function(self, eventName, handler)
         if eventName == "OnMouseDown" then
-            self.mosMouseDownHandler = handler
+            self.bootyMouseDownHandler = handler
             setScript(self, eventName, handler and WrapControlMouseDown(handler) or ControlMouseDown)
         else setScript(self, eventName, handler) end
     end
-    setScript(control, "OnMouseDown", control.mosMouseDownHandler and WrapControlMouseDown(control.mosMouseDownHandler) or ControlMouseDown)
+    setScript(control, "OnMouseDown", control.bootyMouseDownHandler and WrapControlMouseDown(control.bootyMouseDownHandler) or ControlMouseDown)
     return control
 end
 
@@ -53,8 +53,8 @@ end
 local textHeightProbe
 local probeFont, probeSize, probeFlags, probeSpacing, probeNonSpaceWrap
 function Components.MeasureTextHeight(label, resolvedWidth, nonSpaceWrap)
-    if resolvedWidth then resolvedWidth = math.max(1, resolvedWidth - (label.mosHeadingIconInset or 0)) end
-    if resolvedWidth then label.mosTextMeasureWidth = math.max(1, resolvedWidth) end
+    if resolvedWidth then resolvedWidth = math.max(1, resolvedWidth - (label.bootyHeadingIconInset or 0)) end
+    if resolvedWidth then label.bootyTextMeasureWidth = math.max(1, resolvedWidth) end
     if type(label.GetStringHeight) == "function" then return label:GetStringHeight() or 0 end
     local text = label:GetText()
     if not text or text == "" then return 0 end
@@ -78,7 +78,7 @@ function Components.MeasureTextHeight(label, resolvedWidth, nonSpaceWrap)
     if nonSpaceWrap ~= probeNonSpaceWrap and type(textHeightProbe.SetNonSpaceWrap) == "function" then
         textHeightProbe:SetNonSpaceWrap(nonSpaceWrap); probeNonSpaceWrap = nonSpaceWrap
     end
-    textHeightProbe:SetWidth(label.mosTextMeasureWidth or math.max(1, label:GetWidth()))
+    textHeightProbe:SetWidth(label.bootyTextMeasureWidth or math.max(1, label:GetWidth()))
     textHeightProbe:SetText(text)
     local height = textHeightProbe:GetHeight() or 0
     textHeightProbe:SetText("") -- Do not keep transient dialog text after measuring it.

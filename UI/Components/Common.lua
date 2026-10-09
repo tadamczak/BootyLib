@@ -1,5 +1,5 @@
-local MOS = BootyLib
-local UI = MOS.UI.Components
+local Booty = BootyLib
+local UI = Booty.UI.Components
 UI.MinimizedWindowHeight = 30
 
 function UI.CreateResizeGrip(parent)
@@ -136,37 +136,37 @@ function UI.ApplySelectionListStyle(buttons, items, selectedId, loadButton)
         if selected then selectedAvailable = true end
         local color = selected and selectedColors or normalColors
         local border = selected and { 0.85, 0.68, 0.22, 1 } or { 0.48, 0.38, 0.20, 1 }
-        if not buttons[index].mosClassicKeepNormalSurface then
+        if not buttons[index].bootyClassicKeepNormalSurface then
         buttons[index]:SetBackdropColor(color[1], color[2], color[3], color[4])
         buttons[index]:SetBackdropBorderColor(border[1], border[2], border[3], border[4])
         end
         if UI.SetClassicButtonSelected then UI.SetClassicButtonSelected(buttons[index], selected) end
-        if buttons[index].mosClassicKeepNormalSurface then UI.ApplyDropdownChoiceSurface(buttons[index]) end
-        -- Hover handlers restore mosNormalBorder on mouse leave. Keep that
+        if buttons[index].bootyClassicKeepNormalSurface then UI.ApplyDropdownChoiceSurface(buttons[index]) end
+        -- Hover handlers restore bootyNormalBorder on mouse leave. Keep that
         -- persistent state aligned with the current selection style.
-        if buttons[index].mosNormalBorder and not buttons[index].mosClassicKeepNormalSurface then buttons[index].mosNormalBorder = border end
+        if buttons[index].bootyNormalBorder and not buttons[index].bootyClassicKeepNormalSurface then buttons[index].bootyNormalBorder = border end
     end
     if loadButton then UI.SetButtonEnabled(loadButton, selectedAvailable) end
     return selectedAvailable
 end
 
 local function ReflowDropdown(control, width)
-    control.label:SetFont(control.mosTextFont, control.mosTextFontSize, control.mosTextFontFlags)
+    control.label:SetFont(control.bootyTextFont, control.bootyTextFontSize, control.bootyTextFontFlags)
     control.label:SetWidth(math.max(1, width - 28))
-    control.label:SetHeight(control.mosTextFontSize + 3)
-    control.mosTextWidth = width
+    control.label:SetHeight(control.bootyTextFontSize + 3)
+    control.bootyTextWidth = width
 end
 
 function UI.ReflowControlText(control)
-    if not control or not control.mosDropdownText or control.mosTextReflowing then return end
+    if not control or not control.bootyDropdownText or control.bootyTextReflowing then return end
     local width = math.max(1, control:GetWidth())
-    if control.mosTextWidth == width then return end
-    control.mosTextReflowing = true
+    if control.bootyTextWidth == width then return end
+    control.bootyTextReflowing = true
     local previousThis, previousEvent, previousArg = this, event, arg1
     local ok, reason = pcall(ReflowDropdown, control, width)
     this, event, arg1 = previousThis, previousEvent, previousArg
-    control.mosTextReflowing = nil
-    if not ok then control.mosTextWidth = nil; error(reason, 0) end
+    control.bootyTextReflowing = nil
+    if not ok then control.bootyTextWidth = nil; error(reason, 0) end
 end
 
 function UI.CreateDropdownButton(parent, name, text, width)
@@ -178,9 +178,9 @@ function UI.CreateDropdownButton(parent, name, text, width)
     button.label = button:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     local font, size, flags = button.label:GetFont()
     if font then button.label:SetFont(font, size + math.min(0, UI.GetTextSizeDelta(parent) + 1), flags) end
-    button.mosTextFont, button.mosTextFontSize, button.mosTextFontFlags = button.label:GetFont()
-    button.mosDropdownText = true
-    button.mosLabelJustify = "LEFT"
+    button.bootyTextFont, button.bootyTextFontSize, button.bootyTextFontFlags = button.label:GetFont()
+    button.bootyDropdownText = true
+    button.bootyLabelJustify = "LEFT"
     button.label:SetPoint("LEFT", button, "LEFT", 4, 0); button.label:SetWidth(math.max(1,(width or 84)-28));button.label:SetJustifyH("LEFT");button.label:SetJustifyV("MIDDLE");button.label:SetText(text)
     button.SetText = function(self, value) self.label:SetText(value); UI.ReflowControlText(self) end
     button.GetText = function(self) return self.label:GetText() end
@@ -203,7 +203,7 @@ function UI.RefreshDropdownLayers(panel, toggle)
         return
     end
     local strata = toggle:GetFrameStrata()
-    local level = math.max(math.max(toggle:GetFrameLevel(), toggle:GetParent():GetFrameLevel()) + 20, panel.mosMinimumFrameLevel or 0)
+    local level = math.max(math.max(toggle:GetFrameLevel(), toggle:GetParent():GetFrameLevel()) + 20, panel.bootyMinimumFrameLevel or 0)
     panel:SetFrameStrata(strata); panel:SetFrameLevel(level)
     -- Keep the outside-click catcher below sibling controls. This lets the same
     -- click close one menu and activate another control instead of being eaten.
@@ -220,7 +220,7 @@ end
 function UI.CreateDropdownPanel(parent, toggle, width, height, levelOffset)
     local panel = CreateFrame("Frame", nil, UIParent)
     panel.toggle = toggle
-    panel.mosTextSizeDelta = UI.GetTextSizeDelta(parent)
+    panel.bootyTextSizeDelta = UI.GetTextSizeDelta(parent)
     panel:SetPoint("TOPLEFT", toggle, "BOTTOMLEFT", 0, -2)
     panel:SetWidth(width or 130); panel:SetHeight(height or 230)
     panel.contentPadding = 4
@@ -265,14 +265,14 @@ function UI.StyleDropdownChoice(button)
 end
 
 function UI.AttachSubtleRowHover(row, alpha)
-    if not row.mosSubtleHover then
-        row.mosSubtleHover = UI.CreateTexture(row, nil, "ARTWORK")
-        row.mosSubtleHover:SetAllPoints(row); row.mosSubtleHover:SetTexture(1,1,1,1); row.mosSubtleHover:Hide()
-        row:SetScript("OnEnter", function() this.mosSubtleHover:Show() end)
-        row:SetScript("OnLeave", function() this.mosSubtleHover:Hide() end)
+    if not row.bootySubtleHover then
+        row.bootySubtleHover = UI.CreateTexture(row, nil, "ARTWORK")
+        row.bootySubtleHover:SetAllPoints(row); row.bootySubtleHover:SetTexture(1,1,1,1); row.bootySubtleHover:Hide()
+        row:SetScript("OnEnter", function() this.bootySubtleHover:Show() end)
+        row:SetScript("OnLeave", function() this.bootySubtleHover:Hide() end)
     end
-    row.mosSubtleHover:SetAlpha(alpha or 0.07)
-    return row.mosSubtleHover
+    row.bootySubtleHover:SetAlpha(alpha or 0.07)
+    return row.bootySubtleHover
 end
 
 function UI.CreateSearchBox(parent, name, width)
@@ -430,10 +430,10 @@ end
 
 function UI.CreateReadOnlyInput(parent, name, width)
     local field = UI.CreateFramedEditBox(parent, name, width)
-    field.mosReadOnlyValue = ""
-    field.SetValueText = function(self, value) self.mosReadOnlyValue = value or ""; self:SetText(self.mosReadOnlyValue) end
+    field.bootyReadOnlyValue = ""
+    field.SetValueText = function(self, value) self.bootyReadOnlyValue = value or ""; self:SetText(self.bootyReadOnlyValue) end
     field:SetScript("OnTextChanged", function()
-        if this:GetText() ~= this.mosReadOnlyValue then this:SetText(this.mosReadOnlyValue) end
+        if this:GetText() ~= this.bootyReadOnlyValue then this:SetText(this.bootyReadOnlyValue) end
     end)
     return field
 end
@@ -451,7 +451,7 @@ function UI.CreateConfirmation(name, options)
         blocker = UI.CreateControl(nil, UIParent)
         blocker:SetAllPoints(UIParent); blocker:SetFrameStrata("FULLSCREEN_DIALOG"); blocker:SetFrameLevel(599); blocker:EnableMouse(true); blocker:Hide()
     end
-    frame.mosModalBlocker = blocker
+    frame.bootyModalBlocker = blocker
     frame:SetScript("OnHide", function() if blocker then blocker:Hide() end; frame.onYes = nil; frame.onNo = nil end)
     frame.no:SetScript("OnClick", function() local callback = frame.onNo; frame:Hide(); if callback then callback() end end)
     frame.yes:SetScript("OnClick", function() local callback = frame.onYes; frame:Hide(); if callback then callback() end end)
@@ -481,8 +481,8 @@ function UI.AttachTooltip(frame, title, description, highlight)
 end
 
 function UI.KeepTooltipAboveWindows(tooltip)
-    if not tooltip or tooltip.mosLayerHook then return end
-    tooltip.mosLayerHook = true
+    if not tooltip or tooltip.bootyLayerHook then return end
+    tooltip.bootyLayerHook = true
     local previous = tooltip:GetScript("OnShow")
     tooltip:SetScript("OnShow", function()
         if previous then previous() end
@@ -571,24 +571,24 @@ end
 
 function UI.RegisterEscapeDialog(frame)
     local name = frame and frame.GetName and frame:GetName()
-    if not name or frame.mosEscapeRegistered then return end
+    if not name or frame.bootyEscapeRegistered then return end
     UISpecialFrames = UISpecialFrames or {}
     table.insert(UISpecialFrames, name)
-    frame.mosEscapeRegistered = true
+    frame.bootyEscapeRegistered = true
 end
 
 function UI.ShowOpaquePopup(dialogKey, textArg1, textArg2)
     local definition = StaticPopupDialogs and StaticPopupDialogs[dialogKey]
-    if definition and definition.mosProjectTitle then
-        local frame = definition.mosProjectFrame
+    if definition and definition.bootyProjectTitle then
+        local frame = definition.bootyProjectFrame
         if not frame then
-            frame = UI.Window.CreateProjectConfirmation(dialogKey .. "ProjectDialog", definition.mosProjectTitle, definition.button1)
+            frame = UI.Window.CreateProjectConfirmation(dialogKey .. "ProjectDialog", definition.bootyProjectTitle, definition.button1)
             UI.StyleActionButton(frame.yes); UI.StyleActionButton(frame.no)
             frame.no:SetText(definition.button2 or "Cancel")
             frame.close:SetScript("OnClick", function()
                 local callback=frame.onNo;frame:Hide();if callback then callback() end
             end)
-            definition.mosProjectFrame = frame
+            definition.bootyProjectFrame = frame
             if definition.hideOnEscape then UI.RegisterEscapeDialog(frame) end
         end
         local message = definition.text
@@ -598,7 +598,7 @@ function UI.ShowOpaquePopup(dialogKey, textArg1, textArg2)
             if textArg2 ~= nil then message = string.format(message, textArg1, textArg2)
             else message = string.format(message, textArg1) end
         end
-        if UI.WindowStack and definition.mosProjectOwner then UI.WindowStack.SetOwner(frame, definition.mosProjectOwner) end
+        if UI.WindowStack and definition.bootyProjectOwner then UI.WindowStack.SetOwner(frame, definition.bootyProjectOwner) end
         frame:Open(message, definition.OnAccept, definition.OnCancel)
         return frame
     end
@@ -608,7 +608,7 @@ end
 
 function UI.HideOpaquePopup(dialogKey)
     local definition = StaticPopupDialogs and StaticPopupDialogs[dialogKey]
-    if definition and definition.mosProjectFrame then definition.mosProjectFrame:Hide()
+    if definition and definition.bootyProjectFrame then definition.bootyProjectFrame:Hide()
     elseif type(StaticPopup_Hide) == "function" then return StaticPopup_Hide(dialogKey) end
 end
 
@@ -639,7 +639,7 @@ function UI.CreateTextEditor(name, titleText, maxLetters, onSave)
         -- Resolve the existing anchored rectangle from its owner; child bounds
         -- may still reflect the previous size during first-open/text callbacks.
         local viewportWidth = math.max(40, frame:GetWidth() - 16 - 32 - 4)
-        local viewportHeight = math.max(1, frame:GetHeight() - (frame.mosEditorTopInset or 42) - 52)
+        local viewportHeight = math.max(1, frame:GetHeight() - (frame.bootyEditorTopInset or 42) - 52)
         frame.edit:SetWidth(viewportWidth)
         frame.measure:SetWidth(math.max(20, viewportWidth - 12)); frame.measure:SetText(frame.edit:GetText() or "")
         local textHeight = UI.MeasureTextHeight(frame.measure, math.max(20, viewportWidth - 12))
@@ -859,45 +859,45 @@ function UI.SetOpenButtonBorder(button, visible, openEdge)
         texture:SetPoint("TOP"..side, border, "TOP"..side, 0, openEdge == "top" and 0 or -8)
         texture:SetPoint("BOTTOM"..side, border, "BOTTOM"..side, 0, openEdge == "bottom" and 0 or 8)
     end
-    border.mosOpenEdge = openEdge; border:Show()
+    border.bootyOpenEdge = openEdge; border:Show()
 end
 
 function UI.ApplyButtonCaptionBaseline(button)
-    local bottom = tonumber(button.mosCaptionBottomInset)
+    local bottom = tonumber(button.bootyCaptionBottomInset)
     local label = button.label
     if not bottom or not label then return end
-    local left = button.mosLabelInsets and button.mosLabelInsets[1]
-        or (button.mosClassicIconKey and ((button.mosClassicIconInset or 7) + (button.mosClassicIconSize or 13) + 4) or 0)
-    local right = button.mosLabelInsets and button.mosLabelInsets[2] or 4
+    local left = button.bootyLabelInsets and button.bootyLabelInsets[1]
+        or (button.bootyClassicIconKey and ((button.bootyClassicIconInset or 7) + (button.bootyClassicIconSize or 13) + 4) or 0)
+    local right = button.bootyLabelInsets and button.bootyLabelInsets[2] or 4
     label:ClearAllPoints(); label:SetPoint("TOPLEFT", button, "TOPLEFT", left, 0)
     label:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -right, 0)
     label:SetHeight(button:GetHeight()); label:SetJustifyV("MIDDLE")
-    label:SetJustifyH(button.mosLabelJustify or (button.mosClassicIconKey and "LEFT" or "CENTER"))
+    label:SetJustifyH(button.bootyLabelJustify or (button.bootyClassicIconKey and "LEFT" or "CENTER"))
 end
 
 function UI.FitButtonLabel(button, available)
     -- Dropdown captions keep their readable logical font. Their layout owner
     -- allocates space; transient or tight bounds must never scale that font.
-    if button.mosDropdownText then UI.ReflowControlText(button); return end
+    if button.bootyDropdownText then UI.ReflowControlText(button); return end
     local label = button.label or button
     if not label or not label.GetFont then return end
     local font, size, flags = label:GetFont()
-    button.mosFitFontSize = button.mosFitFontSize or size
-    label:SetFont(font, button.mosFitFontSize, flags); label:SetWidth(0)
-    label:SetHeight(button.mosFitFontSize + 3)
-    if button.mosActionIcon then available=math.max(1,available-18-(button.mosActionTrailing or 0)) end
+    button.bootyFitFontSize = button.bootyFitFontSize or size
+    label:SetFont(font, button.bootyFitFontSize, flags); label:SetWidth(0)
+    label:SetHeight(button.bootyFitFontSize + 3)
+    if button.bootyActionIcon then available=math.max(1,available-18-(button.bootyActionTrailing or 0)) end
     -- Native metrics can differ from the rendered line by a pixel. Reserve a
     -- small allowance and keep the caption's remaining space, not a tight box
     -- around its measured ink: a one-line box otherwise renders an ellipsis.
     local width = math.max(1, math.ceil(label:GetStringWidth()))
-    local fitted = math.max(1, button.mosFitFontSize * math.min(1, math.max(1, available-2-(label.mosHeadingIconInset or 0)) / width))
-    label:SetFont(font, fitted, flags); label:SetWidth(math.max(1, available)); label:SetHeight(fitted + 3); label:SetJustifyH(button.mosLabelJustify or (button.label and "CENTER" or "LEFT"))
-    if button.mosActionIcon then
-        local textWidth=math.min(math.max(1,available),width*fitted/button.mosFitFontSize+2)
-        local start=button.mosActionAlign=="LEFT" and 8 or math.max(8,(button:GetWidth()-(button.mosActionTrailing or 0)-18-textWidth)/2)
-        button.mosActionIcon:ClearAllPoints();button.mosActionIcon:SetPoint("LEFT",button,"LEFT",start,0)
+    local fitted = math.max(1, button.bootyFitFontSize * math.min(1, math.max(1, available-2-(label.bootyHeadingIconInset or 0)) / width))
+    label:SetFont(font, fitted, flags); label:SetWidth(math.max(1, available)); label:SetHeight(fitted + 3); label:SetJustifyH(button.bootyLabelJustify or (button.label and "CENTER" or "LEFT"))
+    if button.bootyActionIcon then
+        local textWidth=math.min(math.max(1,available),width*fitted/button.bootyFitFontSize+2)
+        local start=button.bootyActionAlign=="LEFT" and 8 or math.max(8,(button:GetWidth()-(button.bootyActionTrailing or 0)-18-textWidth)/2)
+        button.bootyActionIcon:ClearAllPoints();button.bootyActionIcon:SetPoint("LEFT",button,"LEFT",start,0)
         label:ClearAllPoints();label:SetPoint("LEFT",button,"LEFT",start+18,0)
-        label:SetWidth(math.max(1,button:GetWidth()-start-26-(button.mosActionTrailing or 0)))
+        label:SetWidth(math.max(1,button:GetWidth()-start-26-(button.bootyActionTrailing or 0)))
         label:SetHeight(math.max(fitted+3,button:GetHeight()-4));label:SetJustifyH("LEFT");label:SetJustifyV("MIDDLE")
     end
     UI.ApplyButtonCaptionBaseline(button)
@@ -905,14 +905,14 @@ end
 
 -- Shared action icons use the authored gold atlas in either visual skin.
 function UI.SetActionButtonIcon(button,key,trailing)
-    if not button.mosActionIcon then button.mosActionIcon=UI.CreateTexture(button,nil,"OVERLAY") end
-    button.mosActionIcon:SetTexture("Interface\\AddOns\\BootyLib\\Assets\\Skins\\Classic\\Icons\\"..key..".tga")
-    button.mosActionIcon:SetWidth(14);button.mosActionIcon:SetHeight(14)
-    button.mosActionIcon:SetVertexColor(unpack(UI.Theme.colors.goldIcon));button.mosActionIcon:Show()
-    button.mosActionIconKey=key;button.mosActionTrailing=trailing or 0
+    if not button.bootyActionIcon then button.bootyActionIcon=UI.CreateTexture(button,nil,"OVERLAY") end
+    button.bootyActionIcon:SetTexture("Interface\\AddOns\\BootyLib\\Assets\\Skins\\Classic\\Icons\\"..key..".tga")
+    button.bootyActionIcon:SetWidth(14);button.bootyActionIcon:SetHeight(14)
+    button.bootyActionIcon:SetVertexColor(unpack(UI.Theme.colors.goldIcon));button.bootyActionIcon:Show()
+    button.bootyActionIconKey=key;button.bootyActionTrailing=trailing or 0
     UI.FitButtonLabel(button,math.max(1,button:GetWidth()-16))
-    if not button.mosActionIconSkinCallback then
-        button.mosActionIconSkinCallback=true
+    if not button.bootyActionIconSkinCallback then
+        button.bootyActionIconSkinCallback=true
         UI.RegisterSkinCallback(function() UI.FitButtonLabel(button,math.max(1,button:GetWidth()-16)) end)
     end
 end
@@ -920,14 +920,14 @@ end
 function UI.CreateAspectImage(parent,path,aspect,alpha,uvBottom)
     local image=UI.CreateTexture(parent,nil,"BACKGROUND")
     image:SetTexture(path);image:SetTexCoord(0,1,0,uvBottom or 1);image:SetAlpha(alpha or 1)
-    image.mosImageAspect=aspect
+    image.bootyImageAspect=aspect
     return image
 end
 
 function UI.LayoutAspectImage(image,parent,width,height)
-    local resolvedWidth=math.min(math.max(1,width),math.max(1,height)*image.mosImageAspect)
+    local resolvedWidth=math.min(math.max(1,width),math.max(1,height)*image.bootyImageAspect)
     image:ClearAllPoints();image:SetPoint("CENTER",parent,"CENTER",0,0)
-    image:SetWidth(resolvedWidth);image:SetHeight(resolvedWidth/image.mosImageAspect)
+    image:SetWidth(resolvedWidth);image:SetHeight(resolvedWidth/image.bootyImageAspect)
 end
 
 function UI.CreatePerformanceBackground(parent,alpha)
@@ -936,7 +936,7 @@ end
 
 function UI.LayoutPerformanceBackground(image,parent,width,height)
     width,height=math.max(1,width),math.max(1,height)
-    local aspect=image.mosImageAspect
+    local aspect=image.bootyImageAspect
     local shownWidth,shownHeight=math.min(1,width/(height*aspect)),math.min(1,height*aspect/width)
     local bottom=0.55859375
     image:ClearAllPoints();image:SetPoint("CENTER",parent,"CENTER",0,0)
@@ -983,37 +983,37 @@ end
 
 -- Only visible, unacknowledged controls run this animation; no data refreshes.
 local function RestoreAttentionText(button)
-    if button.label and button.mosAttentionTextColor then button.label:SetTextColor(unpack(button.mosAttentionTextColor)) end
+    if button.label and button.bootyAttentionTextColor then button.label:SetTextColor(unpack(button.bootyAttentionTextColor)) end
 end
 local function AttentionPulseTick()
-    this.mosAttentionElapsed = math.mod((this.mosAttentionElapsed or 0) + (arg1 or 0), 1)
-    if this.mosAttentionElapsed < 0.5 then
-        this.mosAttentionTexture:Show()
+    this.bootyAttentionElapsed = math.mod((this.bootyAttentionElapsed or 0) + (arg1 or 0), 1)
+    if this.bootyAttentionElapsed < 0.5 then
+        this.bootyAttentionTexture:Show()
         if this.label then this.label:SetTextColor(1, 0.48, 0.42, 1) end
-    else this.mosAttentionTexture:Hide(); RestoreAttentionText(this) end
+    else this.bootyAttentionTexture:Hide(); RestoreAttentionText(this) end
 end
 local function AttentionPulseHide()
     this:SetScript("OnUpdate", nil)
-    if this.mosAttentionTexture then this.mosAttentionTexture:Hide() end
+    if this.bootyAttentionTexture then this.bootyAttentionTexture:Hide() end
     RestoreAttentionText(this)
 end
 local function AttentionPulseShow()
-    if this.mosAttentionPending then this:SetScript("OnUpdate", AttentionPulseTick) end
+    if this.bootyAttentionPending then this:SetScript("OnUpdate", AttentionPulseTick) end
 end
 function UI.SetAttentionPulse(button, pending)
-    if not button.mosAttentionTexture then
+    if not button.bootyAttentionTexture then
         local texture = button:CreateTexture(nil, "ARTWORK")
         texture:SetAllPoints(button); UI.ApplyGoldRadialHighlight(texture); texture:Hide()
-        button.mosAttentionTexture = texture
+        button.bootyAttentionTexture = texture
         button:SetScript("OnHide", AttentionPulseHide); button:SetScript("OnShow", AttentionPulseShow)
     end
-    if pending and not button.mosAttentionPending then
-        button.mosAttentionElapsed = 0
-        if button.label then button.mosAttentionTextColor = {button.label:GetTextColor()} end
+    if pending and not button.bootyAttentionPending then
+        button.bootyAttentionElapsed = 0
+        if button.label then button.bootyAttentionTextColor = {button.label:GetTextColor()} end
     end
-    button.mosAttentionPending = pending and true or false
+    button.bootyAttentionPending = pending and true or false
     if pending and button:IsVisible() then button:SetScript("OnUpdate", AttentionPulseTick)
-    else button:SetScript("OnUpdate", nil); button.mosAttentionTexture:Hide(); RestoreAttentionText(button) end
+    else button:SetScript("OnUpdate", nil); button.bootyAttentionTexture:Hide(); RestoreAttentionText(button) end
 end
 
 -- Shared authored gear, including its asymmetric transparent-padding crop.
@@ -1070,12 +1070,12 @@ function UI.AttachPlaceholder(field, text)
     label:SetText(text)
     field.placeholder = label
     local function Refresh()
-        if field.mosHasFocus or (field:GetText() or "") ~= "" then label:Hide() else label:Show() end
+        if field.bootyHasFocus or (field:GetText() or "") ~= "" then label:Hide() else label:Show() end
     end
     local changed, gained, lost = field:GetScript("OnTextChanged"), field:GetScript("OnEditFocusGained"), field:GetScript("OnEditFocusLost")
     field:SetScript("OnTextChanged", function() if changed then changed() end; Refresh() end)
-    field:SetScript("OnEditFocusGained", function() field.mosHasFocus=true; if gained then gained() end; Refresh() end)
-    field:SetScript("OnEditFocusLost", function() field.mosHasFocus=false; if lost then lost() end; Refresh() end)
+    field:SetScript("OnEditFocusGained", function() field.bootyHasFocus=true; if gained then gained() end; Refresh() end)
+    field:SetScript("OnEditFocusLost", function() field.bootyHasFocus=false; if lost then lost() end; Refresh() end)
     Refresh()
 end
 
@@ -1086,7 +1086,7 @@ function UI.MakeTextAreaScrollable(field, parent)
     local area = UI.CreateContainer(nil, parent)
     area:SetBackdrop(field:GetBackdrop()); area:SetBackdropColor(0.018, 0.018, 0.016, 1)
     area:SetBackdropBorderColor(0.48, 0.34, 0.10, 1)
-    local scroll = CreateFrame("ScrollFrame", "MOSScrollTextArea" .. textAreaSerial, area, "UIPanelScrollFrameTemplate")
+    local scroll = CreateFrame("ScrollFrame", "BootyScrollTextArea" .. textAreaSerial, area, "UIPanelScrollFrameTemplate")
     local bar = getglobal(scroll:GetName() .. "ScrollBar")
     field:SetBackdrop(nil); field:SetParent(scroll); field:ClearAllPoints(); scroll:SetScrollChild(field)
     field:SetTextInsets(2, 2, 2, 2)
@@ -1130,11 +1130,11 @@ function UI.LayoutFlow(parent, controls, x, top, width, gap)
     gap = gap or 8
     for index=1,table.getn(controls) do
         local control=controls[index]
-        local desired=math.min(width,control.mosFlowWidth or control:GetWidth())
+        local desired=math.min(width,control.bootyFlowWidth or control:GetWidth())
         if used > 0 and used + desired > width then y=y+rowHeight+gap; used=0; rowHeight=0 end
         control:ClearAllPoints(); control:SetPoint("TOPLEFT",parent,"TOPLEFT",x+used,-y)
         control:SetWidth(math.max(1,desired)); rowHeight=math.max(rowHeight,control:GetHeight())
-        if control.mosFlowFitLabel then UI.FitButtonLabel(control,math.max(1,desired-(control.mosFlowLabelPadding or 16)));control.label:SetJustifyV("MIDDLE") end
+        if control.bootyFlowFitLabel then UI.FitButtonLabel(control,math.max(1,desired-(control.bootyFlowLabelPadding or 16)));control.label:SetJustifyV("MIDDLE") end
         used=used+desired+gap
     end
     return y+rowHeight
@@ -1149,24 +1149,24 @@ function UI.CreateToolbarSurface(parent, topBorder, bottomBorder)
     return toolbar
 end
 function UI.AddToolbarBackground(toolbar, alpha)
-    if not toolbar.mosToolbarBackground then
-        toolbar.mosToolbarBackground=UI.CreateTexture(toolbar,nil,"BACKGROUND")
-        toolbar.mosToolbarBackground:SetAllPoints(toolbar)
-        toolbar.mosToolbarBackground:SetTexture("Interface\\Buttons\\WHITE8X8")
-        toolbar.mosToolbarBackground:SetVertexColor(0.11,0.09,0.055,1)
+    if not toolbar.bootyToolbarBackground then
+        toolbar.bootyToolbarBackground=UI.CreateTexture(toolbar,nil,"BACKGROUND")
+        toolbar.bootyToolbarBackground:SetAllPoints(toolbar)
+        toolbar.bootyToolbarBackground:SetTexture("Interface\\Buttons\\WHITE8X8")
+        toolbar.bootyToolbarBackground:SetVertexColor(0.11,0.09,0.055,1)
     end
-    toolbar.mosToolbarBackground:SetAlpha(alpha or 0.45);toolbar.mosToolbarBackground:Show()
-    return toolbar.mosToolbarBackground
+    toolbar.bootyToolbarBackground:SetAlpha(alpha or 0.45);toolbar.bootyToolbarBackground:Show()
+    return toolbar.bootyToolbarBackground
 end
 function UI.StyleActionButton(button)
-    button.mosClassicKeepNormalSurface=true;button.mosFlowFitLabel=true
+    button.bootyClassicKeepNormalSurface=true;button.bootyFlowFitLabel=true
     UI.ApplyDropdownChoiceSurface(button); UI.AttachGoldHoverBorder(button,0.35,0.35,0.35,1)
     UI.SizeClassicButton(button,button:GetWidth(),26,1)
 end
 function UI.StyleProjectPopup(panel)
-    if not UI.Window then panel.mosProjectPopupPending=true; return end
-    if panel.mosProjectPopupStyled then UI.Window.ApplyProjectSurface(panel); return end
-    panel.mosProjectPopupStyled=true
+    if not UI.Window then panel.bootyProjectPopupPending=true; return end
+    if panel.bootyProjectPopupStyled then UI.Window.ApplyProjectSurface(panel); return end
+    panel.bootyProjectPopupStyled=true
     UI.Window.ApplyProjectSurface(panel)
     UI.RegisterDialogSurface(panel,"panel",{0.015,0.015,0.015,1})
     UI.RegisterSkinCallback(function() UI.Window.ApplyProjectSurface(panel) end)

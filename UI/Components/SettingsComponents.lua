@@ -1,10 +1,10 @@
-local MOS = BootyLib
+local Booty = BootyLib
 
-MOS.UI.Components.Settings = MOS.UI.Components.Settings or {}
-local Settings = MOS.UI.Components.Settings
+Booty.UI.Components.Settings = Booty.UI.Components.Settings or {}
+local Settings = Booty.UI.Components.Settings
 
 function Settings.CreateSection(parent, title, y)
-    local heading = MOS.UI.Components.CreateHeading(parent, "", 2, "orange", "settings")
+    local heading = Booty.UI.Components.CreateHeading(parent, "", 2, "orange", "settings")
     heading:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, y)
     heading:SetText(title)
     local rule = parent:CreateTexture(nil, "ARTWORK")
@@ -16,15 +16,15 @@ function Settings.CreateSection(parent, title, y)
 end
 
 function Settings.CreateAccordion(parent, text, y, iconKey)
-    local button = MOS.UI.Components.CreateControl(nil, parent)
+    local button = Booty.UI.Components.CreateControl(nil, parent)
     button:SetPoint("TOPLEFT", parent, "TOPLEFT", 24, y)
     button:SetWidth(180)
     button:SetHeight(16)
     button:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", tile = true, tileSize = 8, edgeSize = 8, insets = { left = 2, right = 2, top = 2, bottom = 2 } })
     button:SetBackdropColor(0, 0, 0, 0)
     button:SetBackdropBorderColor(0, 0, 0, 0)
-    button.label = MOS.UI.Components.CreateHeading(button, "", 3, "orange")
-    button.indicator = MOS.UI.Components.CreateHeading(button, "+", 3, "orange")
+    button.label = Booty.UI.Components.CreateHeading(button, "", 3, "orange")
+    button.indicator = Booty.UI.Components.CreateHeading(button, "+", 3, "orange")
     button.indicator:SetPoint("LEFT", button, "LEFT", 0, 0)
     button.indicator:SetJustifyH("LEFT"); button.indicator:SetJustifyV("MIDDLE")
     local function FitIndicator()
@@ -36,7 +36,7 @@ function Settings.CreateAccordion(parent, text, y, iconKey)
         indicator:SetText("-"); local minus = indicator:GetStringWidth()
         local width = math.ceil(math.max(plus, minus)) + 2
         indicator:SetText(current); indicator:SetWidth(width)
-        button.label.mosAccordionPrefixInset = width + 4
+        button.label.bootyAccordionPrefixInset = width + 4
         button.label:ClearAllPoints(); button.label:SetPoint("LEFT", button, "LEFT", width + 4, 0)
         if button.RefreshRule then button:RefreshRule() end
     end
@@ -68,7 +68,7 @@ end
 function Settings.CreateSectionAccordion(parent, text, y, inset, headingLevel, iconKey)
     if (inset or 0) > 0 then
         local child = Settings.CreateAccordion(parent, text, y, false)
-        child.mosSectionInset = inset
+        child.bootySectionInset = inset
         child.SetExpanded = function(self, expanded) self.sectionExpanded = expanded end
         child:ClearAllPoints(); child:SetPoint("TOPLEFT", parent, "TOPLEFT", inset, y); child:SetPoint("TOPRIGHT", parent, "TOPRIGHT", 0, y)
         child:SetExpanded(false)
@@ -77,7 +77,7 @@ function Settings.CreateSectionAccordion(parent, text, y, inset, headingLevel, i
     local button = Settings.CreateAccordion(parent, text, y, false)
     button:SetPoint("TOPRIGHT", parent, "TOPRIGHT", 0, y)
     button:SetHeight(20)
-    button.label:SetTextColor(unpack(MOS.UI.Components.TextColors.gold))
+    button.label:SetTextColor(unpack(Booty.UI.Components.TextColors.gold))
     button:SetHighlightTexture(nil)
     button.sectionFill = button:CreateTexture(nil, "BACKGROUND")
     button.sectionFill:SetTexture("Interface\\Buttons\\WHITE8X8")
@@ -88,7 +88,7 @@ function Settings.CreateSectionAccordion(parent, text, y, inset, headingLevel, i
     button.sectionFade:SetGradientAlpha("HORIZONTAL", 0.82, 0.70, 0.43, 0.24, 0.82, 0.70, 0.43, 0)
     button.sectionFade:SetPoint("TOPLEFT", button.sectionFill, "TOPRIGHT", 0, 0); button.sectionFade:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", 0, 0)
     button.ruleCap = button:CreateTexture(nil, "ARTWORK")
-    local ornament = MOS.UI.Components.ClassicAsset("Decor\\title-right.tga")
+    local ornament = Booty.UI.Components.ClassicAsset("Decor\\title-right.tga")
     button.rule:SetTexture(ornament); button.rule:SetTexCoord(5/128, 100/128, 0, 1)
     button.ruleCap:SetTexture(ornament); button.ruleCap:SetTexCoord(100/128, 1, 0, 1)
     button.rule:SetVertexColor(1, 1, 1, 1); button.ruleCap:SetVertexColor(1, 1, 1, 1)
@@ -101,9 +101,9 @@ function Settings.CreateSectionAccordion(parent, text, y, inset, headingLevel, i
         -- Measure the caption instead of anchoring a rule to that stale edge.
         local text = self.label:GetText()
         local font, size, flags = self.label:GetFont()
-        local inset = (self.label.mosAccordionPrefixInset or 0) + (self.label.mosHeadingIconInset or 0)
-        if self.mosRuleText == text and self.mosRuleFont == font and self.mosRuleSize == size and self.mosRuleFlags == flags and self.mosRuleInset == inset then return end
-        self.mosRuleText, self.mosRuleFont, self.mosRuleSize, self.mosRuleFlags, self.mosRuleInset = text, font, size, flags, inset
+        local inset = (self.label.bootyAccordionPrefixInset or 0) + (self.label.bootyHeadingIconInset or 0)
+        if self.bootyRuleText == text and self.bootyRuleFont == font and self.bootyRuleSize == size and self.bootyRuleFlags == flags and self.bootyRuleInset == inset then return end
+        self.bootyRuleText, self.bootyRuleFont, self.bootyRuleSize, self.bootyRuleFlags, self.bootyRuleInset = text, font, size, flags, inset
         self.label:SetWidth(0)
         self.rule:ClearAllPoints()
         self.rule:SetPoint("LEFT", self, "LEFT", inset + self.label:GetStringWidth() + 10, 0)
@@ -122,24 +122,24 @@ function Settings.CreateSectionAccordion(parent, text, y, inset, headingLevel, i
     button:SetScript("OnShow", function() this:RefreshRule() end)
     button.sectionFill:SetWidth(30); button:SetExpanded(false)
     local font, _, flags = button.label:GetFont()
-    button.label:SetFont(font, MOS.UI.Components.HeadingSizes[headingLevel or 2] + MOS.UI.Components.GetTextSizeDelta(parent), flags)
-    if MOS.UI.Components.SetHeadingIcon then MOS.UI.Components.SetHeadingIcon(button.label, iconKey or "list") end
-    button.mosSectionInset = inset or 0
-    button:ClearAllPoints(); button:SetPoint("TOPLEFT", parent, "TOPLEFT", button.mosSectionInset, y); button:SetPoint("TOPRIGHT", parent, "TOPRIGHT", 0, y)
+    button.label:SetFont(font, Booty.UI.Components.HeadingSizes[headingLevel or 2] + Booty.UI.Components.GetTextSizeDelta(parent), flags)
+    if Booty.UI.Components.SetHeadingIcon then Booty.UI.Components.SetHeadingIcon(button.label, iconKey or "list") end
+    button.bootySectionInset = inset or 0
+    button:ClearAllPoints(); button:SetPoint("TOPLEFT", parent, "TOPLEFT", button.bootySectionInset, y); button:SetPoint("TOPRIGHT", parent, "TOPRIGHT", 0, y)
     button:RefreshRule()
     button.rule:Show()
     return button
 end
 
 function Settings.CreateCheckbox(parent, x, y, text, key, onChanged, binding)
-    local button = MOS.UI.Components.CreateCheckButton(nil, parent, "UICheckButtonTemplate")
+    local button = Booty.UI.Components.CreateCheckButton(nil, parent, "UICheckButtonTemplate")
     button:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
-    local size = math.max(16, 22 + 2 * MOS.UI.Components.GetTextSizeDelta(parent))
+    local size = math.max(16, 22 + 2 * Booty.UI.Components.GetTextSizeDelta(parent))
     button:SetWidth(size)
     button:SetHeight(size)
     button.settingKey = key
     button.onChanged = onChanged
-    button.label = MOS.UI.Components.CreateComponentLabel(button, "", "white")
+    button.label = Booty.UI.Components.CreateComponentLabel(button, "", "white")
     button.label:SetPoint("LEFT", button, "RIGHT", 2, 0)
     button.label:SetJustifyH("LEFT"); button.label:SetText(text)
     button.SaveSetting = function(owner)
@@ -156,7 +156,7 @@ function Settings.CreateCheckbox(parent, x, y, text, key, onChanged, binding)
         this:SetChecked(value and 1 or nil)
     end)
     button:SetScript("OnClick", function() this:SaveSetting() end)
-    button.labelHit = MOS.UI.Components.CreateControl(nil, button)
+    button.labelHit = Booty.UI.Components.CreateControl(nil, button)
     button.labelHit:SetPoint("LEFT", button, "RIGHT", 1, 0)
     button.labelHit:SetWidth(math.max(18, button.label:GetStringWidth() + 5))
     button.labelHit:SetHeight(size)
@@ -172,7 +172,7 @@ end
 
 function Settings.SetCheckboxEnabled(check, enabled)
     if enabled then check:Enable(); check.labelHit:Enable() else check:Disable(); check.labelHit:Disable() end
-    check.label:SetTextColor(unpack(enabled and MOS.UI.Components.TextColors.white or MOS.UI.Components.TextColors.gray))
+    check.label:SetTextColor(unpack(enabled and Booty.UI.Components.TextColors.white or Booty.UI.Components.TextColors.gray))
 end
 
 function Settings.CreateSlider(parent, name, x, y, label, key, minimum, maximum, onChanged, binding)
@@ -182,7 +182,7 @@ function Settings.CreateSlider(parent, name, x, y, label, key, minimum, maximum,
     slider:SetHeight(16)
     slider:SetMinMaxValues(minimum, maximum)
     slider:SetValueStep(1)
-    local delta = math.min(0, MOS.UI.Components.GetTextSizeDelta(parent) + 1)
+    local delta = math.min(0, Booty.UI.Components.GetTextSizeDelta(parent) + 1)
     local _, suffix
     for _, suffix in ipairs({"Low", "High", "Text"}) do
         local text = getglobal(name .. suffix)
@@ -202,7 +202,7 @@ function Settings.CreateSlider(parent, name, x, y, label, key, minimum, maximum,
         binding.ensure()
         local value = math.floor(this:GetValue() + 0.5)
         getglobal(this:GetName() .. "Text"):SetText(this.settingLabel .. ": " .. value)
-        if this.mosSynchronizing then return end
+        if this.bootySynchronizing then return end
         binding.set(this.settingKey, value)
         if this.onChanged then this.onChanged(this.settingKey) end
     end)
@@ -211,9 +211,9 @@ end
 
 function Settings.SynchronizeSlider(slider, value)
     getglobal(slider:GetName() .. "Text"):SetText(slider.settingLabel .. ": " .. math.floor(value + 0.5))
-    slider.mosSynchronizing = true
+    slider.bootySynchronizing = true
     slider:SetValue(value)
-    slider.mosSynchronizing = nil
+    slider.bootySynchronizing = nil
     local thumb = slider.GetThumbTexture and slider:GetThumbTexture()
     if thumb then thumb:SetAlpha(1); thumb:Show() end
 end
@@ -225,7 +225,7 @@ function Settings.SetSliderEnabled(slider, enabled)
     else
         slider:EnableMouse(enabled and true or false)
     end
-    slider.mosEnabled = enabled and true or false
+    slider.bootyEnabled = enabled and true or false
     slider:SetAlpha(enabled and 1 or 0.42)
     local low = getglobal(slider:GetName() .. "Low")
     local high = getglobal(slider:GetName() .. "High")
@@ -239,7 +239,7 @@ function Settings.SetSliderEnabled(slider, enabled)
 end
 
 function Settings.CreateColor(parent, x, y, label, key, onChanged, binding)
-    local button = MOS.UI.Components.CreateControl(nil, parent)
+    local button = Booty.UI.Components.CreateControl(nil, parent)
     button:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
     button:SetWidth(176)
     button:SetHeight(20)
@@ -255,7 +255,7 @@ function Settings.CreateColor(parent, x, y, label, key, onChanged, binding)
     button.swatch = button.swatchBorder:CreateTexture(nil, "ARTWORK")
     button.swatch:SetPoint("TOPLEFT", button.swatchBorder, "TOPLEFT", 3, -3)
     button.swatch:SetPoint("BOTTOMRIGHT", button.swatchBorder, "BOTTOMRIGHT", -3, 3)
-    button.label = MOS.UI.Components.CreateComponentLabel(button, "", "white")
+    button.label = Booty.UI.Components.CreateComponentLabel(button, "", "white")
     button.label:SetPoint("LEFT", button.swatchBorder, "RIGHT", 6, 0)
     button.label:SetJustifyH("LEFT")
     button.label:SetText(label)
@@ -355,13 +355,13 @@ function Settings.CreateColor(parent, x, y, label, key, onChanged, binding)
 end
 
 function Settings.CreateSavedCheckbox(parent, name, x, y, text, settingKey, tooltipTitle, tooltipText, onChanged, binding)
-    local check = MOS.UI.Components.CreateCheckButton(name, parent, "UICheckButtonTemplate")
+    local check = Booty.UI.Components.CreateCheckButton(name, parent, "UICheckButtonTemplate")
     check:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
-    local size = math.max(16, 24 + 2 * MOS.UI.Components.GetTextSizeDelta(parent))
+    local size = math.max(16, 24 + 2 * Booty.UI.Components.GetTextSizeDelta(parent))
     check:SetWidth(size)
     check:SetHeight(size)
     check.settingKey = settingKey
-    check.label = MOS.UI.Components.CreateComponentLabel(check, "", "white")
+    check.label = Booty.UI.Components.CreateComponentLabel(check, "", "white")
     check.label:SetPoint("LEFT", check, "RIGHT", 4, 0)
     check.label:SetJustifyH("LEFT"); check.label:SetText(text)
     check:SetScript("OnShow", function()
@@ -378,7 +378,7 @@ function Settings.CreateSavedCheckbox(parent, name, x, y, text, settingKey, tool
         if onChanged then onChanged(owner.settingKey) end
     end
     check:SetScript("OnClick", function() this:SaveSetting() end)
-    check.labelHit = MOS.UI.Components.CreateControl(nil, check)
+    check.labelHit = Booty.UI.Components.CreateControl(nil, check)
     check.labelHit:SetPoint("LEFT", check, "RIGHT", 2, 0)
     check.labelHit:SetWidth(math.max(18, check.label:GetStringWidth() + 8))
     check.labelHit:SetHeight(size)
@@ -389,21 +389,21 @@ function Settings.CreateSavedCheckbox(parent, name, x, y, text, settingKey, tool
         owner:SaveSetting()
     end)
     if tooltipTitle then
-        MOS.UI.Components.AttachTooltip(check, tooltipTitle, tooltipText)
-        MOS.UI.Components.AttachTooltip(check.labelHit, tooltipTitle, tooltipText)
+        Booty.UI.Components.AttachTooltip(check, tooltipTitle, tooltipText)
+        Booty.UI.Components.AttachTooltip(check.labelHit, tooltipTitle, tooltipText)
     end
     return check
 end
 
 function Settings.CreatePercentageField(parent, name, labelText, x, y, settingKey, fallback, binding)
-    local labelOwner = MOS.UI.Components.CreateContainer(nil, parent)
+    local labelOwner = Booty.UI.Components.CreateContainer(nil, parent)
     labelOwner:SetAllPoints(parent); labelOwner:SetFrameLevel(parent:GetFrameLevel() + 2)
-    local label = MOS.UI.Components.CreateComponentLabel(labelOwner, name .. "Label", "white")
+    local label = Booty.UI.Components.CreateComponentLabel(labelOwner, name .. "Label", "white")
     label:SetPoint("TOPLEFT", parent, "TOPLEFT", x, y)
     label:SetText(labelText)
     label:SetTextColor(1, 1, 1, 1); label:SetAlpha(1)
-    local field = MOS.UI.Components.CreateEditField(name, parent, "InputBoxTemplate")
-    MOS.UI.Components.ApplyTextSizeDelta(field, parent)
+    local field = Booty.UI.Components.CreateEditField(name, parent, "InputBoxTemplate")
+    Booty.UI.Components.ApplyTextSizeDelta(field, parent)
     field:SetWidth(34)
     field:SetHeight(18)
     field:SetPoint("LEFT", label, "RIGHT", 8, 0)
@@ -411,18 +411,18 @@ function Settings.CreatePercentageField(parent, name, labelText, x, y, settingKe
     field:SetMaxLetters(3)
     field.settingKey = settingKey
     field.fallback = fallback
-    field:SetScript("OnEditFocusGained", function() this.mosEditing = true end)
+    field:SetScript("OnEditFocusGained", function() this.bootyEditing = true end)
     field:SetScript("OnEnterPressed", function() this:ClearFocus() end)
     field:SetScript("OnEscapePressed", function() this:ClearFocus() end)
     field.CommitValue = function(owner)
         binding.ensure()
         local value = math.max(0, math.min(100, tonumber(owner:GetText()) or owner.fallback))
         binding.set(owner.settingKey, value)
-        owner.mosSettingText = true; owner:SetText(value); owner.mosSettingText = nil
+        owner.bootySettingText = true; owner:SetText(value); owner.bootySettingText = nil
         if owner.onChanged then owner.onChanged(owner.settingKey) end
     end
     field:SetScript("OnTextChanged", function()
-        if this.mosSettingText or not this.mosEditing then return end
+        if this.bootySettingText or not this.bootyEditing then return end
         local value = tonumber(this:GetText())
         if not value then return end
         value = math.max(0, math.min(100, value))
@@ -430,29 +430,29 @@ function Settings.CreatePercentageField(parent, name, labelText, x, y, settingKe
         binding.set(this.settingKey, value)
         if this.onChanged then this.onChanged(this.settingKey) end
     end)
-    field:SetScript("OnEditFocusLost", function() this:CommitValue(); this.mosEditing = nil end)
+    field:SetScript("OnEditFocusLost", function() this:CommitValue(); this.bootyEditing = nil end)
     return label, field
 end
 
 local function ClearTextFocus(field)
-    if field.mosClearingFocus or field.mosCommitting then return end
-    field.mosClearingFocus = true
+    if field.bootyClearingFocus or field.bootyCommitting then return end
+    field.bootyClearingFocus = true
     local previousThis, previousEvent, previousArg = this, event, arg1
     this = field
     local ok, failure = pcall(field.ClearFocus, field)
-    field.mosClearingFocus = nil
+    field.bootyClearingFocus = nil
     this, event, arg1 = previousThis, previousEvent, previousArg
     if not ok then error(failure, 0) end
 end
 
 function Settings.SetTextFieldEnabled(field, enabled)
     enabled = enabled and enabled ~= 0 and true or false
-    field.mosEnabled = enabled
+    field.bootyEnabled = enabled
     field:EnableMouse(enabled); field:EnableKeyboard(enabled)
     field:SetAlpha(enabled and 1 or 0.42)
     -- EditBox has Frame input gates, not Button Enable/Disable. ClearFocus
     -- delivers the existing save-on-focus-lost policy while it still owns focus.
-    if not enabled and field.mosEditing then ClearTextFocus(field) end
+    if not enabled and field.bootyEditing then ClearTextFocus(field) end
 end
 
 local function WriteSavedText(field, binding)
@@ -460,30 +460,30 @@ local function WriteSavedText(field, binding)
 end
 
 function Settings.CreateSavedTextField(parent, settingKey, binding)
-    local field = MOS.UI.Components.CreateFramedEditBox(parent, nil, 300)
+    local field = Booty.UI.Components.CreateFramedEditBox(parent, nil, 300)
     field.settingKey = settingKey; field:SetMaxLetters(512)
     field.CommitValue = function(self)
-        if not self.mosEditing or self.mosCommitting then return end
-        self.mosCommitting = true
+        if not self.bootyEditing or self.bootyCommitting then return end
+        self.bootyCommitting = true
         local previousThis, previousEvent, previousArg = this, event, arg1
         this = self
         local ok, failure = pcall(WriteSavedText, self, binding)
-        self.mosCommitting = nil
+        self.bootyCommitting = nil
         this, event, arg1 = previousThis, previousEvent, previousArg
         if not ok then error(failure, 0) end
-        self.mosEditing = nil
+        self.bootyEditing = nil
     end
     field.RefreshValue = function(self)
-        if not self.mosEditing then self:SetText(binding.get(self.settingKey) or "") end
+        if not self.bootyEditing then self:SetText(binding.get(self.settingKey) or "") end
     end
     field:SetScript("OnShow", function() this:RefreshValue() end)
     field:SetScript("OnEditFocusGained", function()
-        if this.mosEnabled == false then ClearTextFocus(this)
-        else this.mosEditing = true end
+        if this.bootyEnabled == false then ClearTextFocus(this)
+        else this.bootyEditing = true end
     end)
     field:SetScript("OnEditFocusLost", function() this:CommitValue() end)
     field:SetScript("OnEnterPressed", function() this:CommitValue(); ClearTextFocus(this) end)
-    field:SetScript("OnEscapePressed", function() this.mosEditing = nil; this:RefreshValue(); ClearTextFocus(this) end)
+    field:SetScript("OnEscapePressed", function() this.bootyEditing = nil; this:RefreshValue(); ClearTextFocus(this) end)
     field:SetScript("OnHide", function() this:CommitValue(); ClearTextFocus(this) end)
     return field
 end
@@ -497,39 +497,39 @@ local function MeasureSettingsWidth(width, page)
     local changed = math.abs(page:GetWidth() - width) > 0.5
     page:SetWidth(width)
     if changed and page.ReflowSettings then page.ReflowSettings() end
-    return page.settingsContentHeight or page.mosRequestedHeight or 960
+    return page.settingsContentHeight or page.bootyRequestedHeight or 960
 end
 
 local function UpdateSettingsScroll(viewport, page, pageHeight)
-    local UI = MOS.UI.Components
+    local UI = Booty.UI.Components
     local fullWidth, height = UI.GetFrameSpan(viewport)
-    local anchor = viewport.mosScrollAnchor
-    if viewport.mosWidthOwner and viewport.mosWidthInset then
-        fullWidth = viewport.mosWidthOwner:GetWidth() - viewport.mosWidthInset
+    local anchor = viewport.bootyScrollAnchor
+    if viewport.bootyWidthOwner and viewport.bootyWidthInset then
+        fullWidth = viewport.bootyWidthOwner:GetWidth() - viewport.bootyWidthInset
     else
-        fullWidth = fullWidth + (viewport.mosScrollGutter or 0)
+        fullWidth = fullWidth + (viewport.bootyScrollGutter or 0)
     end
-    if viewport.mosHeightOwner and viewport.mosHeightInset then
-        height = viewport.mosHeightOwner:GetHeight() - viewport.mosHeightInset
+    if viewport.bootyHeightOwner and viewport.bootyHeightInset then
+        height = viewport.bootyHeightOwner:GetHeight() - viewport.bootyHeightInset
 
     end
-    page.mosRequestedHeight = pageHeight
+    page.bootyRequestedHeight = pageHeight
     local width, contentHeight, overflow, maximum = UI.ResolveScrollLayout(fullWidth, height, 20, MeasureSettingsWidth, page)
     if anchor then
-        viewport:ClearAllPoints(); viewport:SetPoint("TOPLEFT", anchor, "TOPLEFT", 4, -(viewport.mosScrollTop or 4))
+        viewport:ClearAllPoints(); viewport:SetPoint("TOPLEFT", anchor, "TOPLEFT", 4, -(viewport.bootyScrollTop or 4))
         viewport:SetPoint("BOTTOMRIGHT", anchor, "BOTTOMRIGHT", overflow and -24 or -4, 4)
     end
     page:SetHeight(contentHeight)
-    viewport.mosScrollGutter = overflow and 20 or 0
+    viewport.bootyScrollGutter = overflow and 20 or 0
     if viewport.UpdateScrollChildRect then viewport:UpdateScrollChildRect() end
     UI.ApplyScrollRange(viewport, getglobal(viewport:GetName() .. "ScrollBar"), maximum)
 end
 
 function Settings.UpdateScroll(viewport, page, pageHeight)
-    if not viewport or not page or viewport.mosScrollLayoutBusy then return end
-    viewport.mosScrollLayoutBusy = true
+    if not viewport or not page or viewport.bootyScrollLayoutBusy then return end
+    viewport.bootyScrollLayoutBusy = true
     local ok, failure = pcall(UpdateSettingsScroll, viewport, page, pageHeight)
-    viewport.mosScrollLayoutBusy = nil
+    viewport.bootyScrollLayoutBusy = nil
     if not ok then error(failure, 0) end
 end
 
@@ -559,55 +559,55 @@ function Settings.LayoutGrid(parent, items, x, y, available, step, sliders)
     local count = table.getn(items)
     if count == 0 then return 0 end
     available = math.max(1, available)
-    local widths = items.mosColumnWidths or {}; items.mosColumnWidths = widths
-    local cols, index, col, total = math.min(items.mosMaxColumns or 4, count), nil, nil, nil
+    local widths = items.bootyColumnWidths or {}; items.bootyColumnWidths = widths
+    local cols, index, col, total = math.min(items.bootyMaxColumns or 4, count), nil, nil, nil
     local required = 0
     for index = 1, count do
         local item = items[index]
-        if items.mosMeasureItem then item.mosGridWidth = items.mosMeasureItem(item)
+        if items.bootyMeasureItem then item.bootyGridWidth = items.bootyMeasureItem(item)
         else
             local label = sliders and getglobal(item:GetName() .. "Text") or item.label
             if label then
                 label:SetWidth(0); label:SetJustifyH("LEFT")
                 local _, size = label:GetFont(); label:SetHeight((size or 10) + 4)
             end
-            item.mosGridWidth = sliders and math.max(170, label:GetStringWidth() + 8) or ((item.swatchBorder and 26 or item:GetWidth() + 4) + (label and label:GetStringWidth() + 8 or 0))
+            item.bootyGridWidth = sliders and math.max(170, label:GetStringWidth() + 8) or ((item.swatchBorder and 26 or item:GetWidth() + 4) + (label and label:GetStringWidth() + 8 or 0))
         end
-        required = math.max(required, item.mosGridWidth)
+        required = math.max(required, item.bootyGridWidth)
     end
     while cols > 0 do
         for col = 1, cols do widths[col] = 0 end
-        for index = 1, count do col = math.mod(index - 1, cols) + 1; widths[col] = math.max(widths[col], items[index].mosGridWidth) end
+        for index = 1, count do col = math.mod(index - 1, cols) + 1; widths[col] = math.max(widths[col], items[index].bootyGridWidth) end
         total = (cols - 1) * 14
         for col = 1, cols do total = total + widths[col] end
         if total <= available or cols == 1 then break end
         cols = cols - 1
     end
-    if not items.mosNoWrap then for col=1,cols do widths[col]=math.min(available,widths[col]) end end
+    if not items.bootyNoWrap then for col=1,cols do widths[col]=math.min(available,widths[col]) end end
     local offsetX, rowHeight, used = 0, step, 0
     for index = 1, count do
         col = math.mod(index - 1, cols) + 1
         if col == 1 and index > 1 then used = used + rowHeight; rowHeight = step; offsetX = 0 end
         local item = items[index]
-        if items.mosLayoutItem then
-            rowHeight = math.max(rowHeight, items.mosLayoutItem(item, parent, x + offsetX, y - used, widths[col]))
+        if items.bootyLayoutItem then
+            rowHeight = math.max(rowHeight, items.bootyLayoutItem(item, parent, x + offsetX, y - used, widths[col]))
         else
             item:ClearAllPoints(); item:SetPoint("TOPLEFT", parent, "TOPLEFT", x + offsetX, y - used)
             local label = sliders and getglobal(item:GetName() .. "Text") or item.label
             local labelWidth = math.max(1, widths[col] - (sliders and 0 or (item.swatchBorder and 26 or item:GetWidth() + 4)))
-            if label then label:SetWidth(labelWidth); label:SetJustifyH("LEFT"); rowHeight = math.max(rowHeight, MOS.UI.Components.MeasureTextHeight(label, labelWidth) + (sliders and 32 or 8)) end
+            if label then label:SetWidth(labelWidth); label:SetJustifyH("LEFT"); rowHeight = math.max(rowHeight, Booty.UI.Components.MeasureTextHeight(label, labelWidth) + (sliders and 32 or 8)) end
             if sliders or item.swatchBorder then item:SetWidth(widths[col]) end
             if label and not sliders then
                 label:ClearAllPoints(); label:SetPoint("TOPLEFT", item, "TOPLEFT", item.swatchBorder and 26 or item:GetWidth() + 4, -3)
             end
             if item.labelHit then
-                item.labelHit:SetWidth(labelWidth); item.labelHit:SetHeight(math.max(item:GetHeight(), MOS.UI.Components.MeasureTextHeight(label, labelWidth) + 6))
+                item.labelHit:SetWidth(labelWidth); item.labelHit:SetHeight(math.max(item:GetHeight(), Booty.UI.Components.MeasureTextHeight(label, labelWidth) + 6))
                 item.labelHit:ClearAllPoints(); item.labelHit:SetPoint("TOPLEFT", item, "TOPRIGHT", 2, 0)
             end
         end
         offsetX = offsetX + widths[col] + 14
     end
-    items.mosColumns = cols
-    items.mosRequiredWidth, items.mosUsedWidth = required, total
+    items.bootyColumns = cols
+    items.bootyRequiredWidth, items.bootyUsedWidth = required, total
     return used + rowHeight
 end

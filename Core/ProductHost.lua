@@ -109,8 +109,8 @@ function ProductHost.Create(product, options)
         host.window = window
         local geometry = Geometry(id)
         RestoreBounds(window, definition, geometry)
-        window.content.mosWidthOwner, window.content.mosWidthInset = window, 8
-        window.content.mosHeightOwner, window.content.mosHeightInset = window, 34
+        window.content.bootyWidthOwner, window.content.bootyWidthInset = window, 8
+        window.content.bootyHeightOwner, window.content.bootyHeightInset = window, 34
         ResizeContent(id)
         local controller
         if host.standalone then controller = definition.create(window.content, host)
@@ -118,12 +118,12 @@ function ProductHost.Create(product, options)
         host.controllers[id] = controller
         window.AttachView({ viewport = window.content, page = controller.frame })
         local function HideView()
-            if not window.mosViewShown then return true end
+            if not window.bootyViewShown then return true end
             if controller.Hide then
                 local result, reason = controller:Hide()
                 if result == false then return false, reason end
             end
-            window.mosViewShown = nil
+            window.bootyViewShown = nil
             return true
         end
         window.HideView = HideView
@@ -159,7 +159,7 @@ function ProductHost.Create(product, options)
                 if not window.minimized then
                     RestoreBounds(window, definition, Geometry(id)); ResizeContent(id)
                     if controller.Show then controller:Show() end
-                    window.mosViewShown = true
+                    window.bootyViewShown = true
                 end
             end)
         end
@@ -173,9 +173,9 @@ function ProductHost.Create(product, options)
                 local mount = options.GetParent(id)
                 if mount:GetParent() ~= window.content then
                     mount:Hide(); mount:SetParent(window.content); mount:ClearAllPoints(); mount:SetAllPoints(window.content)
-                    mount.mosContentPanel = window.content
-                    mount.mosWidthOwner, mount.mosWidthInset = window, 8
-                    mount.mosHeightOwner, mount.mosHeightInset = window, 34
+                    mount.bootyContentPanel = window.content
+                    mount.bootyWidthOwner, mount.bootyWidthInset = window, 8
+                    mount.bootyHeightOwner, mount.bootyHeightInset = window, 34
                 end
                 mount:Show()
             end
@@ -184,7 +184,7 @@ function ProductHost.Create(product, options)
             window.content:Show(); window.resizeGrip:Show(); window:Show(); window:Raise()
             ResizeContent(id)
             if controller.Show then controller:Show() end
-            window.mosViewShown = true
+            window.bootyViewShown = true
             if UI.WindowStack then UI.WindowStack.Sync(window) end
             host.activeView = id
             return controller
@@ -233,7 +233,7 @@ function ProductHost.Create(product, options)
         -- Cleanup refusal must leave the presentation choice unchanged.
         local suspended = {}
         for id, window in pairs(windows) do
-            if window.mosViewShown then
+            if window.bootyViewShown then
                 table.insert(suspended, id)
                 local ok, ready, reason = pcall(window.HideView)
                 if not ok or not ready then
@@ -243,7 +243,7 @@ function ProductHost.Create(product, options)
                         if controller.Show then
                             local restored, result, detail = pcall(controller.Show, controller)
                             if not restored or result == false then failure = failure .. " Restore failed: " .. tostring(detail or result)
-                            else windows[key].mosViewShown = true end
+                            else windows[key].bootyViewShown = true end
                         end
                     end
                     return false, failure
@@ -264,7 +264,7 @@ function ProductHost.Create(product, options)
     host.Close = function()
         if host.menu then host.menu:Close() end
         for id, controller in pairs(host.controllers) do
-            if windows[id] and windows[id].mosViewShown then
+            if windows[id] and windows[id].bootyViewShown then
                 local ready, reason = windows[id].HideView()
                 if not ready then return false, reason end
             elseif controller.Hide then

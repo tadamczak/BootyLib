@@ -1,6 +1,6 @@
-local MOS = BootyLib
-MOS.Core.ClientCapabilities = MOS.Core.ClientCapabilities or {}
-local Capabilities = MOS.Core.ClientCapabilities
+local Booty = BootyLib
+Booty.Core.ClientCapabilities = Booty.Core.ClientCapabilities or {}
+local Capabilities = Booty.Core.ClientCapabilities
 
 -- Capture only on an explicit diagnostic request. Presence checks do not call
 -- memory-update APIs, create probes, install handlers or modify client globals.
@@ -18,7 +18,7 @@ function Capabilities.Collect(label)
     end
     local superwowVersion = type(SUPERWOW_VERSION) == "number" or type(SUPERWOW_VERSION) == "string"
     local classicAPIVersion = type(CLASSIC_API_VERSION) == "number" or type(CLASSIC_API_VERSION) == "string"
-    local compatibility = MOS.Core.Compatibility
+    local compatibility = Booty.Core.Compatibility
     return {
         lua = tostring(_VERSION or "unknown"),
         match = compatibility and compatibility.matchBackend or "not loaded",

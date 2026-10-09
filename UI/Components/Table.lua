@@ -1,5 +1,5 @@
-local MOS = BootyLib
-local UI = MOS.UI.Components
+local Booty = BootyLib
+local UI = Booty.UI.Components
 
 UI.Table = UI.Table or {}
 local Table = UI.Table

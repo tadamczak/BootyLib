@@ -1,8 +1,8 @@
-local MOS = BootyLib
-local Match = MOS.Core and MOS.Core.Compatibility and MOS.Core.Compatibility.Match or string.match
+local Booty = BootyLib
+local Match = Booty.Core and Booty.Core.Compatibility and Booty.Core.Compatibility.Match or string.match
 
-MOS.Services.Version = MOS.Services.Version or {}
-local Version = MOS.Services.Version
+Booty.Services.Version = Booty.Services.Version or {}
+local Version = Booty.Services.Version
 
 function Version.Parse(value)
     if type(value) ~= "string" then return nil end

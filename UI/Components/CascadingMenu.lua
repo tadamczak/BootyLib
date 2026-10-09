@@ -54,7 +54,7 @@ function UI.CreateCascadingMenu(onChoose, options)
                 options.backgroundAlpha or 0.16, options.backgroundUVBottom or 1)
         else panel.art = UI.CreatePerformanceBackground(panel, 0.12) end
         panel.host = UI.CreateContainer(nil, panel)
-        panel.canvas = UI.CreateResponsiveCanvas(panel.host, "MOSQuickMenuCanvas" .. serial .. "Depth" .. depth)
+        panel.canvas = UI.CreateResponsiveCanvas(panel.host, "BootyQuickMenuCanvas" .. serial .. "Depth" .. depth)
         panel:SetScript("OnShow", function() end)
         panel:SetScript("OnHide", function()
             if depth == 1 then menu:Close() else ClearAfter(depth) end
@@ -63,7 +63,7 @@ function UI.CreateCascadingMenu(onChoose, options)
         panel.dismiss:RegisterForClicks("LeftButtonUp", "RightButtonUp")
         panel.dismiss:SetScript("OnClick", function() menu:Close() end)
         table.insert(menu.panels, panel)
-        panel.mosDropdownRoot = menu.panels[1]
+        panel.bootyDropdownRoot = menu.panels[1]
         return panel
     end
     local function EnsureRow(panel, depth, index)
@@ -71,7 +71,7 @@ function UI.CreateCascadingMenu(onChoose, options)
         if row then return row end
         row = UI.CreateMenuItem(panel.canvas, "", 102, ROW_HEIGHT)
         row.SetText, row.GetText = SetRowText, GetRowText
-        row.mosLabelJustify, row.mosFitFontSize = "LEFT", fontSize
+        row.bootyLabelJustify, row.bootyFitFontSize = "LEFT", fontSize
         row.menuDepth, row.menuIndex = depth, index
         row:SetScript("OnClick", Click); row:SetScript("OnEnter", Enter)
         row.icon = UI.CreateTexture(row, nil, "OVERLAY")
@@ -156,7 +156,7 @@ function UI.CreateCascadingMenu(onChoose, options)
     end
     local function LayoutArt(panel, width, height)
         if options.backgroundTexture then
-            local aspect = panel.art.mosImageAspect
+            local aspect = panel.art.bootyImageAspect
             local shownWidth, shownHeight = math.min(1, width / (height * aspect)), math.min(1, height * aspect / width)
             local right, bottom = options.backgroundUVRight or 1, options.backgroundUVBottom or 1
             panel.art:ClearAllPoints(); panel.art:SetPoint("CENTER", panel, "CENTER", 0, 0)

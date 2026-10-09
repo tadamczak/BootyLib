@@ -1,6 +1,6 @@
-local MOS = BootyLib
+local Booty = BootyLib
 local Search = {}
-MOS.Core.SettingsSearch = Search
+Booty.Core.SettingsSearch = Search
 local noChildren = {}
 
 function Search.Normalize(query)

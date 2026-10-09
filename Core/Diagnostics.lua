@@ -1,5 +1,5 @@
-local MOS = BootyLib
-local Diagnostics = MOS.Diagnostics
+local Booty = BootyLib
+local Diagnostics = Booty.Diagnostics
 
 Diagnostics.operations = Diagnostics.operations or {}
 Diagnostics.trackOperations = false

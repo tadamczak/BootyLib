@@ -1,5 +1,5 @@
-local MOS = BootyLib
-local UI = MOS.UI.Components
+local Booty = BootyLib
+local UI = Booty.UI.Components
 
 UI.Skins = UI.Skins or {}
 local Skins = UI.Skins
@@ -164,7 +164,7 @@ end
 -- Both surfaces reuse one caller-owned primary texture. Extra slices are
 -- allocated only on the first visible hover and survive later style changes.
 function UI.SetRoundedHoverSurface(parent, primary, visible, kind, extent, radius, r, g, b, a)
-    local set = primary.mosRoundedHover
+    local set = primary.bootyRoundedHover
     if not visible and not set then
         if primary:Hide() == false then error("Rounded project visibility was declined.") end
         local shown = primary:IsShown()
@@ -175,7 +175,7 @@ function UI.SetRoundedHoverSurface(parent, primary, visible, kind, extent, radiu
     radius = math.ceil(math.min(radius, extent / 2))
     local sourceInset = math.max(background and 2 or 8, radius)
     local inset = math.min(sourceInset, extent / 2)
-    if not set then set = {textures = {}}; primary.mosRoundedHover = set end
+    if not set then set = {textures = {}}; primary.bootyRoundedHover = set end
     if not visible and not set.complete then RoundedVisibility(set, false, background); return end
     if not set.complete then
         CreateNineSlice(parent, roundedSurfaces, 32, 32, sourceInset, background and "ARTWORK" or "OVERLAY", nil, primary, set)
@@ -194,16 +194,16 @@ function UI.SetRoundedHoverSurface(parent, primary, visible, kind, extent, radiu
     set.ready = true
 end
 function UI.SetProjectButtonOutline(button, visible, size, color, topInset, minimumLevel, radius)
-    if not button.mosProjectOutline then
+    if not button.bootyProjectOutline then
         local border = UI.CreateContainer(nil, button)
         border:SetAllPoints(button); border:EnableMouse(false)
         border:SetFrameLevel(button:GetFrameLevel() + 1)
         UI.ApplyDropdownChoiceSurface(border)
         border:SetBackdropColor(0, 0, 0, 0)
         border:SetBackdropBorderColor(1, 0.78, 0.2, 1)
-        button.mosProjectOutline = border
+        button.bootyProjectOutline = border
     end
-    local border = button.mosProjectOutline
+    local border = button.bootyProjectOutline
     border:ClearAllPoints()
     border:SetPoint("TOPLEFT", button, "TOPLEFT", 0, -(topInset or 0))
     border:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", 0, 0)
@@ -213,8 +213,8 @@ function UI.SetProjectButtonOutline(button, visible, size, color, topInset, mini
         local thickness = math.floor(math.max(1, math.min(10, tonumber(size) or 2)))
         radius = math.floor(math.max(0, math.min(10, tonumber(radius) or 0)))
         local inset = math.max(radius, thickness)
-        local set = border.mosRoundedOutline
-        if visible and not set then set = {textures = {}}; border.mosRoundedOutline = set end
+        local set = border.bootyRoundedOutline
+        if visible and not set then set = {textures = {}}; border.bootyRoundedOutline = set end
         if set and not set.complete and visible then
             CreateNineSlice(border, roundedGold, 32, 32, inset, "OVERLAY", nil, nil, set)
         end
@@ -231,71 +231,71 @@ function UI.SetProjectButtonOutline(button, visible, size, color, topInset, mini
             set.ready = true
         elseif set then RoundedVisibility(set, false, false)
         end
-        border:SetBackdropBorderColor(0, 0, 0, 0); border.mosRoundedOutlineActive = true
+        border:SetBackdropBorderColor(0, 0, 0, 0); border.bootyRoundedOutlineActive = true
     else
-        if border.mosRoundedOutline then RoundedVisibility(border.mosRoundedOutline, false, false) end
-        border.mosRoundedOutlineActive = nil; border:SetAlpha(1)
+        if border.bootyRoundedOutline then RoundedVisibility(border.bootyRoundedOutline, false, false) end
+        border.bootyRoundedOutlineActive = nil; border:SetAlpha(1)
     end
     local edgeSize = math.max(1, math.min(6, tonumber(size) or 2)) * 4
-    if radius == nil and border.mosEdgeSize ~= edgeSize then
+    if radius == nil and border.bootyEdgeSize ~= edgeSize then
         local backdrop = border:GetBackdrop(); backdrop.edgeSize = edgeSize
-        border:SetBackdrop(backdrop); border:SetBackdropColor(0, 0, 0, 0); border.mosEdgeSize = edgeSize
+        border:SetBackdrop(backdrop); border:SetBackdropColor(0, 0, 0, 0); border.bootyEdgeSize = edgeSize
     end
     if radius == nil then border:SetBackdropBorderColor(color[1], color[2], color[3], 1) end
-    if visible then button.mosProjectOutline:Show() else button.mosProjectOutline:Hide() end
+    if visible then button.bootyProjectOutline:Show() else button.bootyProjectOutline:Hide() end
 end
 
 -- Asset metadata belongs to the caller. These pooled primitives also support
 -- atlas regions, preserving authored corners when the owner is resized.
 local function ApplyAtlasSurface(frame)
-    if not frame.mosAtlasStyle then
-        SetNineSliceShown(frame.mosAtlasSurface, false)
-        SetNineSliceShown(frame.mosAtlasHighlight, false)
+    if not frame.bootyAtlasStyle then
+        SetNineSliceShown(frame.bootyAtlasSurface, false)
+        SetNineSliceShown(frame.bootyAtlasHighlight, false)
         return false
     end
-    local style = frame.mosAtlasStyle
-    if not frame.mosAtlasSurface then
-        frame.mosAtlasSurface = CreateNineSlice(frame, style.path, style.width, style.height, style.inset, "BACKGROUND", style.coords)
-        frame.mosAtlasSurface.style = style
+    local style = frame.bootyAtlasStyle
+    if not frame.bootyAtlasSurface then
+        frame.bootyAtlasSurface = CreateNineSlice(frame, style.path, style.width, style.height, style.inset, "BACKGROUND", style.coords)
+        frame.bootyAtlasSurface.style = style
     end
-    SetAtlasArtwork(frame.mosAtlasSurface, style)
+    SetAtlasArtwork(frame.bootyAtlasSurface, style)
     frame:SetBackdropColor(0,0,0,0); frame:SetBackdropBorderColor(0,0,0,0)
-    if frame.mosColorFill then frame.mosColorFill:Hide() end
-    if frame.mosClassicRowShade then frame.mosClassicRowShade:Hide() end
-    SetNineSliceShown(frame.mosAtlasSurface, true)
+    if frame.bootyColorFill then frame.bootyColorFill:Hide() end
+    if frame.bootyClassicRowShade then frame.bootyClassicRowShade:Hide() end
+    SetNineSliceShown(frame.bootyAtlasSurface, true)
     return true
 end
 
 function UI.SetAtlasHighlight(frame, visible, style, size, color)
-    if not visible then SetNineSliceShown(frame.mosAtlasHighlight, false); return end
-    if visible and not frame.mosAtlasHighlight then
-        frame.mosAtlasHighlight = CreateNineSlice(frame, style.path, style.width, style.height, style.inset, "BORDER", style.coords)
-        frame.mosAtlasHighlight.style = style
+    if not visible then SetNineSliceShown(frame.bootyAtlasHighlight, false); return end
+    if visible and not frame.bootyAtlasHighlight then
+        frame.bootyAtlasHighlight = CreateNineSlice(frame, style.path, style.width, style.height, style.inset, "BORDER", style.coords)
+        frame.bootyAtlasHighlight.style = style
     end
-    if not frame.mosAtlasHighlight then return end
-    SetAtlasArtwork(frame.mosAtlasHighlight, style)
-    SizeNineSlice(frame.mosAtlasHighlight, math.min(style.height / 2, frame:GetHeight() / 2, frame:GetWidth() / 2, style.inset * (size or 1)))
+    if not frame.bootyAtlasHighlight then return end
+    SetAtlasArtwork(frame.bootyAtlasHighlight, style)
+    SizeNineSlice(frame.bootyAtlasHighlight, math.min(style.height / 2, frame:GetHeight() / 2, frame:GetWidth() / 2, style.inset * (size or 1)))
     local index
     for index = 1, 9 do
-        local texture = frame.mosAtlasHighlight.textures[index]
+        local texture = frame.bootyAtlasHighlight.textures[index]
         texture:SetBlendMode("ADD")
         texture:SetVertexColor(color[1], color[2], color[3], 1)
     end
-    SetNineSliceShown(frame.mosAtlasHighlight, visible and frame.mosAtlasStyle ~= nil)
-    frame.mosAtlasHighlight.textures[5]:Hide()
+    SetNineSliceShown(frame.bootyAtlasHighlight, visible and frame.bootyAtlasStyle ~= nil)
+    frame.bootyAtlasHighlight.textures[5]:Hide()
 end
 
 function UI.SetAtlasOutline(frame, visible, style, size, color, topInset, minimumLevel)
-    if not frame.mosAtlasOutline and not visible then return end
-    if not frame.mosAtlasOutline then
+    if not frame.bootyAtlasOutline and not visible then return end
+    if not frame.bootyAtlasOutline then
         local border = UI.CreateContainer(nil, frame)
         border:EnableMouse(false)
         border.art = CreateNineSlice(border, style.path, style.width, style.height, style.inset, "OVERLAY", style.coords)
         border.art.style = style
         border.art.textures[5]:Hide()
-        frame.mosAtlasOutline = border
+        frame.bootyAtlasOutline = border
     end
-    local border = frame.mosAtlasOutline
+    local border = frame.bootyAtlasOutline
     border:ClearAllPoints(); border:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -(topInset or 0)); border:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
     border:SetFrameLevel(math.max(frame:GetFrameLevel() + 1, minimumLevel or 0))
     SetAtlasArtwork(border.art, style)
@@ -305,12 +305,12 @@ function UI.SetAtlasOutline(frame, visible, style, size, color, topInset, minimu
 end
 
 local function ApplyButtonArtwork(button, entry)
-    local art = button.mosButtonArtwork
+    local art = button.bootyButtonArtwork
     if not art then return end
     SetNineSliceShown(entry.classicSkin, false); SetNineSliceShown(entry.classicHoverBorder, false); SetNineSliceShown(entry.classicSelectedBorder, false)
     if entry.classicRedFill then entry.classicRedFill:Hide() end
     if entry.redHover then entry.redHover:Hide() end
-    if button.mosHighlight then button.mosHighlight:Hide() end
+    if button.bootyHighlight then button.bootyHighlight:Hide() end
     button:SetBackdropColor(0,0,0,0); button:SetBackdropBorderColor(0,0,0,0)
     button:SetNormalTexture(art.normal); button:SetPushedTexture(art.pushed)
     button:SetDisabledTexture(art.disabled); button:SetHighlightTexture(art.highlight, "ADD")
@@ -323,7 +323,7 @@ end
 function UI.ApplyDropdownChoiceSurface(button)
     button:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border", edgeSize = 8, insets = { left = 1, right = 1, top = 1, bottom = 1 } })
     button:SetBackdropColor(0.08, 0.08, 0.08, 0.95)
-    if button.mosClassicSelected then button:SetBackdropBorderColor(1, 0.78, 0.2, 1)
+    if button.bootyClassicSelected then button:SetBackdropBorderColor(1, 0.78, 0.2, 1)
     else button:SetBackdropBorderColor(0.35, 0.35, 0.35, 1) end
 end
 
@@ -331,7 +331,7 @@ local function ApplySolidButton(entry)
     local button = entry.frame
     UI.ApplyDropdownChoiceSurface(button)
     button:EnableMouse(true)
-    if button.mosHighlight then button.mosHighlight:Hide() end
+    if button.bootyHighlight then button.bootyHighlight:Hide() end
     SetNineSliceShown(entry.classicSkin, false); SetNineSliceShown(entry.classicHoverBorder, false)
     SetNineSliceShown(entry.classicSelectedBorder, false)
     if entry.classicRedFill then entry.classicRedFill:Hide() end
@@ -340,15 +340,15 @@ local function ApplySolidButton(entry)
 end
 
 local function ApplySizedButtonGeometry(button, entry)
-    if not button.mosButtonScale then
+    if not button.bootyButtonScale then
         if UI.ApplyButtonCaptionBaseline then UI.ApplyButtonCaptionBaseline(button) end
         return
     end
-    local scale = button.mosButtonScale
-    local iconSize = (button.mosBaseIconSize or 13) * scale
-    local inset = (button.mosBaseIconInset or 7) * scale
-    if button.mosClassicIconKey then
-        button.mosClassicIconSize = iconSize; button.mosClassicIconInset = inset; button.mosClassicIconYOffset = 0
+    local scale = button.bootyButtonScale
+    local iconSize = (button.bootyBaseIconSize or 13) * scale
+    local inset = (button.bootyBaseIconInset or 7) * scale
+    if button.bootyClassicIconKey then
+        button.bootyClassicIconSize = iconSize; button.bootyClassicIconInset = inset; button.bootyClassicIconYOffset = 0
         if entry and entry.classicIcon then
             entry.classicIcon:SetWidth(iconSize); entry.classicIcon:SetHeight(iconSize)
             entry.classicIcon:ClearAllPoints(); entry.classicIcon:SetPoint("LEFT", button, "LEFT", inset, 0)
@@ -357,22 +357,22 @@ local function ApplySizedButtonGeometry(button, entry)
     end
     if button.label then
         button.label:ClearAllPoints()
-        button.label:SetPoint("TOPLEFT", button, "TOPLEFT", button.mosClassicIconKey and inset + iconSize + 4 or 0, 0)
+        button.label:SetPoint("TOPLEFT", button, "TOPLEFT", button.bootyClassicIconKey and inset + iconSize + 4 or 0, 0)
         button.label:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -4, 0)
-        button.label:SetJustifyH(button.mosClassicIconKey and "LEFT" or "CENTER"); button.label:SetJustifyV("MIDDLE")
+        button.label:SetJustifyH(button.bootyClassicIconKey and "LEFT" or "CENTER"); button.label:SetJustifyV("MIDDLE")
     end
     if UI.ApplyButtonCaptionBaseline then UI.ApplyButtonCaptionBaseline(button) end
 end
 
 local function ApplyControl(entry)
     local button = entry.frame
-    if Skins.current ~= "classic" or button.mosClassicVariant ~= "red" then entry.hovered = nil end
-    local solid = button.mosClassicKeepNormalSurface
+    if Skins.current ~= "classic" or button.bootyClassicVariant ~= "red" then entry.hovered = nil end
+    local solid = button.bootyClassicKeepNormalSurface
     if Skins.current == "classic" then
-        local useSelectedSurface = button.mosClassicSelected and not button.mosClassicKeepNormalSurface
-        local variant = useSelectedSurface and "red" or (button.mosClassicVariant or "dark")
-        local state = (useSelectedSurface or variant == "red" or button.mosClassicPersistentRed) and "selected" or "normal"
-        if not button.mosClassicKeepNormalSurface then
+        local useSelectedSurface = button.bootyClassicSelected and not button.bootyClassicKeepNormalSurface
+        local variant = useSelectedSurface and "red" or (button.bootyClassicVariant or "dark")
+        local state = (useSelectedSurface or variant == "red" or button.bootyClassicPersistentRed) and "selected" or "normal"
+        if not button.bootyClassicKeepNormalSurface then
             if not entry.classicSkin then entry.classicSkin = CreateNineSlice(button, ClassicPath("Buttons\\" .. variant .. "-" .. state .. ".tga"), 128, 32, 6, "BACKGROUND")
             else SetNineSliceTexture(entry.classicSkin, ClassicPath("Buttons\\" .. variant .. "-" .. state .. ".tga")) end
             local center = entry.classicSkin.textures[5]
@@ -380,7 +380,7 @@ local function ApplyControl(entry)
             center:SetPoint("BOTTOMRIGHT", entry.classicSkin.textures[9], "TOPLEFT", 0, 0); center:SetVertexColor(1,1,1,1)
             button:SetBackdropColor(0, 0, 0, 0); button:SetBackdropBorderColor(0, 0, 0, 0); SetNineSliceShown(entry.classicSkin, true)
             button:SetHighlightTexture(nil)
-            if button.mosHighlight then button.mosHighlight:Hide() end
+            if button.bootyHighlight then button.bootyHighlight:Hide() end
             if not entry.classicHoverBorder then entry.classicHoverBorder = CreateClassicHoverOutline(button, ClassicPath("Buttons\\" .. variant .. "-selected.tga"), true)
             else SetNineSliceTexture(entry.classicHoverBorder, ClassicPath("Buttons\\" .. variant .. "-selected.tga")) end
             SetNineSliceShown(entry.classicHoverBorder, true); entry.classicHoverBorder.textures[5]:Hide()
@@ -398,9 +398,9 @@ local function ApplyControl(entry)
                 entry.classicRedFill:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -6, 5)
                 entry.classicRedFill:SetVertexColor(0.55, 0.04, 0.04, 0.27)
             end
-            if state == "selected" and not button.mosClassicCompactControl then entry.classicRedFill:Show() else entry.classicRedFill:Hide() end
+            if state == "selected" and not button.bootyClassicCompactControl then entry.classicRedFill:Show() else entry.classicRedFill:Hide() end
         end
-        if button.mosClassicVariant == "red" and not button.mosClassicCompactControl then
+        if button.bootyClassicVariant == "red" and not button.bootyClassicCompactControl then
             SetNineSliceShown(entry.classicHoverBorder, false)
             if not entry.redHover then
                 entry.redHover = button:CreateTexture(nil, "HIGHLIGHT")
@@ -414,27 +414,27 @@ local function ApplyControl(entry)
             entry.redHover:ClearAllPoints(); entry.redHover:SetPoint("TOPLEFT", button, "TOPLEFT", 6, -5)
             entry.redHover:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -6, 5); entry.redHover:Show()
         elseif entry.redHover then entry.redHover:Hide() end
-        local disabled = button.mosClassicDisabled
-        local gold = not disabled and (button.mosClassicGold or button.mosClassicSelected)
+        local disabled = button.bootyClassicDisabled
+        local gold = not disabled and (button.bootyClassicGold or button.bootyClassicSelected)
         local red, green, blue = 1, 1, 1
         if disabled then red, green, blue = 0.48, 0.48, 0.46
         elseif gold then red, green, blue = 1, 0.82, 0.28 end
         if button.label then button.label:SetTextColor(red, green, blue) end
-        if button.mosClassicIconKey then
+        if button.bootyClassicIconKey then
             if not entry.classicIcon then
                 entry.classicIcon = button:CreateTexture(nil, "OVERLAY")
                 entry.classicIcon:SetPoint("LEFT", button, "LEFT", 7, 0)
             end
-            entry.classicIcon:SetWidth(button.mosClassicIconSize or 13); entry.classicIcon:SetHeight(button.mosClassicIconSize or 13)
-            entry.classicIcon:SetTexture(ClassicPath("Icons\\" .. button.mosClassicIconKey .. ".tga")); entry.classicIcon:Show()
-            entry.classicIcon:ClearAllPoints(); entry.classicIcon:SetPoint("LEFT", button, "LEFT", button.mosClassicIconInset or 7, button.mosClassicIconYOffset or 0)
+            entry.classicIcon:SetWidth(button.bootyClassicIconSize or 13); entry.classicIcon:SetHeight(button.bootyClassicIconSize or 13)
+            entry.classicIcon:SetTexture(ClassicPath("Icons\\" .. button.bootyClassicIconKey .. ".tga")); entry.classicIcon:Show()
+            entry.classicIcon:ClearAllPoints(); entry.classicIcon:SetPoint("LEFT", button, "LEFT", button.bootyClassicIconInset or 7, button.bootyClassicIconYOffset or 0)
             entry.classicIcon:SetVertexColor(unpack(UI.Theme.colors.goldIcon))
             -- Keep the label on its original full button bounds. Reserving space
             -- for the icon moved the visual centre of every caption.
             if button.label and entry.labelPoints then
                 button.label:ClearAllPoints()
-                if button.mosClassicReserveIconSpace then
-                    button.label:SetPoint("TOPLEFT", button, "TOPLEFT", (button.mosClassicIconInset or 7) + (button.mosClassicIconSize or 13) + 3, 0)
+                if button.bootyClassicReserveIconSpace then
+                    button.label:SetPoint("TOPLEFT", button, "TOPLEFT", (button.bootyClassicIconInset or 7) + (button.bootyClassicIconSize or 13) + 3, 0)
                     button.label:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -4, 0)
                 else
                     local pointIndex
@@ -450,14 +450,14 @@ local function ApplyControl(entry)
                 for pointIndex = 1, table.getn(entry.labelPoints) do button.label:SetPoint(unpack(entry.labelPoints[pointIndex])) end
             end
         end
-        if button.label and button.mosClassicLabelYOffset then
+        if button.label and button.bootyClassicLabelYOffset then
             button.label:ClearAllPoints()
-            button.label:SetPoint("TOPLEFT", button, "TOPLEFT", button.mosClassicLabelXOffset or 0, button.mosClassicLabelYOffset)
-            button.label:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", button.mosClassicLabelXOffset or 0, button.mosClassicLabelYOffset)
+            button.label:SetPoint("TOPLEFT", button, "TOPLEFT", button.bootyClassicLabelXOffset or 0, button.bootyClassicLabelYOffset)
+            button.label:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", button.bootyClassicLabelXOffset or 0, button.bootyClassicLabelYOffset)
             button.label:SetJustifyH("CENTER"); button.label:SetJustifyV("MIDDLE")
         end
-        if button.mosHighlight then button.mosHighlight:SetTexture("Interface\\Buttons\\WHITE8X8"); button.mosHighlight:SetVertexColor(0.55, 0.38, 0.08, 0.35) end
-        if button.mosClassicCompactControl then
+        if button.bootyHighlight then button.bootyHighlight:SetTexture("Interface\\Buttons\\WHITE8X8"); button.bootyHighlight:SetVertexColor(0.55, 0.38, 0.08, 0.35) end
+        if button.bootyClassicCompactControl then
             SetNineSliceShown(entry.classicSkin, false)
             SetNineSliceShown(entry.classicHoverBorder, false)
             SetNineSliceShown(entry.classicSelectedBorder, false)
@@ -484,12 +484,12 @@ local function ApplyControl(entry)
         button:SetBackdrop(entry.backdrop)
         button:SetBackdropColor(unpack(entry.background)); button:SetBackdropBorderColor(unpack(entry.border))
         if button.label and entry.labelColor then button.label:SetTextColor(unpack(entry.labelColor)) end
-        if button.mosHighlight then button.mosHighlight:Show(); button.mosHighlight:SetAlpha(1); button.mosHighlight:SetTexture(unpack(entry.highlight)); button.mosHighlight:SetVertexColor(1, 1, 1, 1) end
+        if button.bootyHighlight then button.bootyHighlight:Show(); button.bootyHighlight:SetAlpha(1); button.bootyHighlight:SetTexture(unpack(entry.highlight)); button.bootyHighlight:SetVertexColor(1, 1, 1, 1) end
     end
-    if button.label and button.mosTextColor then button.label:SetTextColor(unpack(button.mosClassicSelected and button.mosSelectedTextColor or button.mosTextColor)) end
+    if button.label and button.bootyTextColor then button.label:SetTextColor(unpack(button.bootyClassicSelected and button.bootySelectedTextColor or button.bootyTextColor)) end
     if solid then
         ApplySolidButton(entry)
-    elseif Skins.current == "classic" and not button.mosClassicCompactControl and button.mosClassicVariant ~= "red" and not button.mosClassicSelected then
+    elseif Skins.current == "classic" and not button.bootyClassicCompactControl and button.bootyClassicVariant ~= "red" and not button.bootyClassicSelected then
         UI.ApplyDropdownChoiceSurface(button)
         SetNineSliceShown(entry.classicSkin, false)
         if entry.classicSkin then
@@ -499,64 +499,64 @@ local function ApplyControl(entry)
         SetNineSliceShown(entry.classicHoverBorder, false)
         SetNineSliceShown(entry.classicSelectedBorder, false)
         button:SetPushedTexture(nil); button:SetDisabledTexture(nil)
-        if button.mosClassicVariant == "red" or button.mosClassicSelected then button:SetBackdropBorderColor(1, 0.78, 0.2, 1) end
+        if button.bootyClassicVariant == "red" or button.bootyClassicSelected then button:SetBackdropBorderColor(1, 0.78, 0.2, 1) end
     end
-    if button.label and not button.mosTextColor and entry.hovered and Skins.current == "classic" and button.mosClassicVariant == "red" and not button.mosClassicDisabled then
+    if button.label and not button.bootyTextColor and entry.hovered and Skins.current == "classic" and button.bootyClassicVariant == "red" and not button.bootyClassicDisabled then
         entry.restR, entry.restG, entry.restB, entry.restA = button.label:GetTextColor()
         button.label:SetTextColor(0.82, 0.82, 0.78)
     end
-    if button.label and button.mosLabelInsets then
+    if button.label and button.bootyLabelInsets then
         button.label:ClearAllPoints()
-        button.label:SetPoint("LEFT", button, "LEFT", button.mosLabelInsets[1], 0)
-        button.label:SetPoint("RIGHT", button, "RIGHT", -button.mosLabelInsets[2], 0)
+        button.label:SetPoint("LEFT", button, "LEFT", button.bootyLabelInsets[1], 0)
+        button.label:SetPoint("RIGHT", button, "RIGHT", -button.bootyLabelInsets[2], 0)
         button.label:SetJustifyH("LEFT")
     end
-    if button.label and button.mosClassicCompactControl and button.mosClassicLabelYOffset then
+    if button.label and button.bootyClassicCompactControl and button.bootyClassicLabelYOffset then
         button.label:ClearAllPoints()
-        button.label:SetPoint("TOPLEFT", button, "TOPLEFT", button.mosClassicLabelXOffset or 0, button.mosClassicLabelYOffset)
-        button.label:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", button.mosClassicLabelXOffset or 0, button.mosClassicLabelYOffset)
+        button.label:SetPoint("TOPLEFT", button, "TOPLEFT", button.bootyClassicLabelXOffset or 0, button.bootyClassicLabelYOffset)
+        button.label:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", button.bootyClassicLabelXOffset or 0, button.bootyClassicLabelYOffset)
     end
     ApplySizedButtonGeometry(button, entry)
-    if button.mosBorderless then
+    if button.bootyBorderless then
         if Skins.current == "classic" and entry.classicSkin and not solid then
             SetNineSliceShown(entry.classicSkin, false)
             local center = entry.classicSkin.textures[5]
             center:ClearAllPoints(); center:SetAllPoints(button)
-            local brightness = button.mosClassicDisabled and 0.45 or 1
+            local brightness = button.bootyClassicDisabled and 0.45 or 1
             center:SetVertexColor(brightness,brightness,brightness,1); center:Show()
         end
         SetNineSliceShown(entry.classicHoverBorder, false); SetNineSliceShown(entry.classicSelectedBorder, false)
         if entry.redHover then entry.redHover:ClearAllPoints(); entry.redHover:SetAllPoints(button) end
         if entry.classicRedFill then entry.classicRedFill:Hide() end
         button:SetPushedTexture(nil); button:SetDisabledTexture(nil); button:SetBackdropBorderColor(0,0,0,0)
-        if button.mosProjectOutline then button.mosProjectOutline:Hide() end
+        if button.bootyProjectOutline then button.bootyProjectOutline:Hide() end
     end
-    if button.mosWarmListRow then UI.StyleWarmListRow(button, button.mosWarmListSelected) end
-    if button.mosSelectableTableRow and UI.StyleSelectableTableRow then UI.StyleSelectableTableRow(button,button.mosTableRowEven,button.mosTableRowSelected) end
+    if button.bootyWarmListRow then UI.StyleWarmListRow(button, button.bootyWarmListSelected) end
+    if button.bootySelectableTableRow and UI.StyleSelectableTableRow then UI.StyleSelectableTableRow(button,button.bootyTableRowEven,button.bootyTableRowSelected) end
     ApplyButtonArtwork(button, entry)
 end
 
 function UI.SetButtonTextColor(button, color)
     if not button then return end
-    button.mosTextColor = color
+    button.bootyTextColor = color
     if button.label then button.label:SetTextColor(unpack(color)) end
 end
 
 local function GoldHoverEnter()
     if this.IsEnabled and not this:IsEnabled() then return end
     this:SetBackdropBorderColor(1, 0.78, 0.2, 1)
-    if this.mosHoverTextColor and this.label then this.label:SetTextColor(unpack(this.mosHoverTextColor)) end
+    if this.bootyHoverTextColor and this.label then this.label:SetTextColor(unpack(this.bootyHoverTextColor)) end
 end
 
 local function GoldHoverLeave()
-    if this.mosHoverTextColor and this.label then this.label:SetTextColor(unpack(this.mosClassicSelected and this.mosHoverTextColor or this.mosTextColor or {1,1,1})) end
-    if this.mosClassicKeepNormalSurface and this.mosClassicSelected then this:SetBackdropBorderColor(1, 0.78, 0.2, 1); return end
-    local color = this.mosNormalBorder
+    if this.bootyHoverTextColor and this.label then this.label:SetTextColor(unpack(this.bootyClassicSelected and this.bootyHoverTextColor or this.bootyTextColor or {1,1,1})) end
+    if this.bootyClassicKeepNormalSurface and this.bootyClassicSelected then this:SetBackdropBorderColor(1, 0.78, 0.2, 1); return end
+    local color = this.bootyNormalBorder
     if color then this:SetBackdropBorderColor(color[1], color[2], color[3], color[4]) end
 end
 
 function UI.AttachGoldHoverBorder(button, red, green, blue, alpha)
-    button.mosNormalBorder = { red, green, blue, alpha }
+    button.bootyNormalBorder = { red, green, blue, alpha }
     button:SetScript("OnEnter", GoldHoverEnter)
     button:SetScript("OnLeave", GoldHoverLeave)
 end
@@ -579,13 +579,13 @@ local function ApplySurface(entry)
         if entry.classicFill then entry.classicFill:Hide() end
         return
     end
-    if frame.mosTransparentSurface then
+    if frame.bootyTransparentSurface then
         SetNineSliceShown(entry.classicSkin, false)
         if entry.classicFill then entry.classicFill:Hide() end
         frame:SetBackdropColor(0,0,0,0); frame:SetBackdropBorderColor(0,0,0,0)
         return
     end
-    if not frame.mosUseNativeSurface and (Skins.current == "classic" or frame.mosJoinedTop ~= nil or frame.mosHorizontalBorders) then
+    if not frame.bootyUseNativeSurface and (Skins.current == "classic" or frame.bootyJoinedTop ~= nil or frame.bootyHorizontalBorders) then
         local style = SURFACE_STYLES[entry.kind] or SURFACE_STYLES.panel
         if entry.kind == "row" and not entry.classicFill then
             -- Rows have a fixed height and a horizontally authored surface.
@@ -599,53 +599,53 @@ local function ApplySurface(entry)
         if entry.kind ~= "row" and not entry.classicSkin then entry.classicSkin = CreateNineSlice(frame, ClassicPath(style.file), style.width, style.height, style.inset, "BORDER") end
         frame:SetBackdropColor(0, 0, 0, 0); frame:SetBackdropBorderColor(0, 0, 0, 0)
         if entry.classicFill then entry.classicFill:Show() end
-        if frame.mosClassicRowShade then frame.mosClassicRowShade:Show() end
+        if frame.bootyClassicRowShade then frame.bootyClassicRowShade:Show() end
         SetNineSliceShown(entry.classicSkin, true)
         if entry.classicSkin then
             local index
-            for index = 1, 9 do entry.classicSkin.textures[index]:SetAlpha(frame.mosCompactBorder and 0.2 or 1) end
+            for index = 1, 9 do entry.classicSkin.textures[index]:SetAlpha(frame.bootyCompactBorder and 0.2 or 1) end
         end
     else
         SetNineSliceShown(entry.classicSkin, false)
         if entry.classicFill then entry.classicFill:Hide() end
-        if frame.mosClassicRowShade then frame.mosClassicRowShade:Hide() end
+        if frame.bootyClassicRowShade then frame.bootyClassicRowShade:Hide() end
         frame:SetBackdrop(entry.backdrop)
         frame:SetBackdropColor(unpack(entry.background)); frame:SetBackdropBorderColor(unpack(entry.border))
-        if frame.mosCompactBorder then frame:SetBackdropBorderColor(entry.border[1], entry.border[2], entry.border[3], 0.2) end
+        if frame.bootyCompactBorder then frame:SetBackdropBorderColor(entry.border[1], entry.border[2], entry.border[3], 0.2) end
     end
-    if entry.classicSkin and frame.mosJoinedTop ~= nil then
+    if entry.classicSkin and frame.bootyJoinedTop ~= nil then
         local t = entry.classicSkin.textures
-        if frame.mosJoinedTop then
+        if frame.bootyJoinedTop then
             t[1]:SetTexCoord(0, 6/32, 6/32, 26/32); t[3]:SetTexCoord(26/32, 1, 6/32, 26/32)
         end
-        if frame.mosJoinedBottom then
+        if frame.bootyJoinedBottom then
             t[7]:SetTexCoord(0, 6/32, 6/32, 26/32); t[9]:SetTexCoord(26/32, 1, 6/32, 26/32); t[8]:Hide()
         end
     end
-    if frame.mosSeparatorsOnly and entry.classicSkin then
+    if frame.bootySeparatorsOnly and entry.classicSkin then
         local t = entry.classicSkin.textures
         local index
-        for index = 1, 9 do if index ~= 2 or not frame.mosJoinedTop then t[index]:Hide() end end
-        t[2]:ClearAllPoints(); t[2]:SetPoint("TOPLEFT",frame,"TOPLEFT",-(frame.mosBorderOutsetLeft or 0),0); t[2]:SetPoint("TOPRIGHT",frame,"TOPRIGHT",frame.mosBorderOutsetRight or 0,0)
+        for index = 1, 9 do if index ~= 2 or not frame.bootyJoinedTop then t[index]:Hide() end end
+        t[2]:ClearAllPoints(); t[2]:SetPoint("TOPLEFT",frame,"TOPLEFT",-(frame.bootyBorderOutsetLeft or 0),0); t[2]:SetPoint("TOPRIGHT",frame,"TOPRIGHT",frame.bootyBorderOutsetRight or 0,0)
         if entry.classicFill then entry.classicFill:Hide() end
     end
-    if frame.mosHorizontalBorders and entry.classicSkin then
+    if frame.bootyHorizontalBorders and entry.classicSkin then
         local t = entry.classicSkin.textures
         t[1]:Hide(); t[3]:Hide(); t[4]:Hide(); t[5]:Hide(); t[6]:Hide(); t[7]:Hide(); t[9]:Hide()
-        t[2]:ClearAllPoints(); t[2]:SetPoint("TOPLEFT",frame,"TOPLEFT",-(frame.mosBorderOutsetLeft or 0),0); t[2]:SetPoint("TOPRIGHT",frame,"TOPRIGHT",frame.mosBorderOutsetRight or 0,0)
-        t[8]:ClearAllPoints(); t[8]:SetPoint("BOTTOMLEFT",frame,"BOTTOMLEFT",-(frame.mosBorderOutsetLeft or 0),0); t[8]:SetPoint("BOTTOMRIGHT",frame,"BOTTOMRIGHT",frame.mosBorderOutsetRight or 0,0)
+        t[2]:ClearAllPoints(); t[2]:SetPoint("TOPLEFT",frame,"TOPLEFT",-(frame.bootyBorderOutsetLeft or 0),0); t[2]:SetPoint("TOPRIGHT",frame,"TOPRIGHT",frame.bootyBorderOutsetRight or 0,0)
+        t[8]:ClearAllPoints(); t[8]:SetPoint("BOTTOMLEFT",frame,"BOTTOMLEFT",-(frame.bootyBorderOutsetLeft or 0),0); t[8]:SetPoint("BOTTOMRIGHT",frame,"BOTTOMRIGHT",frame.bootyBorderOutsetRight or 0,0)
         if entry.kind == "title" then
             -- Omit the black inner bevel authored above the visible separator.
             t[8]:SetTexCoord(6/32, 26/32, 29/32, 1); t[8]:SetHeight(3)
         end
-        if not frame.mosBorderTop then t[2]:Hide() end
-        if not frame.mosBorderBottom then t[8]:Hide() end
-        if frame.mosBorderRight then
+        if not frame.bootyBorderTop then t[2]:Hide() end
+        if not frame.bootyBorderBottom then t[8]:Hide() end
+        if frame.bootyBorderRight then
             t[6]:Show(); t[6]:ClearAllPoints(); t[6]:SetPoint("TOPRIGHT",frame,"TOPRIGHT",0,0); t[6]:SetPoint("BOTTOMRIGHT",frame,"BOTTOMRIGHT",0,0)
         end
     end
-    if frame.mosRowColor then UI.SetRowColor(frame, frame.mosRowColor, frame.mosRowAlpha) end
-    if frame.mosSurfaceBorderHidden then
+    if frame.bootyRowColor then UI.SetRowColor(frame, frame.bootyRowColor, frame.bootyRowAlpha) end
+    if frame.bootySurfaceBorderHidden then
         SetNineSliceShown(entry.classicSkin, false); frame:SetBackdropBorderColor(0,0,0,0)
     end
 end
@@ -681,26 +681,26 @@ local function ApplyScrollBar(entry)
 end
 
 local function RedHoverEnter()
-    local entry = this.mosSkinEntry
+    local entry = this.bootySkinEntry
     if entry.onEnter then entry.onEnter() end
-    if Skins.current == "classic" and not this.mosClassicDisabled then this:SetBackdropBorderColor(1, 0.78, 0.2, 1) end
+    if Skins.current == "classic" and not this.bootyClassicDisabled then this:SetBackdropBorderColor(1, 0.78, 0.2, 1) end
     local enabled = not this.IsEnabled or this:IsEnabled()
-    if Skins.current ~= "classic" or this.mosClassicVariant ~= "red" or this.mosClassicCompactControl or this.mosClassicDisabled or enabled == false or enabled == 0 then return end
+    if Skins.current ~= "classic" or this.bootyClassicVariant ~= "red" or this.bootyClassicCompactControl or this.bootyClassicDisabled or enabled == false or enabled == 0 then return end
     if not entry.hovered then entry.restR, entry.restG, entry.restB, entry.restA = this.label:GetTextColor() end
     entry.hovered = true
-    if not this.mosTextColor then this.label:SetTextColor(0.82, 0.82, 0.78) end
+    if not this.bootyTextColor then this.label:SetTextColor(0.82, 0.82, 0.78) end
 end
 
 local function RedHoverLeave()
-    local entry = this.mosSkinEntry
+    local entry = this.bootySkinEntry
     if entry.hovered then
         entry.hovered = nil
-        if this.mosClassicDisabled then this.label:SetTextColor(0.48, 0.48, 0.46)
+        if this.bootyClassicDisabled then this.label:SetTextColor(0.48, 0.48, 0.46)
         else this.label:SetTextColor(entry.restR, entry.restG, entry.restB, entry.restA) end
     end
     if entry.onLeave then entry.onLeave() end
     if Skins.current == "classic" then
-        if this.mosClassicVariant == "red" or this.mosClassicSelected then this:SetBackdropBorderColor(1, 0.78, 0.2, 1)
+        if this.bootyClassicVariant == "red" or this.bootyClassicSelected then this:SetBackdropBorderColor(1, 0.78, 0.2, 1)
         else this:SetBackdropBorderColor(0.35, 0.35, 0.35, 1) end
     end
 end
@@ -708,15 +708,15 @@ end
 function UI.RegisterSkinnedControl(frame, backdrop, background, border, highlight)
     -- Authored red artwork owns its outline. Later action/hover styling must
     -- never add the native backdrop edge over it.
-    if not frame.mosBorderSetterInstalled then
+    if not frame.bootyBorderSetterInstalled then
         local setBorder = frame.SetBackdropBorderColor
         frame.SetBackdropBorderColor = function(self, red, green, blue, alpha)
-            if self.mosButtonArtwork or self.mosBorderless or (Skins.current == "classic" and self.mosClassicVariant == "red" and not self.mosClassicCompactControl and not self.mosClassicKeepNormalSurface) then
+            if self.bootyButtonArtwork or self.bootyBorderless or (Skins.current == "classic" and self.bootyClassicVariant == "red" and not self.bootyClassicCompactControl and not self.bootyClassicKeepNormalSurface) then
                 return setBorder(self, 0, 0, 0, 0)
             end
             return setBorder(self, red, green, blue, alpha)
         end
-        frame.mosBorderSetterInstalled = true
+        frame.bootyBorderSetterInstalled = true
     end
     local labelColor = nil
     local labelPoints = nil
@@ -728,7 +728,7 @@ function UI.RegisterSkinnedControl(frame, backdrop, background, border, highligh
     end
     local entry = { frame = frame, backdrop = backdrop, background = background, border = border, highlight = highlight, labelColor = labelColor, labelPoints = labelPoints }
     entry.onEnter, entry.onLeave = frame:GetScript("OnEnter"), frame:GetScript("OnLeave")
-    frame.mosSkinEntry = entry
+    frame.bootySkinEntry = entry
     frame:SetScript("OnEnter", RedHoverEnter); frame:SetScript("OnLeave", RedHoverLeave)
     local onHide = frame:GetScript("OnHide")
     frame:SetScript("OnHide", function()
@@ -757,16 +757,16 @@ function UI.RegisterSkinnedSurface(frame, kind, backdrop, background, border)
     end
     if not backdrop and frame.GetBackdrop then backdrop=frame:GetBackdrop() end
     local entry = { frame = frame, kind = kind, backdrop = backdrop, background = background, border = border }
-    frame.mosSurfaceEntry = entry
+    frame.bootySurfaceEntry = entry
     Skins.surfaces[table.getn(Skins.surfaces) + 1] = entry
     ApplySurface(entry)
 end
 
 function UI.SetSurfaceCompact(frame, compact)
     local wanted = compact and true or false
-    if frame.mosCompactBorder == wanted then return end
-    frame.mosCompactBorder = wanted
-    if frame.mosSurfaceEntry then ApplySurface(frame.mosSurfaceEntry) end
+    if frame.bootyCompactBorder == wanted then return end
+    frame.bootyCompactBorder = wanted
+    if frame.bootySurfaceEntry then ApplySurface(frame.bootySurfaceEntry) end
 end
 
 function UI.RegisterDialogSurface(frame, kind, background)
@@ -793,13 +793,13 @@ function UI.RegisterSkinnedNavigation(frame, key, defaultIcon)
         local r, g, b, a = frame.icon:GetVertexColor(); iconColor = { r, g, b, a }
     end
     local entry = { frame = frame, key = key, defaultIcon = defaultIcon, backdrop = frame.GetBackdrop and frame:GetBackdrop() or nil, iconColor = iconColor }
-    frame.mosNavigationSkinEntry = entry
+    frame.bootyNavigationSkinEntry = entry
     Skins.navigation[table.getn(Skins.navigation) + 1] = entry
     ApplyNavigation(entry)
 end
 
 function UI.SetNavigationTabBorder(frame, visible)
-    local entry = frame.mosNavigationSkinEntry
+    local entry = frame.bootyNavigationSkinEntry
     if entry and entry.classicTabBorder then SetNineSliceShown(entry.classicTabBorder, false) end
     if entry and entry.classicHoverBorder then SetNineSliceShown(entry.classicHoverBorder, false) end
     UI.SetOpenButtonBorder(frame, visible, frame.navigationBottom and "top" or "bottom")
@@ -839,50 +839,50 @@ end
 -- Registration owns this reference. State changes affect one control; SetSkin
 -- remains the explicit full invalidation, including reapplying the same skin.
 local function ApplyButtonState(button)
-    if button.mosSkinEntry then ApplyControl(button.mosSkinEntry) end
+    if button.bootySkinEntry then ApplyControl(button.bootySkinEntry) end
 end
 
 function UI.SetClassicButtonVariant(button, variant)
     if not button then return end
     local wanted = variant == "red" and "red" or "dark"
-    if button.mosClassicVariant == wanted then return end
-    button.mosClassicVariant = wanted
+    if button.bootyClassicVariant == wanted then return end
+    button.bootyClassicVariant = wanted
     if Skins.current ~= "classic" then return end
     ApplyButtonState(button)
 end
 
 function UI.SetButtonBorderless(button, borderless)
     local wanted = borderless and true or false
-    if button.mosBorderless == wanted then return end
-    button.mosBorderless = wanted; ApplyButtonState(button)
+    if button.bootyBorderless == wanted then return end
+    button.bootyBorderless = wanted; ApplyButtonState(button)
 end
 
 function UI.SetButtonArtwork(button, artwork)
-    if button.mosButtonArtwork == artwork then return end
-    button.mosButtonArtwork = artwork
+    if button.bootyButtonArtwork == artwork then return end
+    button.bootyButtonArtwork = artwork
     if not artwork then button:SetNormalTexture(nil) end
     ApplyButtonState(button)
 end
 
 function UI.SetAtlasSurface(frame, style)
-    if frame.mosAtlasStyle == style then return end
-    frame.mosAtlasStyle = style
-    if frame.mosSurfaceEntry then ApplySurface(frame.mosSurfaceEntry)
+    if frame.bootyAtlasStyle == style then return end
+    frame.bootyAtlasStyle = style
+    if frame.bootySurfaceEntry then ApplySurface(frame.bootySurfaceEntry)
     else ApplyAtlasSurface(frame) end
 end
 
 function UI.SetTextureBackground(frame, path, color, alpha)
     if not path then
-        if frame.mosTextureBackground then frame.mosTextureBackground:Hide() end
-        frame.mosBackgroundPath = nil
+        if frame.bootyTextureBackground then frame.bootyTextureBackground:Hide() end
+        frame.bootyBackgroundPath = nil
         return
     end
-    if not frame.mosTextureBackground then
-        frame.mosTextureBackground = frame:CreateTexture(nil, "BACKGROUND")
-        frame.mosTextureBackground:SetAllPoints(frame)
+    if not frame.bootyTextureBackground then
+        frame.bootyTextureBackground = frame:CreateTexture(nil, "BACKGROUND")
+        frame.bootyTextureBackground:SetAllPoints(frame)
     end
-    local texture = frame.mosTextureBackground
-    if frame.mosBackgroundPath ~= path then texture:SetTexture(path); frame.mosBackgroundPath = path end
+    local texture = frame.bootyTextureBackground
+    if frame.bootyBackgroundPath ~= path then texture:SetTexture(path); frame.bootyBackgroundPath = path end
     if color then texture:SetVertexColor(color[1], color[2], color[3], alpha or 1)
     else texture:SetVertexColor(1,1,1,alpha or 1) end
     texture:Show()
@@ -891,32 +891,32 @@ end
 function UI.SetClassicButtonSelected(button, selected)
     if not button then return end
     local wanted = selected and true or false
-    if button.mosClassicSelected == wanted then return end
-    button.mosClassicSelected = wanted
+    if button.bootyClassicSelected == wanted then return end
+    button.bootyClassicSelected = wanted
     ApplyButtonState(button)
 end
 
 function UI.SetClassicButtonCompact(button, compact)
     if not button then return end
     local wanted = compact and true or false
-    if button.mosClassicCompactControl == wanted then return end
-    button.mosClassicCompactControl = wanted
+    if button.bootyClassicCompactControl == wanted then return end
+    button.bootyClassicCompactControl = wanted
     ApplyButtonState(button)
 end
 
 function UI.SetClassicButtonGold(button, gold)
     if not button then return end
     local wanted = gold and true or false
-    if button.mosClassicGold == wanted then return end
-    button.mosClassicGold = wanted
+    if button.bootyClassicGold == wanted then return end
+    button.bootyClassicGold = wanted
     ApplyButtonState(button)
 end
 
 function UI.SetClassicButtonDisabled(button, disabled)
     if not button then return end
     local wanted = disabled and true or false
-    if button.mosClassicDisabled == wanted then return end
-    button.mosClassicDisabled = wanted
+    if button.bootyClassicDisabled == wanted then return end
+    button.bootyClassicDisabled = wanted
     ApplyButtonState(button)
 end
 
@@ -924,21 +924,21 @@ function UI.SetClassicButtonIcon(button, iconKey, size, inset, yOffset)
     if not button then return end
     local wantedSize, wantedInset, wantedY = size or 13, inset or 7, yOffset or 0
     -- Compare requested geometry, not the effective values derived by sizing.
-    if button.mosClassicIconKey == iconKey and button.mosBaseIconSize == wantedSize and button.mosBaseIconInset == wantedInset and button.mosBaseIconYOffset == wantedY then return end
-    button.mosClassicIconKey = iconKey
-    button.mosClassicIconSize = wantedSize
-    button.mosBaseIconSize = wantedSize; button.mosBaseIconInset = wantedInset; button.mosBaseIconYOffset = wantedY
-    button.mosClassicIconInset = wantedInset
-    button.mosClassicIconYOffset = wantedY
+    if button.bootyClassicIconKey == iconKey and button.bootyBaseIconSize == wantedSize and button.bootyBaseIconInset == wantedInset and button.bootyBaseIconYOffset == wantedY then return end
+    button.bootyClassicIconKey = iconKey
+    button.bootyClassicIconSize = wantedSize
+    button.bootyBaseIconSize = wantedSize; button.bootyBaseIconInset = wantedInset; button.bootyBaseIconYOffset = wantedY
+    button.bootyClassicIconInset = wantedInset
+    button.bootyClassicIconYOffset = wantedY
     ApplyButtonState(button)
 end
 
 function UI.SetClassicButtonLabelOffset(button, offset, xOffset)
     if not button then return end
     local wantedX = xOffset or 0
-    if button.mosClassicLabelYOffset == offset and button.mosClassicLabelXOffset == wantedX then return end
-    button.mosClassicLabelYOffset = offset
-    button.mosClassicLabelXOffset = wantedX
+    if button.bootyClassicLabelYOffset == offset and button.bootyClassicLabelXOffset == wantedX then return end
+    button.bootyClassicLabelYOffset = offset
+    button.bootyClassicLabelXOffset = wantedX
     ApplyButtonState(button)
 end
 
@@ -946,50 +946,50 @@ function UI.SizeClassicButton(button, width, height, fontScale)
     if not button then return end
     button:SetScale(1)
     button:SetWidth(width); button:SetHeight(height)
-    button.mosButtonScale = fontScale or 1
-    ApplySizedButtonGeometry(button, button.mosSkinEntry)
+    button.bootyButtonScale = fontScale or 1
+    ApplySizedButtonGeometry(button, button.bootySkinEntry)
     if not button.label then return end
-    if not button.mosBaseFontSize then
-        button.mosBaseFontPath, button.mosBaseFontSize, button.mosBaseFontFlags = button.label:GetFont()
+    if not button.bootyBaseFontSize then
+        button.bootyBaseFontPath, button.bootyBaseFontSize, button.bootyBaseFontFlags = button.label:GetFont()
     end
-    if button.mosBaseFontPath and button.mosBaseFontSize then
-        button.label:SetFont(button.mosBaseFontPath, button.mosBaseFontSize * (fontScale or 1), button.mosBaseFontFlags)
+    if button.bootyBaseFontPath and button.bootyBaseFontSize then
+        button.label:SetFont(button.bootyBaseFontPath, button.bootyBaseFontSize * (fontScale or 1), button.bootyBaseFontFlags)
     end
 end
 
 function UI.SetRowColor(row, color, alpha)
-    row.mosRowColor = color; row.mosRowAlpha = alpha
-    if row.mosAtlasStyle then
-        if row.mosColorFill then row.mosColorFill:Hide() end
+    row.bootyRowColor = color; row.bootyRowAlpha = alpha
+    if row.bootyAtlasStyle then
+        if row.bootyColorFill then row.bootyColorFill:Hide() end
         return
     end
     row:SetBackdropColor(0, 0, 0, 0)
-    if not row.mosColorFill then
-        row.mosColorFill = row:CreateTexture(nil, "BORDER")
-        row.mosColorFill:SetAllPoints(row)
-        row.mosColorFill:SetTexture("Interface\\Buttons\\WHITE8X8")
+    if not row.bootyColorFill then
+        row.bootyColorFill = row:CreateTexture(nil, "BORDER")
+        row.bootyColorFill:SetAllPoints(row)
+        row.bootyColorFill:SetTexture("Interface\\Buttons\\WHITE8X8")
     end
     -- Set opacity through the region API; never overwrite it with SetAlpha(1).
-    row.mosColorFill:SetVertexColor(color[1], color[2], color[3])
-    row.mosColorFill:SetAlpha(alpha or 1); row.mosColorFill:Show()
-    local entry = row.mosSurfaceEntry
+    row.bootyColorFill:SetVertexColor(color[1], color[2], color[3])
+    row.bootyColorFill:SetAlpha(alpha or 1); row.bootyColorFill:Show()
+    local entry = row.bootySurfaceEntry
     if entry and entry.classicFill then entry.classicFill:Hide() end
-    if row.mosClassicRowShade then row.mosClassicRowShade:Hide() end
+    if row.bootyClassicRowShade then row.bootyClassicRowShade:Hide() end
 end
 
 function UI.SetClassicRowShade(row, even, hovered, selected)
     if not row then return end
-    if row.mosAtlasStyle then return end
-    if row.mosRowColor then UI.SetRowColor(row, row.mosRowColor, row.mosRowAlpha); return end
-    if not row.mosClassicRowShade then
-        row.mosClassicRowShade = row:CreateTexture(nil, "BORDER")
-        row.mosClassicRowShade:SetAllPoints(row)
-        row.mosClassicRowShade:SetTexture(1, 1, 1, 1)
+    if row.bootyAtlasStyle then return end
+    if row.bootyRowColor then UI.SetRowColor(row, row.bootyRowColor, row.bootyRowAlpha); return end
+    if not row.bootyClassicRowShade then
+        row.bootyClassicRowShade = row:CreateTexture(nil, "BORDER")
+        row.bootyClassicRowShade:SetAllPoints(row)
+        row.bootyClassicRowShade:SetTexture(1, 1, 1, 1)
     end
     if Skins.current == "classic" then
-        row.mosClassicRowShade:SetAlpha(selected and 0.13 or hovered and 0.10 or even and 0.055 or 0.01)
-        row.mosClassicRowShade:Show()
-    else row.mosClassicRowShade:Hide() end
+        row.bootyClassicRowShade:SetAlpha(selected and 0.13 or hovered and 0.10 or even and 0.055 or 0.01)
+        row.bootyClassicRowShade:Show()
+    else row.bootyClassicRowShade:Hide() end
 end
 
 function UI.RegisterSkinnedScrollBar(slider)
@@ -1011,26 +1011,26 @@ function UI.SetSkinPersistence(callback)
 end
 
 function UI.SetSurfaceBorderVisible(frame, visible)
-    if frame.mosSurfaceBorderHidden == not visible then return end
-    frame.mosSurfaceBorderHidden = not visible
-    if frame.mosSurfaceEntry then ApplySurface(frame.mosSurfaceEntry) end
+    if frame.bootySurfaceBorderHidden == not visible then return end
+    frame.bootySurfaceBorderHidden = not visible
+    if frame.bootySurfaceEntry then ApplySurface(frame.bootySurfaceEntry) end
 end
 
 function UI.SetSurfaceHorizontalBorders(frame, top, bottom, right)
-    frame.mosHorizontalBorders = true
-    frame.mosBorderTop = top ~= false; frame.mosBorderBottom = bottom ~= false; frame.mosBorderRight = right == true
-    if frame.mosSurfaceEntry then ApplySurface(frame.mosSurfaceEntry) end
+    frame.bootyHorizontalBorders = true
+    frame.bootyBorderTop = top ~= false; frame.bootyBorderBottom = bottom ~= false; frame.bootyBorderRight = right == true
+    if frame.bootySurfaceEntry then ApplySurface(frame.bootySurfaceEntry) end
 end
 
 function UI.JoinSurfaceEdges(frame, top, bottom, leftOutset, rightOutset)
-    if frame.mosJoinedTop == top and frame.mosJoinedBottom == bottom and frame.mosBorderOutsetLeft == leftOutset and frame.mosBorderOutsetRight == rightOutset then return end
-    frame.mosBorderOutsetLeft = leftOutset; frame.mosBorderOutsetRight = rightOutset
-    frame.mosJoinedTop = top; frame.mosJoinedBottom = bottom
-    frame.mosSeparatorsOnly = true
-    if frame.mosSurfaceEntry then ApplySurface(frame.mosSurfaceEntry) end
+    if frame.bootyJoinedTop == top and frame.bootyJoinedBottom == bottom and frame.bootyBorderOutsetLeft == leftOutset and frame.bootyBorderOutsetRight == rightOutset then return end
+    frame.bootyBorderOutsetLeft = leftOutset; frame.bootyBorderOutsetRight = rightOutset
+    frame.bootyJoinedTop = top; frame.bootyJoinedBottom = bottom
+    frame.bootySeparatorsOnly = true
+    if frame.bootySurfaceEntry then ApplySurface(frame.bootySurfaceEntry) end
 end
 
 function UI.SetSurfaceTransparent(frame, transparent)
-    frame.mosTransparentSurface = transparent and true or false
-    if frame.mosSurfaceEntry then ApplySurface(frame.mosSurfaceEntry) end
+    frame.bootyTransparentSurface = transparent and true or false
+    if frame.bootySurfaceEntry then ApplySurface(frame.bootySurfaceEntry) end
 end
