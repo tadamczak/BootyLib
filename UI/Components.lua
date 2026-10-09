@@ -98,6 +98,10 @@ function Components.CreateModel(name, parent, template)
     return TrackFrame(CreateFrame("Model", name, parent, template))
 end
 
+function Components.CreateTooltip(name, parent, template)
+    return TrackFrame(CreateFrame("GameTooltip", name, parent, template or "GameTooltipTemplate"))
+end
+
 function Components.CreateControl(name, parent, template)
     return Components.InstallControlInput(TrackFrame(CreateFrame("Button", name, parent, template)))
 end

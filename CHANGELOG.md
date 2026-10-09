@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.0-dev.31 — 2026-10-09
+
+- Combine shared unit-frame artwork with the latest dropdown fixes and provide a reusable native tooltip factory.
+
+## 0.1.0-dev.30 — 2026-10-09
+
+- Add ten shared unit-frame decorations for BootyFrame; existing controls are unchanged.
+
 ## 0.1.0-dev.29 — 2026-10-09
 
 - Keep dropdown choices on the same project surface through skin changes.
