@@ -44,14 +44,20 @@ local function GetValue(node)
     local value
     if field.get then value = field.get(node.db) else value = node.db[field.key] end
     if value == nil then
-        if field.default ~= nil then return field.default end
-        if field.type == "slider" then return field.min or 0 end
-        if field.type == "color" then return defaultColor end
+        if field.default ~= nil then value = field.default end
+        if value==nil and field.type == "slider" then return field.min or 0 end
+        if value==nil and field.type == "color" then return defaultColor end
     end
+    if field.displayScale and type(value)=="number" then return value*field.displayScale end
     return value
 end
 local function SetValue(node, value, state)
     local field = node.field
+    if field.displayScale then
+        value=tonumber(value)
+        assert(value,"Enter a numeric value.")
+        value=value/field.displayScale
+    end
     if field.set then field.set(value, node.db) else node.db[field.key] = value end
     if field.onChange then field.onChange(value) end
     if node.provider.OnSettingChanged then node.provider.OnSettingChanged(field.key) end

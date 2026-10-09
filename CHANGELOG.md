@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.33 — 2026-10-10
+
+- Display numeric Settings percentages independently of saved ratio values and profile formats.
+
 ## 0.1.0-dev.32 — 2026-10-10
 
 - Supply an antialiased black circular fill for BootyFrame level slots; authored decorations remain unchanged.
