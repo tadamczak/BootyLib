@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.32 — 2026-10-10
+
+- Supply an antialiased black circular fill for BootyFrame level slots; authored decorations remain unchanged.
+
 ## 0.1.0-dev.31 — 2026-10-09
 
 - Combine shared unit-frame artwork with the latest dropdown fixes and provide a reusable native tooltip factory.
