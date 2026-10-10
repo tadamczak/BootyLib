@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.35 — 2026-10-10
+
+- Supply pooled round texture crops for1.12 action buttons, with square restoration and preserved native callback context.
+- Extend existing native project hover/outline factories to circular radii while reusing their artwork.
+
 ## 0.1.0-dev.34 — 2026-10-10
 
 - Align mixed Settings controls by their bottom edges; keep each caption anchored to its own control through resizing.
