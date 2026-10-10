@@ -18,13 +18,22 @@ presentations retain the same addon state and use the shared Settings gear.
 Settings keeps compact text and clear plus/minus controls for expanding sections.
 
 Settings fields use one to four columns as space permits. Each column fits its full labels; color labels stay next to their swatches.
+Mixed controls align by their bottom edges; captions stay attached to their own controls through resizing.
 
 Resizing Settings reuses its measured labels and leaves current values and drafts intact.
 
-Dropdown captions keep their normal font while windows resize. Disabled text settings release keyboard focus and become read-only until enabled again.
+Dropdown captions keep their normal font while windows resize. Menu choices use the same surface in both skins. Disabled text settings release keyboard focus and become read-only until enabled again.
 
 In standalone Booty addons, use the gear in the top-right corner of a feature window to open that addon's Settings. It also works while the window is minimized.
 
 If loading a profile or resetting Settings fails, the previous preferences are restored. The error remains visible; a failed restoration is reported separately.
 
 If an addon cannot start or stop safely, Booty reports the reason. Failed startup cleanup must finish before another startup attempt. Feature views remain unavailable until the addon starts successfully; its Settings remains accessible.
+
+BootyFrame uses ten shared decorative unit-frame styles supplied by BootyLib.
+
+Circular level slots retain their decorative rims and use a shared black fill.
+
+Percentage settings display 0â€“100 while existing saved appearances and profiles remain compatible.
+
+Action buttons can use rounded or circular icons, shadows and the existing project outline. Hidden styles stay inactive; previous square styles remain available.

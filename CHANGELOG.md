@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.1.0-dev.35 — 2026-10-10
+
+- Supply pooled round texture crops for1.12 action buttons, with square restoration and preserved native callback context.
+- Extend existing native project hover/outline factories to circular radii while reusing their artwork.
+
+## 0.1.0-dev.34 — 2026-10-10
+
+- Align mixed Settings controls by their bottom edges; keep each caption anchored to its own control through resizing.
+
+## 0.1.0-dev.33 — 2026-10-10
+
+- Display numeric Settings percentages independently of saved ratio values and profile formats.
+
+## 0.1.0-dev.32 — 2026-10-10
+
+- Supply an antialiased black circular fill for BootyFrame level slots; authored decorations remain unchanged.
+
+## 0.1.0-dev.31 — 2026-10-09
+
+- Combine shared unit-frame artwork with the latest dropdown fixes and provide a reusable native tooltip factory.
+
+## 0.1.0-dev.30 — 2026-10-09
+
+- Add ten shared unit-frame decorations for BootyFrame; existing controls are unchanged.
+
+## 0.1.0-dev.29 — 2026-10-09
+
+- Keep dropdown choices on the same project surface through skin changes.
+- Display the resulting saved selection after a dropdown action.
+
 ## 0.1.0-dev.28 — 2026-10-09
 
 - Use Booty names in shared controls and settings profiles; read previous preferences without resetting data.

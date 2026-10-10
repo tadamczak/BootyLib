@@ -173,8 +173,9 @@ function UI.SetRoundedHoverSurface(parent, primary, visible, kind, extent, radiu
     end
     local background = kind == "background"
     radius = math.ceil(math.min(radius, extent / 2))
-    local sourceInset = math.max(background and 2 or 8, radius)
-    local inset = math.min(sourceInset, extent / 2)
+    local sourceRadius = math.min(10, radius)
+    local sourceInset = math.max(background and 2 or 8, sourceRadius)
+    local inset = math.min(math.max(sourceInset, radius), extent / 2)
     if not set then set = {textures = {}}; primary.bootyRoundedHover = set end
     if not visible and not set.complete then RoundedVisibility(set, false, background); return end
     if not set.complete then
@@ -182,7 +183,7 @@ function UI.SetRoundedHoverSurface(parent, primary, visible, kind, extent, radiu
     end
     if not set.ready or set.kind ~= kind or set.extent ~= extent or set.radius ~= radius
         or set.r ~= r or set.g ~= g or set.b ~= b or set.a ~= a or set.ownerWidth ~= parent:GetWidth() then
-        local slot = radius * 2 + (background and 0 or 1)
+        local slot = sourceRadius * 2 + (background and 0 or 1)
         local column, row = math.mod(slot, 8), math.floor(slot / 8)
         RoundedArtwork(set, roundedSurfaces, (column * 18 + 1) / 256, (column * 18 + 17) / 256,
             (row * 18 + 1) / 64, (row * 18 + 17) / 64, sourceInset, inset, r, g, b, a)
@@ -193,7 +194,105 @@ function UI.SetRoundedHoverSurface(parent, primary, visible, kind, extent, radiu
     if not set.ready or set.visible ~= visible then RoundedVisibility(set, visible, background) end
     set.ready = true
 end
-function UI.SetProjectButtonOutline(button, visible, size, color, topInset, minimumLevel, radius)
+
+-- 1.12 has no arbitrary texture mask. Reused horizontal crops clip icons without
+-- opaque corner covers, borrowed minimaps, per-frame allocations or idle handlers.
+function UI.RoundedTextureRow(width, height, radius, index, count)
+    radius = math.max(0, math.min(radius, width / 2, height / 2))
+    local top, bottom = (index - 1) * height / count, index * height / count
+    local y = (top + bottom) / 2
+    local distance = math.max(0, radius - math.min(y, height - y))
+    local inset = radius - math.sqrt(math.max(0, radius * radius - distance * distance))
+    return inset, top, width - inset * 2, bottom - top
+end
+local function TextureWrite(texture, method, first, second, third, fourth, fifth)
+    local result
+    if fifth ~= nil then result=texture[method](texture,first,second,third,fourth,fifth)
+    elseif fourth ~= nil then result=texture[method](texture,first,second,third,fourth)
+    elseif third ~= nil then result=texture[method](texture,first,second,third)
+    elseif second ~= nil then result=texture[method](texture,first,second)
+    elseif first ~= nil or method == "SetTexture" then result=texture[method](texture,first)
+    else result=texture[method](texture) end
+    if result == false then error("Rounded texture rejected " .. method .. ".") end
+end
+local function TextureVisibility(texture,visible)
+    local shown=texture:IsShown()
+    if (shown~=nil and shown~=false and shown~=0)~=visible then TextureWrite(texture,visible and "Show" or "Hide") end
+    shown=texture:IsShown()
+    if (shown~=nil and shown~=false and shown~=0)~=visible then error("Rounded texture visibility was declined.") end
+end
+local function SetRoundedTextureColor(primary, r, g, b, a)
+    TextureWrite(primary, "SetVertexColor", r, g, b, a)
+    local set = primary.bootyRoundedTexture
+    if set and (not set.ready or set.r ~= r or set.g ~= g or set.b ~= b or set.a ~= a) then
+        set.ready = false
+        for _, region in ipairs(set.textures) do TextureWrite(region, "SetVertexColor", r, g, b, a) end
+        set.r, set.g, set.b, set.a, set.ready = r, g, b, a, true
+    end
+end
+local function SetRoundedTexture(primary, options)
+    local width, height, radius = options.width, options.height, options.radius or 0
+    if type(width) ~= "number" or type(height) ~= "number" or width <= 0 or height <= 0
+        or width ~= width or height ~= height or type(radius) ~= "number" or radius ~= radius then
+        error("Rounded texture geometry is invalid.")
+    end
+    radius = math.max(0, math.min(radius, width / 2, height / 2))
+    local set = primary.bootyRoundedTexture
+    local visible = options.visible ~= nil and options.visible ~= false and options.visible ~= 0 and options.path ~= nil
+    local left, right, top, bottom = options.left or 0, options.right or 1, options.top or 0, options.bottom or 1
+    local x, y = options.x or 0, options.y or 0
+    if radius == 0 or not visible then
+        if set and set.visible then for _, region in ipairs(set.textures) do TextureVisibility(region,false) end;set.visible=false end
+        if set and radius==0 then set.radius=0;set.ready=false end
+        if radius == 0 and (not primary.bootySquareReady or primary.bootySquarePath~=options.path
+            or primary.bootySquareLeft~=left or primary.bootySquareRight~=right or primary.bootySquareTop~=top or primary.bootySquareBottom~=bottom) then
+            primary.bootySquareReady=false
+            TextureWrite(primary,"SetTexture",options.path);TextureWrite(primary,"SetTexCoord",left,right,top,bottom)
+            primary.bootySquarePath,primary.bootySquareLeft,primary.bootySquareRight,primary.bootySquareTop,primary.bootySquareBottom=options.path,left,right,top,bottom
+            primary.bootySquareReady=true
+        end
+        local shown=primary:IsShown()
+        TextureVisibility(primary,visible and radius==0)
+        return
+    end
+    if not set then set={textures={}};primary.bootyRoundedTexture=set end
+    local changed = not set.ready or set.width ~= width or set.height ~= height or set.radius ~= radius or set.path ~= options.path
+        or set.left ~= left or set.right ~= right or set.top ~= top or set.bottom ~= bottom or set.x ~= x or set.y ~= y
+    set.ready=false
+    for index=1,32 do
+        local region=set.textures[index]
+        if not region then region=UI.CreateTexture(options.owner,nil,options.layer or "BACKGROUND");set.textures[index]=region;changed=true end
+        if changed then
+            local rx,ry,rw,rh=UI.RoundedTextureRow(width,height,radius,index,32)
+            TextureWrite(region,"SetTexture",options.path);TextureWrite(region,"ClearAllPoints")
+            TextureWrite(region,"SetPoint","TOPLEFT",options.owner,"TOPLEFT",x+rx,y-ry)
+            TextureWrite(region,"SetWidth",rw);TextureWrite(region,"SetHeight",rh)
+            TextureWrite(region,"SetTexCoord",left+rx/width*(right-left),left+(rx+rw)/width*(right-left),top+ry/height*(bottom-top),top+(ry+rh)/height*(bottom-top))
+            TextureWrite(region,"SetBlendMode",options.blend or "BLEND")
+        end
+        if changed or not set.visible then TextureVisibility(region,true) end
+    end
+    primary.bootySquareReady=false
+    TextureVisibility(primary,false)
+    set.width,set.height,set.radius,set.path,set.left,set.right,set.top,set.bottom,set.x,set.y=width,height,radius,options.path,left,right,top,bottom,x,y
+    set.visible,set.ready=true,true
+    SetRoundedTextureColor(primary,options.r or 1,options.g or 1,options.b or 1,options.a or 1)
+end
+
+local function RoundedCall(callback,primary,first,second,third,fourth)
+    local savedThis,savedEvent,a1,a2,a3,a4,a5,a6,a7,a8,a9=this,event,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9
+    local ok,reason=pcall(callback,primary,first,second,third,fourth)
+    this,event,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9=savedThis,savedEvent,a1,a2,a3,a4,a5,a6,a7,a8,a9
+    if not ok then error(reason,0) end
+end
+function UI.SetRoundedTexture(primary,options) return RoundedCall(SetRoundedTexture,primary,options) end
+function UI.SetRoundedTextureColor(primary,r,g,b,a) return RoundedCall(SetRoundedTextureColor,primary,r,g,b,a) end
+function UI.IsRoundedTextureShown(primary)
+    local set=primary.bootyRoundedTexture
+    if set and set.radius>0 then return set.visible==true end
+    return primary:IsShown()
+end
+function UI.SetProjectButtonOutline(button, visible, size, color, topInset, minimumLevel, radius, extent)
     if not button.bootyProjectOutline then
         local border = UI.CreateContainer(nil, button)
         border:SetAllPoints(button); border:EnableMouse(false)
@@ -211,29 +310,58 @@ function UI.SetProjectButtonOutline(button, visible, size, color, topInset, mini
     color = color or projectOutlineGold
     if radius ~= nil then
         local thickness = math.floor(math.max(1, math.min(10, tonumber(size) or 2)))
-        radius = math.floor(math.max(0, math.min(10, tonumber(radius) or 0)))
+        radius = math.max(0, math.min(50, (extent or button:GetWidth()) / 2, tonumber(radius) or 0))
+        local sourceRadius = math.min(10, math.floor(radius))
+        local sourceInset = math.max(sourceRadius, thickness)
         local inset = math.max(radius, thickness)
         local set = border.bootyRoundedOutline
         if visible and not set then set = {textures = {}}; border.bootyRoundedOutline = set end
+        local diameter=extent or button:GetWidth()
+        local circular=diameter>0 and radius>=diameter/2
+        if circular and set then
+            if set.complete then RoundedVisibility(set,false,false) end
+            local texture=set.circleTexture
+            if visible and not texture then texture=UI.CreateTexture(border,nil,"OVERLAY");set.circleTexture=texture end
+            if texture then
+                local band=math.max(1,math.min(30,math.floor(thickness*60/diameter+0.5)))
+                local slot=band-1;local column,row=math.mod(slot,8),math.floor(slot/8)
+                if not set.circleReady or set.circleBand~=band or set.r~=color[1] or set.g~=color[2] or set.b~=color[3] then
+                    set.circleReady=false
+                    TextureWrite(texture,"SetTexture","Interface\\AddOns\\BootyLib\\Assets\\HoverNativeCircles")
+                    TextureWrite(texture,"SetAllPoints",border)
+                    TextureWrite(texture,"SetTexCoord",(column*62+1)/512,(column*62+61)/512,(row*62+1)/256,(row*62+61)/256)
+                    TextureWrite(texture,"SetVertexColor",color[1],color[2],color[3],1)
+                    set.circleReady,set.circleBand=true,band
+                end
+                TextureVisibility(texture,visible)
+            end
+            set.radius,set.inset,set.thickness,set.r,set.g,set.b=radius,radius,thickness,color[1],color[2],color[3]
+            set.ready=false
+        else
+        if set and set.circleTexture then TextureVisibility(set.circleTexture,false);set.circleReady=false end
         if set and not set.complete and visible then
             CreateNineSlice(border, roundedGold, 32, 32, inset, "OVERLAY", nil, nil, set)
         end
         if set and set.complete then
             if not set.ready or set.radius ~= radius or set.thickness ~= thickness
                 or set.r ~= color[1] or set.g ~= color[2] or set.b ~= color[3] then
-                local slot = radius * 10 + thickness - 1
+                local slot = sourceRadius * 10 + thickness - 1
                 local column, row = math.mod(slot, 16), math.floor(slot / 16)
                 RoundedArtwork(set, roundedGold, (column * 18 + 1) / 512, (column * 18 + 17) / 512,
-                    (row * 18 + 1) / 128, (row * 18 + 17) / 128, inset, inset, color[1], color[2], color[3], 1)
+                    (row * 18 + 1) / 128, (row * 18 + 17) / 128, sourceInset, inset, color[1], color[2], color[3], 1)
                 set.radius, set.thickness, set.r, set.g, set.b = radius, thickness, color[1], color[2], color[3]
             end
             if not set.ready or set.visible ~= visible then RoundedVisibility(set, visible, false) end
             set.ready = true
         elseif set then RoundedVisibility(set, false, false)
         end
+        end
         border:SetBackdropBorderColor(0, 0, 0, 0); border.bootyRoundedOutlineActive = true
     else
-        if border.bootyRoundedOutline then RoundedVisibility(border.bootyRoundedOutline, false, false) end
+        if border.bootyRoundedOutline then
+            RoundedVisibility(border.bootyRoundedOutline,false,false)
+            if border.bootyRoundedOutline.circleTexture then TextureVisibility(border.bootyRoundedOutline.circleTexture,false) end
+        end
         border.bootyRoundedOutlineActive = nil; border:SetAlpha(1)
     end
     local edgeSize = math.max(1, math.min(6, tonumber(size) or 2)) * 4

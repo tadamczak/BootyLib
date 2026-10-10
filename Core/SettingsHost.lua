@@ -44,14 +44,20 @@ local function GetValue(node)
     local value
     if field.get then value = field.get(node.db) else value = node.db[field.key] end
     if value == nil then
-        if field.default ~= nil then return field.default end
-        if field.type == "slider" then return field.min or 0 end
-        if field.type == "color" then return defaultColor end
+        if field.default ~= nil then value = field.default end
+        if value==nil and field.type == "slider" then return field.min or 0 end
+        if value==nil and field.type == "color" then return defaultColor end
     end
+    if field.displayScale and type(value)=="number" then return value*field.displayScale end
     return value
 end
 local function SetValue(node, value, state)
     local field = node.field
+    if field.displayScale then
+        value=tonumber(value)
+        assert(value,"Enter a numeric value.")
+        value=value/field.displayScale
+    end
     if field.set then field.set(value, node.db) else node.db[field.key] = value end
     if field.onChange then field.onChange(value) end
     if node.provider.OnSettingChanged then node.provider.OnSettingChanged(field.key) end
@@ -293,6 +299,15 @@ local function MeasureField(node)
     end
     return (kind == "color" and 26 or control:GetWidth() + 2) + NaturalLabelWidth(control.label) + 4
 end
+local function MeasureFieldHeight(node)
+    local control,kind=node.control,node.field.type
+    local label=node.label or control.label or kind=="slider" and getglobal(control:GetName().."Text")
+    local labelHeight=label and NaturalLabelHeight(label,NaturalLabelWidth(label)) or 0
+    local top=node.label and labelHeight+4 or kind=="slider" and math.max(18,labelHeight+4) or 0
+    local bottom=top+control:GetHeight()
+    local height=node.label and bottom+10 or kind=="slider" and bottom+18 or math.max(kind=="color" and 32 or 30,labelHeight+8)
+    return height,bottom,top
+end
 local function LayoutField(node, page, x, y, width)
     local control, kind = node.control, node.field.type
     local label = node.label or control.label or kind == "slider" and getglobal(control:GetName() .. "Text")
@@ -306,7 +321,7 @@ local function LayoutField(node, page, x, y, width)
         node.label:SetWidth(labelWidth)
         node.label:SetJustifyH("LEFT")
         node.label:SetHeight(labelHeight); node.label:Show()
-        node.label:ClearAllPoints(); node.label:SetPoint("TOPLEFT", page, "TOPLEFT", x, y)
+        node.label:ClearAllPoints(); node.label:SetPoint("BOTTOMLEFT", control, "TOPLEFT", 0, 4)
         control:SetPoint("TOPLEFT", page, "TOPLEFT", x, y - labelHeight - 4)
         control:SetWidth(width)
         node.height = labelHeight + 4 + control:GetHeight() + 10
@@ -319,11 +334,12 @@ local function LayoutField(node, page, x, y, width)
             end
         end
     else
-        control:SetPoint("TOPLEFT", page, "TOPLEFT", x, y - (kind == "slider" and 18 or 0))
+        local _,_,top=MeasureFieldHeight(node)
+        control:SetPoint("TOPLEFT", page, "TOPLEFT", x, y - top)
         if kind == "slider" then
             control:SetWidth(width)
             label:SetWidth(labelWidth); label:SetJustifyH("LEFT")
-            node.height = 52
+            node.height = top+control:GetHeight()+18
         elseif control.label then
             control.label:SetWidth(labelWidth); control.label:SetJustifyH("LEFT")
             local height = math.max(control:GetHeight(), labelHeight)
@@ -357,7 +373,7 @@ local function LayoutNodes(nodes, page, state, depth, y)
             elseif node.field then
                 local items = node.gridItems
                 if not items then
-                    items = {bootyNoWrap = true, bootyMeasureItem = MeasureField, bootyLayoutItem = LayoutField}
+                    items = {bootyNoWrap = true, bootyMeasureItem = MeasureField, bootyMeasureHeight = MeasureFieldHeight, bootyLayoutItem = LayoutField}
                     node.gridItems = items
                 end
                 while table.getn(items) > 0 do table.remove(items) end

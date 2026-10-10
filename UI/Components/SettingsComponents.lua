@@ -584,6 +584,31 @@ function Settings.LayoutGrid(parent, items, x, y, available, step, sliders)
         cols = cols - 1
     end
     if not items.bootyNoWrap then for col=1,cols do widths[col]=math.min(available,widths[col]) end end
+    if items.bootyMeasureHeight then
+        -- Measure the whole row before positioning any control. Labels remain
+        -- attached to their own control; all control bottoms share a baseline.
+        local used=0
+        for first=1,count,cols do
+            local baseline,rowHeight,offsetX=0,step,0
+            local last=math.min(count,first+cols-1)
+            for index=first,last do
+                local item=items[index]
+                item.bootyGridHeight,item.bootyGridBottom=items.bootyMeasureHeight(item)
+                baseline=math.max(baseline,item.bootyGridBottom)
+            end
+            for index=first,last do
+                local item=items[index];local column=index-first+1
+                local shift=baseline-item.bootyGridBottom
+                local height=items.bootyLayoutItem(item,parent,x+offsetX,y-used-shift,widths[column])
+                rowHeight=math.max(rowHeight,height+shift)
+                offsetX=offsetX+widths[column]+14
+            end
+            used=used+rowHeight
+        end
+        items.bootyColumns=cols
+        items.bootyRequiredWidth,items.bootyUsedWidth=required,total
+        return used
+    end
     local offsetX, rowHeight, used = 0, step, 0
     for index = 1, count do
         col = math.mod(index - 1, cols) + 1
