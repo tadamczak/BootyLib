@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.34 — 2026-10-10
+
+- Align mixed Settings controls by their bottom edges; keep each caption anchored to its own control through resizing.
+
 ## 0.1.0-dev.33 — 2026-10-10
 
 - Display numeric Settings percentages independently of saved ratio values and profile formats.

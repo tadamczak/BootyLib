@@ -18,6 +18,7 @@ presentations retain the same addon state and use the shared Settings gear.
 Settings keeps compact text and clear plus/minus controls for expanding sections.
 
 Settings fields use one to four columns as space permits. Each column fits its full labels; color labels stay next to their swatches.
+Mixed controls align by their bottom edges; captions stay attached to their own controls through resizing.
 
 Resizing Settings reuses its measured labels and leaves current values and drafts intact.
 
