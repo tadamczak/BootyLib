@@ -164,6 +164,7 @@ end
 -- Both surfaces reuse one caller-owned primary texture. Extra slices are
 -- allocated only on the first visible hover and survive later style changes.
 function UI.SetRoundedHoverSurface(parent, primary, visible, kind, extent, radius, r, g, b, a)
+    visible=visible~=nil and visible~=false and visible~=0
     local set = primary.bootyRoundedHover
     if not visible and not set then
         if primary:Hide() == false then error("Rounded project visibility was declined.") end
@@ -241,6 +242,9 @@ local function SetRoundedTexture(primary, options)
     local visible = options.visible ~= nil and options.visible ~= false and options.visible ~= 0 and options.path ~= nil
     local left, right, top, bottom = options.left or 0, options.right or 1, options.top or 0, options.bottom or 1
     local x, y = options.x or 0, options.y or 0
+    local clipTop,clipBottom=options.clipTop or 0,options.clipBottom or height
+    if type(clipTop)~="number" or type(clipBottom)~="number" or clipTop~=clipTop or clipBottom~=clipBottom
+        or clipTop<0 or clipBottom>height or clipTop>clipBottom then error("Rounded texture clipping is invalid.") end
     if radius == 0 or not visible then
         if set and set.visible then for _, region in ipairs(set.textures) do TextureVisibility(region,false) end;set.visible=false end
         if set and radius==0 then set.radius=0;set.ready=false end
@@ -258,23 +262,29 @@ local function SetRoundedTexture(primary, options)
     if not set then set={textures={}};primary.bootyRoundedTexture=set end
     local changed = not set.ready or set.width ~= width or set.height ~= height or set.radius ~= radius or set.path ~= options.path
         or set.left ~= left or set.right ~= right or set.top ~= top or set.bottom ~= bottom or set.x ~= x or set.y ~= y
+        or set.clipTop~=clipTop or set.clipBottom~=clipBottom
     set.ready=false
+    if changed or not set.visible then
     for index=1,32 do
         local region=set.textures[index]
         if not region then region=UI.CreateTexture(options.owner,nil,options.layer or "BACKGROUND");set.textures[index]=region;changed=true end
-        if changed then
-            local rx,ry,rw,rh=UI.RoundedTextureRow(width,height,radius,index,32)
+        local rx,ry,rw,rh=UI.RoundedTextureRow(width,height,radius,index,32)
+        local clippedY=math.max(ry,clipTop);local clippedHeight=math.min(ry+rh,clipBottom)-clippedY
+        if changed and clippedHeight>0 then
+            ry,rh=clippedY,clippedHeight
             TextureWrite(region,"SetTexture",options.path);TextureWrite(region,"ClearAllPoints")
             TextureWrite(region,"SetPoint","TOPLEFT",options.owner,"TOPLEFT",x+rx,y-ry)
             TextureWrite(region,"SetWidth",rw);TextureWrite(region,"SetHeight",rh)
             TextureWrite(region,"SetTexCoord",left+rx/width*(right-left),left+(rx+rw)/width*(right-left),top+ry/height*(bottom-top),top+(ry+rh)/height*(bottom-top))
             TextureWrite(region,"SetBlendMode",options.blend or "BLEND")
         end
-        if changed or not set.visible then TextureVisibility(region,true) end
+        if changed or not set.visible then TextureVisibility(region,clippedHeight>0) end
+    end
     end
     primary.bootySquareReady=false
     TextureVisibility(primary,false)
     set.width,set.height,set.radius,set.path,set.left,set.right,set.top,set.bottom,set.x,set.y=width,height,radius,options.path,left,right,top,bottom,x,y
+    set.clipTop,set.clipBottom=clipTop,clipBottom
     set.visible,set.ready=true,true
     SetRoundedTextureColor(primary,options.r or 1,options.g or 1,options.b or 1,options.a or 1)
 end
@@ -293,6 +303,7 @@ function UI.IsRoundedTextureShown(primary)
     return primary:IsShown()
 end
 function UI.SetProjectButtonOutline(button, visible, size, color, topInset, minimumLevel, radius, extent)
+    visible=visible~=nil and visible~=false and visible~=0
     if not button.bootyProjectOutline then
         local border = UI.CreateContainer(nil, button)
         border:SetAllPoints(button); border:EnableMouse(false)
@@ -345,7 +356,8 @@ function UI.SetProjectButtonOutline(button, visible, size, color, topInset, mini
         if set and set.complete then
             if not set.ready or set.radius ~= radius or set.thickness ~= thickness
                 or set.r ~= color[1] or set.g ~= color[2] or set.b ~= color[3] then
-                local slot = sourceRadius * 10 + thickness - 1
+                local sourceThickness = math.max(1, math.floor(thickness * sourceInset / inset + 0.5))
+                local slot = sourceRadius * 10 + sourceThickness - 1
                 local column, row = math.mod(slot, 16), math.floor(slot / 16)
                 RoundedArtwork(set, roundedGold, (column * 18 + 1) / 512, (column * 18 + 17) / 512,
                     (row * 18 + 1) / 128, (row * 18 + 17) / 128, sourceInset, inset, color[1], color[2], color[3], 1)
