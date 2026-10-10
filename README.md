@@ -34,6 +34,6 @@ BootyFrame uses ten shared decorative unit-frame styles supplied by BootyLib.
 
 Circular level slots retain their decorative rims and use a shared black fill.
 
-Percentage settings display 0â€“100 while existing saved appearances and profiles remain compatible.
+Percentage settings display 0–100 while existing saved appearances and profiles remain compatible.
 
 Action buttons can use rounded or circular icons, shadows and the existing project outline. Hidden styles stay inactive; previous square styles remain available.
