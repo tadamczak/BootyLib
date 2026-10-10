@@ -214,7 +214,7 @@ local function CreateField(node, page, state)
         node.height = 52
     elseif kind == "color" then
         control = UI.Settings.CreateColor(page, 0, 0, node.text, field.key, nil, binding); node.height = 32
-    elseif kind == "dropdown" or kind == "choice" then
+    elseif kind == "dropdown" or kind == "choice" or kind == "multiselect" then
         local choices = {}
         for _, option in ipairs(field.choices or field.options or {}) do
             if type(option) == "table" then table.insert(choices, {text = option.text or option.label or tostring(option.value), value = option.value})
@@ -224,7 +224,7 @@ local function CreateField(node, page, state)
             initialText = tostring(GetValue(node) or ""), choices = choices, getValue = function() return GetValue(node) end,
             onSelect = function(value) SetValue(node, value, state); state.RefreshEnabled() end,
             width = 180, height = math.max(32, table.getn(choices) * 24 + 12), firstY = -7, step = 24,
-            buttonOffset = 220, color = UI.TextColors.white})
+            buttonOffset = 220, color = UI.TextColors.white,multiple=kind=="multiselect"})
         node.label = label; node.height = 36
     else
         label = UI.CreateComponentLabel(page, nil, "white"); label:SetText(node.text)
@@ -243,6 +243,7 @@ local function Synchronize(node)
     elseif field.type == "color" then
         value = type(value) == "table" and value or defaultColor
         control.swatch:SetTexture(value[1] or 1, value[2] or 1, value[3] or 1, 1)
+    elseif field.type=="multiselect" then control:RefreshChoiceValues()
     elseif field.type == "choice" or field.type == "dropdown" then
         local caption = tostring(value or "")
         for _, choice in ipairs(control.choices) do if choice.value == value then caption = choice.text; break end end
@@ -273,13 +274,13 @@ local function MeasureField(node)
     local control, kind = node.control, node.field.type
     if node.label then
         local width = math.max(180, NaturalLabelWidth(node.label))
-        if kind == "choice" or kind == "dropdown" then
+        if kind == "choice" or kind == "dropdown" or kind=="multiselect" then
             width = math.max(width, NaturalLabelWidth(control.label or control) + 32)
             for _, option in ipairs(control.panel.options) do
-                width = math.max(width, NaturalLabelWidth(option.label or option) + 32)
+                width = math.max(width, NaturalLabelWidth(option.label or option) + (kind=="multiselect" and 44 or 32))
             end
         end
-        return width
+        return node.field.inlineLabel and width+NaturalLabelWidth(node.label)+10 or width
     elseif kind == "slider" then
         local name = control:GetName()
         local label = getglobal(name .. "Text")
@@ -303,9 +304,11 @@ local function MeasureFieldHeight(node)
     local control,kind=node.control,node.field.type
     local label=node.label or control.label or kind=="slider" and getglobal(control:GetName().."Text")
     local labelHeight=label and NaturalLabelHeight(label,NaturalLabelWidth(label)) or 0
-    local top=node.label and labelHeight+4 or kind=="slider" and math.max(18,labelHeight+4) or 0
+    local top=node.label and not node.field.inlineLabel and labelHeight+4 or kind=="slider" and math.max(18,labelHeight+4) or 0
+    if node.label and node.field.inlineLabel then top=math.max(0,(labelHeight-control:GetHeight())/2) end
     local bottom=top+control:GetHeight()
     local height=node.label and bottom+10 or kind=="slider" and bottom+18 or math.max(kind=="color" and 32 or 30,labelHeight+8)
+    if node.label and node.field.inlineLabel then height=math.max(control:GetHeight(),labelHeight)+10 end
     return height,bottom,top
 end
 local function LayoutField(node, page, x, y, width)
@@ -321,16 +324,23 @@ local function LayoutField(node, page, x, y, width)
         node.label:SetWidth(labelWidth)
         node.label:SetJustifyH("LEFT")
         node.label:SetHeight(labelHeight); node.label:Show()
-        node.label:ClearAllPoints(); node.label:SetPoint("BOTTOMLEFT", control, "TOPLEFT", 0, 4)
-        control:SetPoint("TOPLEFT", page, "TOPLEFT", x, y - labelHeight - 4)
-        control:SetWidth(width)
-        node.height = labelHeight + 4 + control:GetHeight() + 10
-        if kind == "choice" or kind == "dropdown" then
+        node.label:ClearAllPoints()
+        if node.field.inlineLabel then
+            node.label:SetPoint("RIGHT",control,"LEFT",-10,0)
+            local _,_,top=MeasureFieldHeight(node)
+            control:SetPoint("TOPLEFT",page,"TOPLEFT",x+labelWidth+10,y-top)
+            control:SetWidth(math.max(1,width-labelWidth-10));node.height=math.max(control:GetHeight(),labelHeight)+10
+        else
+            node.label:SetPoint("BOTTOMLEFT", control, "TOPLEFT", 0, 4)
+            control:SetPoint("TOPLEFT", page, "TOPLEFT", x, y - labelHeight - 4)
+            control:SetWidth(width);node.height = labelHeight + 4 + control:GetHeight() + 10
+        end
+        if kind == "choice" or kind == "dropdown" or kind=="multiselect" then
             if control.bootyDropdownText then control.bootyTextWidth = nil; UI.ReflowControlText(control) end
             control.panel:SetWidth(control:GetWidth())
             for _, option in ipairs(control.panel.options) do
-                option:SetWidth(math.max(1, width - 14))
-                if option.label then option.label:SetWidth(math.max(1, width - 30)) end
+                option:SetWidth(math.max(1, control:GetWidth() - 14))
+                if option.label then option.label:SetWidth(math.max(1, control:GetWidth() - (kind=="multiselect" and 44 or 30))) end
             end
         end
     else
@@ -379,6 +389,7 @@ local function LayoutNodes(nodes, page, state, depth, y)
                 while table.getn(items) > 0 do table.remove(items) end
                 while index <= table.getn(nodes) and nodes[index].field do
                     local fieldNode = nodes[index]
+                    if fieldNode.field.row~=node.field.row then break end
                     if Visible(fieldNode) then
                         fieldNode.layoutVisible = true
                         if not fieldNode.control then CreateField(fieldNode, page, state); Synchronize(fieldNode)

@@ -1,6 +1,16 @@
 # Changelog
 
+## 0.1.0-dev.38 — 2026-10-10
+
+- Integrate circular action-button artwork with the current semantic Settings rows and multiple-choice controls.
+- Preserve current Settings/profile behavior while adding independently rounded icons, shadows and the existing native project outline.
+
 ## 0.1.0-dev.37 — 2026-10-10
+
+- Add semantic Settings rows and inline dropdown labels while retaining bottom alignment and responsive wrapping.
+- Extend existing choice fields and shared profiles with multiple selections and checked menu options.
+
+## 0.1.0-dev.35 — 2026-10-10
 
 - Supply pooled round texture crops for1.12 action buttons, with square restoration and preserved native callback context.
 - Extend existing native project hover/outline factories to circular radii while reusing their artwork.

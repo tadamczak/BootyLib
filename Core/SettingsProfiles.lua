@@ -1,7 +1,7 @@
 local Lib = BootyLib
 local Profiles = {}
 Lib.Core.SettingsProfiles = Profiles
-local settingTypes = {checkbox=true,slider=true,color=true,choice=true,dropdown=true,text=true,number=true,percentage=true}
+local settingTypes = {checkbox=true,slider=true,color=true,choice=true,dropdown=true,multiselect=true,text=true,number=true,percentage=true}
 
 local function Name(value)
     local name=string.gsub(string.gsub(tostring(value or ""),"^%s+",""),"%s+$","")
