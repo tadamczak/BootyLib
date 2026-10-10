@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.39 — 2026-10-11
+
+- Keep the native outline band stable as rounded corners grow.
+- Clip pooled rounded textures without changing their contour; retain cached geometry and normalize native hidden values.
+
 ## 0.1.0-dev.38 — 2026-10-10
 
 - Integrate circular action-button artwork with the current semantic Settings rows and multiple-choice controls.

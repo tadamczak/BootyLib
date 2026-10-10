@@ -38,3 +38,5 @@ Circular level slots retain their decorative rims and use a shared black fill.
 Percentage settings display 0–100 while existing saved appearances and profiles remain compatible.
 
 Action buttons can use rounded or circular icons, shadows and the existing project outline. Hidden styles stay inactive; previous square styles remain available.
+
+Rounded indicators retain the icon contour while draining. Rounded outlines keep their chosen thickness as corner radius increases.
