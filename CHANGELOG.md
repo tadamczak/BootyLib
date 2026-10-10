@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.37 — 2026-10-10
+
+- Add semantic Settings rows and inline dropdown labels while retaining bottom alignment and responsive wrapping.
+- Extend existing choice fields and shared profiles with multiple selections and checked menu options.
+
 ## 0.1.0-dev.35 — 2026-10-10
 
 - Supply pooled round texture crops for1.12 action buttons, with square restoration and preserved native callback context.
