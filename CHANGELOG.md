@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.48 — 2026-10-13
+
+- Add thirteen supplied border styles with transparent ornament contours, Moon stone background and a restored parchment chat background/frame.
+
 ## 0.1.0-dev.47 — 2026-10-13
 
 - Re-extract action-bar rails without panel backgrounds; add Fine gold rail and matching repeatable corners.
