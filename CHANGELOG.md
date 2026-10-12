@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.46 — 2026-10-12
+
+- Restore detailed ornament contours and full high-resolution Moon rails with soft transparent ends.
+
 ## 0.1.0-dev.45 — 2026-10-12
 
 - Refine Nature XP, Azure wings/upper rail, lion, long-banner and drapery texture cutouts from original sources; retain high-resolution detail.

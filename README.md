@@ -47,3 +47,5 @@ Rounded indicators retain the icon contour while draining. Rounded outlines keep
 The accompanying texture library includes extracted chat skins, action-bar borders and ornaments, and Nature / Silver and gold unit-frame artwork for compatible Booty addons. Chat borders scale around fixed edges while the chat background keeps its position and size.
 
 Nature XP and Azure ornaments include detailed original-source cutouts; long banners, drapery and lions retain their metal and cloth outlines.
+
+Moon upper/lower now include detailed wide rails with smooth transparent ends. The shared library also includes repaired Azure, Nature moon, drapery and small metal ornament contours.
