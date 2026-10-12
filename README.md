@@ -44,4 +44,4 @@ Action buttons can use rounded or circular icons, shadows and the existing proje
 
 Rounded indicators retain the icon contour while draining. Rounded outlines keep their chosen thickness as corner radius increases.
 
-The accompanying texture library includes extracted chat skins, action-bar borders and ornaments, and Nature / Silver and gold unit-frame artwork for compatible Booty addons. Extracted chat borders scale outward around the message area; solid and textured backgrounds stay inside their rails.
+The accompanying texture library includes extracted chat skins, action-bar borders and ornaments, and Nature / Silver and gold unit-frame artwork for compatible Booty addons. Chat borders scale around fixed edges while the chat background keeps its position and size.

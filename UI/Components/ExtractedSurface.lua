@@ -9,6 +9,7 @@ local solid = {path="Interface\\Buttons\\WHITE8X8",width=1,height=1,stretch=true
 local function Region(frame, key, part, x, y, width, height, alpha, u, v)
     local regions = frame.bootyExtractedRegions
     local texture = regions[key]
+    if width<=0 or height<=0 then if texture then texture:Hide() end; return end
     if not texture then texture = UI.CreateTexture(frame,nil,key=="background" and "BACKGROUND" or "BORDER"); regions[key]=texture end
     if texture.bootyExtractedPath~=part.path then
         Assert(texture:SetTexture(part.path)~=false,"Extracted texture was rejected: "..part.path)
@@ -26,26 +27,20 @@ function Surface.Refresh(frame)
     if width<=0 or height<=0 then return end
     for _,texture in pairs(frame.bootyExtractedRegions) do texture:Hide() end
     local border=state.enabled and Catalog.chatBorders[state.border]
-    -- The owner's rectangle is the content aperture, not the artwork's outer
-    -- bounds. Grow decorations outwards; increasing scale must not cover text.
+    -- Keep each rail's centreline on the owner's rectangle. Scale its art on
+    -- both sides of that fixed axis, without changing the background bounds.
     local scale=state.scale/100
     local left,top,right,bottom=0,0,0,0
     if border then
         local p=border.parts
-        left=math.max(p.tl.box[1]+p.tl.box[3],p.bl.box[1]+p.bl.box[3],p.left.box[1]+p.left.box[3])*scale
-        top=math.max(p.tl.box[2]+p.tl.box[4],p.tr.box[2]+p.tr.box[4],p.top.box[2]+p.top.box[4])*scale
-        right=math.max(border.width-p.tr.box[1],border.width-p.br.box[1],border.width-p.right.box[1])*scale
-        bottom=math.max(border.height-p.bl.box[2],border.height-p.br.box[2],border.height-p.bottom.box[2])*scale
+        left=(p.left.box[1]+p.left.box[3]/2)*scale
+        top=(p.top.box[2]+p.top.box[4]/2)*scale
+        right=(border.width-p.right.box[1]-p.right.box[3]/2)*scale
+        bottom=(border.height-p.bottom.box[2]-p.bottom.box[4]/2)*scale
     end
     local background=Catalog.backgrounds[state.background] or (border and state.background=="color" and solid)
     if background and state.backgroundAlpha>=0 then
         local x,y,w,h=0,0,width,height
-        if border then
-            local p=border.parts
-            x=(p.left.box[1]+p.left.box[3]-1)*scale-left;y=(p.top.box[2]+p.top.box[4]-1)*scale-top
-            w=width+right+(p.right.box[1]-border.width+1)*scale-x
-            h=height+bottom+(p.bottom.box[2]-border.height+1)*scale-y
-        end
         Region(frame,"background",background,x,y,w,h,state.backgroundAlpha,
             background.stretch and 1 or w/background.width,background.stretch and 1 or h/background.height)
         local r,g,b=1,1,1

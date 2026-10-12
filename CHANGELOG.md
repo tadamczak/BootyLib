@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.44 — 2026-10-12
+
+- Scale extracted chat border thickness around fixed rail axes without resizing backgrounds; let dedicated project-border layers use the same centered geometry and original backdrop.
+
 ## 0.1.0-dev.43 — 2026-10-12
 
 - Keep extracted chat decorations outside the message aperture at every border scale; align backgrounds with the rails and resolve geometry from the native owner.
