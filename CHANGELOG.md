@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.43 — 2026-10-12
+
+- Keep extracted chat decorations outside the message aperture at every border scale; align backgrounds with the rails and resolve geometry from the native owner.
+
 ## 0.1.0-dev.42 — 2026-10-12
 
 - Shared extracted action-bar rails, resizable chat borders/backgrounds, new ornaments and two unit-frame styles with status masks.
