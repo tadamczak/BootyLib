@@ -34,6 +34,7 @@ If an addon cannot start or stop safely, Booty reports the reason. Failed startu
 BootyFrame uses ten shared decorative unit-frame styles supplied by BootyLib.
 
 BootyActionBars uses shared gryphon, lion, banner, drapery and crest ornaments supplied by BootyLib.
+Moon ornaments and repaired gryphon/crystal cutouts are included. BootyFrame uses matching portrait/name glow masks for combat and resting effects.
 
 Circular level slots retain their decorative rims and use a shared black fill.
 

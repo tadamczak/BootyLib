@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.41 — 2026-10-12
+
+- Repair gryphon cutouts and wide crystal symmetry; add two original moon ornaments.
+- Supply style-fitted portrait/name glow masks for BootyFrame combat and resting effects.
+
 ## 0.1.0-dev.40 — 2026-10-12
 
 - Supply 32 shared ornament textures for the side, top and bottom decorations in BootyActionBars.
