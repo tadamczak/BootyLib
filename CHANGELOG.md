@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.40 — 2026-10-12
+
+- Supply 32 shared ornament textures for the side, top and bottom decorations in BootyActionBars.
+
 ## 0.1.0-dev.39 — 2026-10-11
 
 - Keep the native outline band stable as rounded corners grow.
