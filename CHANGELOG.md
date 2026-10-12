@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.45 — 2026-10-12
+
+- Refine Nature XP, Azure wings/upper rail, lion, long-banner and drapery texture cutouts from original sources; retain high-resolution detail.
+
 ## 0.1.0-dev.44 — 2026-10-12
 
 - Scale extracted chat border thickness around fixed rail axes without resizing backgrounds; let dedicated project-border layers use the same centered geometry and original backdrop.
