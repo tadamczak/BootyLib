@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.42 — 2026-10-12
+
+- Shared extracted action-bar rails, resizable chat borders/backgrounds, new ornaments and two unit-frame styles with status masks.
+
 ## 0.1.0-dev.41 — 2026-10-12
 
 - Repair gryphon cutouts and wide crystal symmetry; add two original moon ornaments.

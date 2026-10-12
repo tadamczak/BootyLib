@@ -4,12 +4,18 @@ local projectBackdrop = { bgFile = "Interface\\Buttons\\WHITE8X8", edgeFile = "I
 Booty.UI.Components.Window = Window
 Window.MinimizedHeight = Booty.UI.Components.MinimizedWindowHeight or 30
 
-function Window.ApplyProjectSurface(frame)
+function Window.ApplyProjectSurface(frame, scale)
     -- Registered dropdowns may already own a skinned nine-slice. Hide it before
     -- applying the native project border, including after a skin change.
     frame.bootyUseNativeSurface = true
     if Booty.UI.Components.SetSurfaceCompact then Booty.UI.Components.SetSurfaceCompact(frame, false) end
-    frame:SetBackdrop(projectBackdrop)
+    local backdrop=projectBackdrop
+    if scale and scale~=1 then
+        backdrop=frame.bootyScaledProjectBackdrop
+        if not backdrop then backdrop={};for key,value in pairs(projectBackdrop) do backdrop[key]=value end;frame.bootyScaledProjectBackdrop=backdrop end
+        backdrop.edgeSize=projectBackdrop.edgeSize*scale
+    end
+    frame:SetBackdrop(backdrop)
     frame:SetBackdropColor(0.015, 0.015, 0.015, 1)
     frame:SetBackdropBorderColor(0.68, 0.54, 0.27, 1)
 end

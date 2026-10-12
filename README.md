@@ -43,3 +43,5 @@ Percentage settings display 0–100 while existing saved appearances and profile
 Action buttons can use rounded or circular icons, shadows and the existing project outline. Hidden styles stay inactive; previous square styles remain available.
 
 Rounded indicators retain the icon contour while draining. Rounded outlines keep their chosen thickness as corner radius increases.
+
+The accompanying texture library includes extracted chat skins, action-bar borders and ornaments, and Nature / Silver and gold unit-frame artwork for compatible Booty addons.
