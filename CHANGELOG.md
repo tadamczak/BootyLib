@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.47 — 2026-10-13
+
+- Re-extract action-bar rails without panel backgrounds; add Fine gold rail and matching repeatable corners.
+
 ## 0.1.0-dev.46 — 2026-10-12
 
 - Restore detailed ornament contours and full high-resolution Moon rails with soft transparent ends.
