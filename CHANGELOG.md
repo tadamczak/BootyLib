@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.50 — 2026-10-13
+
+- Exchange opposite sides of Border 08/09 and provide compact repeat textures for small border patterns.
+
 ## 0.1.0-dev.49 — 2026-10-13
 
 - Use each complete supplied border strip on all four sides, with separate corners and no detached center decorations.
