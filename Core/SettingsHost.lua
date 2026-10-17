@@ -82,6 +82,53 @@ local function Confirm(state, title, message, action, yes, no)
     state.profileConfirm:Open(message, yes, no)
 end
 local NaturalLabelWidth, NaturalLabelHeight
+local function RefreshPreview(node, state)
+    local drafts = state.previewDrafts and state.previewDrafts[node.db]
+    local caption = node.field.preview(node.db, drafts) or ""
+    if node.preview:GetText() == caption then return false end
+    node.preview:SetText(caption)
+    node.bootyPreviewVersion = (node.bootyPreviewVersion or 0) + 1
+    return true
+end
+local function RefreshVisiblePreviews(state)
+    local changed = false
+    for _, node in ipairs(state.previewNodes or {}) do
+        if node.layoutVisible and RefreshPreview(node, state) then changed = true end
+    end
+    return changed
+end
+
+local function AttachPreview(node, page, state)
+    node.preview = UI.CreateComponentLabel(page, nil, "gray")
+    node.preview:SetJustifyH("LEFT"); node.preview:SetJustifyV("TOP")
+    state.previewNodes = state.previewNodes or {}; table.insert(state.previewNodes, node)
+    node.previewState = state
+    RefreshPreview(node, state)
+    local control = node.control
+    local changed = control:GetScript("OnTextChanged")
+    control:SetScript("OnTextChanged", function()
+        if changed then changed() end
+        if not control.bootyEditing or state.previewBusy or state.reflowBusy or not state.window:IsVisible() then return end
+        state.previewDrafts = state.previewDrafts or {}
+        local drafts = state.previewDrafts[node.db]
+        if not drafts then drafts = {}; state.previewDrafts[node.db] = drafts end
+        drafts[node.field.key] = control:GetText()
+        state.RefreshPreviews()
+    end)
+    local function AfterEdit(script)
+        local previous = control:GetScript(script)
+        control:SetScript(script, function()
+            if previous then previous() end
+            if not control.bootyEditing then
+                local drafts = state.previewDrafts and state.previewDrafts[node.db]
+                if drafts then drafts[node.field.key] = nil end
+                state.RefreshPreviews()
+            end
+        end)
+    end
+    AfterEdit("OnEnterPressed"); AfterEdit("OnEscapePressed"); AfterEdit("OnEditFocusLost"); AfterEdit("OnHide")
+end
+
 local function CreateProfileControls(node, page, state)
     local api, view = state.ProfileContext, {rows = {}, first = 1}
     view.frame = UI.CreateContainer(nil, page)
@@ -233,6 +280,7 @@ local function CreateField(node, page, state)
         node.label = label; node.height = 58
     end
     node.control = control
+    if field.preview then AttachPreview(node, page, state) end
     if field.tooltip then UI.AttachTooltip(control, node.text, field.tooltip) end
     return control
 end
@@ -249,6 +297,7 @@ local function Synchronize(node)
         for _, choice in ipairs(control.choices) do if choice.value == value then caption = choice.text; break end end
         control:SetText(caption)
     elseif control.RefreshValue then control:RefreshValue() end
+    if node.preview then RefreshPreview(node, node.previewState) end
 end
 NaturalLabelWidth = function(label)
     local text = label:GetText()
@@ -313,12 +362,14 @@ local function MeasureFieldHeight(node)
 end
 local function LayoutField(node, page, x, y, width)
     local control, kind = node.control, node.field.type
+    if node.preview then width = math.max(1, page:GetWidth() - x - 4) end
     local label = node.label or control.label or kind == "slider" and getglobal(control:GetName() .. "Text")
     local labelWidth = label and NaturalLabelWidth(label)
     local labelHeight = label and NaturalLabelHeight(label, labelWidth)
-    if node.bootyLayoutX == x and node.bootyLayoutY == y and node.bootyLayoutWidth == width and node.bootyLayoutLabelWidth == labelWidth and node.bootyLayoutLabelHeight == labelHeight and control:IsShown() then return node.height end
+    if node.bootyLayoutX == x and node.bootyLayoutY == y and node.bootyLayoutWidth == width and node.bootyLayoutLabelWidth == labelWidth and node.bootyLayoutLabelHeight == labelHeight and node.bootyLayoutPreviewVersion == node.bootyPreviewVersion and control:IsShown() then return node.height end
     node.bootyLayoutX, node.bootyLayoutY, node.bootyLayoutWidth = x, y, width
     node.bootyLayoutLabelWidth, node.bootyLayoutLabelHeight = labelWidth, labelHeight
+    node.bootyLayoutPreviewVersion = node.bootyPreviewVersion
     control:ClearAllPoints()
     if node.label then
         node.label:SetWidth(labelWidth)
@@ -359,6 +410,13 @@ local function LayoutField(node, page, x, y, width)
             node.height = math.max(kind == "color" and 32 or 30, height + 8)
         end
     end
+    if node.preview then
+        NaturalLabelWidth(node.preview)
+        local height = NaturalLabelHeight(node.preview, width)
+        node.preview:SetWidth(width); node.preview:SetHeight(height)
+        node.preview:ClearAllPoints(); node.preview:SetPoint("TOPLEFT", control, "BOTTOMLEFT", 0, -6)
+        node.preview:Show(); node.height = node.height + height + 6
+    end
     control:Show()
     return node.height
 end
@@ -390,6 +448,7 @@ local function LayoutNodes(nodes, page, state, depth, y)
                 while index <= table.getn(nodes) and nodes[index].field do
                     local fieldNode = nodes[index]
                     if fieldNode.field.row~=node.field.row then break end
+                    if fieldNode ~= node and (node.field.preview or fieldNode.field.preview) then break end
                     if Visible(fieldNode) then
                         fieldNode.layoutVisible = true
                         if not fieldNode.control then CreateField(fieldNode, page, state); Synchronize(fieldNode)
@@ -445,6 +504,7 @@ local function HideUnused(nodes)
         if not node.layoutVisible then
             if node.control then node.control:Hide() end
             if node.label then node.label:Hide() end
+            if node.preview then node.preview:Hide() end
         end
         if node.children then HideUnused(node.children) end
     end
@@ -522,7 +582,15 @@ function SettingsHost.Open(product, host, providers)
         }})
         Lib.Core.SettingsSearch.Index(state.tree)
     end
-    state.RefreshEnabled = function() RefreshNodes(state.tree) end
+    state.RefreshPreviews = function()
+        if state.previewBusy or not state.window or not state.window:IsVisible() then return end
+        state.previewBusy = true
+        local ok, changed = pcall(RefreshVisiblePreviews, state)
+        state.previewBusy = nil
+        if not ok then error(changed, 0) end
+        if changed and not state.reflowBusy and not state.layingOut then state.Reflow() end
+    end
+    state.RefreshEnabled = function() RefreshNodes(state.tree); state.RefreshPreviews() end
     state.Layout = function()
         CloseChoices(state.tree); ClearLayout(state.tree)
         if state.profileNode and state.profileNode.control and state.profileNode.control.panel then state.profileNode.control.panel:Hide() end
