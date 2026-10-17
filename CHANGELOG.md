@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.53 — 2026-10-17
+
+- Add matching gold eye, archive-box and restore-box action icons.
+
 ## 0.1.0-dev.52 — 2026-10-17
 
 - Show live examples below supported Settings text fields, including drafts and wrapped text.
