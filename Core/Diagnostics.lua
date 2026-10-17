@@ -114,6 +114,10 @@ local wrapperFactories = {
         if not ShouldMeasure() then return callback(a, b, c, d, e, f, g) end
         return RunMeasured(name, callback, a, b, c, d, e, f, g)
     end end,
+    [8] = function(name, callback) return function(a, b, c, d, e, f, g, h)
+        if not ShouldMeasure() then return callback(a, b, c, d, e, f, g, h) end
+        return RunMeasured(name, callback, a, b, c, d, e, f, g, h)
+    end end,
 }
 
 function Diagnostics.Wrap(name, callback, arity)

@@ -44,4 +44,8 @@ Action buttons can use rounded or circular icons, shadows and the existing proje
 
 Rounded indicators retain the icon contour while draining. Rounded outlines keep their chosen thickness as corner radius increases.
 
-The accompanying texture library includes extracted chat skins, action-bar borders and ornaments, and Nature / Silver and gold unit-frame artwork for compatible Booty addons.
+The accompanying texture library includes extracted chat skins, action-bar borders (including Fine gold rail and Border 02–15) and ornaments, and Nature / Silver and gold unit-frame artwork for compatible Booty addons. Supplied border strips repeat their complete pattern along all four sides, with matching corners and corrected Border 08/09 orientation. Moon stone is available as a background; Parchment includes a clean gradient background and matching ornate chat border. Chat borders scale around fixed edges while the chat background keeps its position and size.
+
+Nature XP and Azure ornaments include detailed original-source cutouts; long banners, drapery and lions retain their metal and cloth outlines.
+
+Moon upper/lower now include detailed wide rails with smooth transparent ends. The shared library also includes repaired Azure, Nature moon, drapery and small metal ornament contours.

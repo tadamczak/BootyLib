@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.1.0-dev.51 — 2026-10-17
+
+- Preserve eight-argument queries and their results with diagnostics enabled or disabled.
+
+## 0.1.0-dev.50 — 2026-10-13
+
+- Exchange opposite sides of Border 08/09 and provide compact repeat textures for small border patterns.
+
+## 0.1.0-dev.49 — 2026-10-13
+
+- Use each complete supplied border strip on all four sides, with separate corners and no detached center decorations.
+
+## 0.1.0-dev.48 — 2026-10-13
+
+- Add thirteen supplied border styles with transparent ornament contours, Moon stone background and a restored parchment chat background/frame.
+
+## 0.1.0-dev.47 — 2026-10-13
+
+- Re-extract action-bar rails without panel backgrounds; add Fine gold rail and matching repeatable corners.
+
+## 0.1.0-dev.46 — 2026-10-12
+
+- Restore detailed ornament contours and full high-resolution Moon rails with soft transparent ends.
+
+## 0.1.0-dev.45 — 2026-10-12
+
+- Refine Nature XP, Azure wings/upper rail, lion, long-banner and drapery texture cutouts from original sources; retain high-resolution detail.
+
+## 0.1.0-dev.44 — 2026-10-12
+
+- Scale extracted chat border thickness around fixed rail axes without resizing backgrounds; let dedicated project-border layers use the same centered geometry and original backdrop.
+
+## 0.1.0-dev.43 — 2026-10-12
+
+- Keep extracted chat decorations outside the message aperture at every border scale; align backgrounds with the rails and resolve geometry from the native owner.
+
 ## 0.1.0-dev.42 — 2026-10-12
 
 - Shared extracted action-bar rails, resizable chat borders/backgrounds, new ornaments and two unit-frame styles with status masks.
