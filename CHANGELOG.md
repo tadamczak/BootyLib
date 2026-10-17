@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.51 — 2026-10-17
+
+- Preserve eight-argument queries and their results with diagnostics enabled or disabled.
+
 ## 0.1.0-dev.50 — 2026-10-13
 
 - Exchange opposite sides of Border 08/09 and provide compact repeat textures for small border patterns.
