@@ -44,6 +44,8 @@ a textured name panel.
 Moonshadow, Kaldria and Talandria include textured name panels, separate Alliance
 PvP emblems and status effects. Seven combo-point styles provide empty and lit
 slots; Dark metal and Silver and gold add two selectable castbar frames.
+Bronze ruby uses a connected five-slot frame with matching empty/lit size.
+Combo artwork has clean contours prepared for small UI rendering.
 
 BootyActionBars uses shared gryphon, lion, banner, drapery and crest ornaments supplied by BootyLib.
 Moon ornaments and repaired gryphon/crystal cutouts are included. BootyFrame uses matching portrait/name glow masks for combat and resting effects.

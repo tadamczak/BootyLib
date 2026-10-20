@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.57 — 2026-10-21
+
+- Repair all seven combo styles' dotted contours with cleaned source artwork and exports sized for small UI rendering.
+- Replace Bronze ruby's separate sockets with the supplied connected five-slot design and fixed-rim glass highlights.
+
 ## 0.1.0-dev.56 — 2026-10-20
 
 - Include seven combo-point styles, two castbar frames and Moonshadow, Kaldria and Talandria unit frames with separate Alliance PvP emblems and status masks.
