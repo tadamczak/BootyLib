@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.56 — 2026-10-20
+
+- Include seven combo-point styles, two castbar frames and Moonshadow, Kaldria and Talandria unit frames with separate Alliance PvP emblems and status masks.
+
 ## 0.1.0-dev.55 — 2026-10-20
 
 - Separate lion/banner faction artwork from unit frames, repair the Silver and gold name fill and include native elite/rare portrait decorations.
