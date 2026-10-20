@@ -37,6 +37,9 @@ If loading a profile or resetting Settings fails, the previous preferences are r
 If an addon cannot start or stop safely, Booty reports the reason. Failed startup cleanup must finish before another startup attempt. Feature views remain unavailable until the addon starts successfully; its Settings remains accessible.
 
 BootyFrame uses ten shared decorative unit-frame styles supplied by BootyLib.
+The lion shield and banner are separate PvP choices. Native gold elite and silver
+rare decorations can be positioned around unit portraits; Silver and gold includes
+a textured name panel.
 
 BootyActionBars uses shared gryphon, lion, banner, drapery and crest ornaments supplied by BootyLib.
 Moon ornaments and repaired gryphon/crystal cutouts are included. BootyFrame uses matching portrait/name glow masks for combat and resting effects.

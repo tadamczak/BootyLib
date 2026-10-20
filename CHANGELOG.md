@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.55 — 2026-10-20
+
+- Separate lion/banner faction artwork from unit frames, repair the Silver and gold name fill and include native elite/rare portrait decorations.
+- Remove retired Style 4/5 textures from the shared unit-frame catalog.
+
 ## 0.1.0-dev.54 — 2026-10-20
 
 - Support frame options directly in their feature tab, using the same settings controls, search and profiles.
