@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.54 — 2026-10-20
+
+- Support frame options directly in their feature tab, using the same settings controls, search and profiles.
+
 ## 0.1.0-dev.53 — 2026-10-17
 
 - Add matching gold eye, archive-box and restore-box action icons.

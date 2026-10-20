@@ -17,6 +17,9 @@ presentations retain the same addon state and use the shared Settings gear.
 
 Settings keeps compact text and clear plus/minus controls for expanding sections.
 
+BootyFrame places its complete options, search and profiles in the Frames tab.
+Its preferences remain included in shared profiles from Settings.
+
 Settings fields use one to four columns as space permits. Each column fits its full labels; color labels stay next to their swatches.
 Mixed controls align by their bottom edges; captions stay attached to their own controls through resizing.
 Related settings can share dedicated rows that wrap with the window. Multi-select dropdowns keep their menu open while choices are checked and save selections in profiles.
