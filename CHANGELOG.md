@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.59 — 2026-10-21
+
+- Add shaped inner shadows for the thirteen BootyFrame styles, adapted from native frame shading without changing their original artwork.
+
 ## 0.1.0-dev.58 — 2026-10-21
 
 - Support clipping BootyFrame health/resource fills and backgrounds to decorative openings while preserving their native gradient and value display.

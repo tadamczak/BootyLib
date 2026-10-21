@@ -42,6 +42,8 @@ rare decorations can be positioned around unit portraits; Silver and gold includ
 a textured name panel.
 Health and resource bars fit these decorative openings, including their empty
 backgrounds and mirrored shapes, while retaining the native gradient.
+Their name, health and resource panels have inner shadows adapted from Blizzard's
+frame artwork, so the fill blends into the decorative rim.
 
 Moonshadow, Kaldria and Talandria include textured name panels, separate Alliance
 PvP emblems and status effects. Seven combo-point styles provide empty and lit
