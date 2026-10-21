@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.58 — 2026-10-21
+
+- Support clipping BootyFrame health/resource fills and backgrounds to decorative openings while preserving their native gradient and value display.
+
 ## 0.1.0-dev.57 — 2026-10-21
 
 - Repair all seven combo styles' dotted contours with cleaned source artwork and exports sized for small UI rendering.

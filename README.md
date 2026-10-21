@@ -40,6 +40,8 @@ BootyFrame uses thirteen shared decorative unit-frame styles supplied by BootyLi
 The lion shield and banner are separate PvP choices. Native gold elite and silver
 rare decorations can be positioned around unit portraits; Silver and gold includes
 a textured name panel.
+Health and resource bars fit these decorative openings, including their empty
+backgrounds and mirrored shapes, while retaining the native gradient.
 
 Moonshadow, Kaldria and Talandria include textured name panels, separate Alliance
 PvP emblems and status effects. Seven combo-point styles provide empty and lit
