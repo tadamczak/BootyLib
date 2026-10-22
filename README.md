@@ -67,3 +67,5 @@ The accompanying texture library includes extracted chat skins, action-bar borde
 Nature XP and Azure ornaments include detailed original-source cutouts; long banners, drapery and lions retain their metal and cloth outlines.
 
 Moon upper/lower now include detailed wide rails with smooth transparent ends. The shared library also includes repaired Azure, Nature moon, drapery and small metal ornament contours.
+
+With current BootyProfiler installed, **Booty Diagnostics → Profile Booty** can measure selected BootyLib operations after you select the addon and press **Start**. **Stop** ends the capture. The report covers the listed Lua entry points; it does not measure total addon CPU, RAM or disk size.

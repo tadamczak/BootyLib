@@ -132,6 +132,43 @@ function Diagnostics.Wrap(name, callback, arity)
     end
 end
 
+-- Product owners describe their own callable entry points on explicit request.
+-- Description never creates frames, initializes a database or installs hooks.
+function Diagnostics.CreateProfilingDescriptor(version, coverage)
+    return {contractVersion = 1, productVersion = version, targets = {}, missingTargets = {},
+        partial = false, coverage = coverage}
+end
+function Diagnostics.AddProfilingFunction(descriptor, owner, key, name, optional)
+    if type(owner) == "table" and type(owner[key]) == "function" then
+        table.insert(descriptor.targets, {kind = "function", owner = owner, key = key, name = name})
+        return true
+    end
+    if not optional then
+        descriptor.partial = true; table.insert(descriptor.missingTargets, name)
+    end
+    return false
+end
+function Diagnostics.AddProfilingScript(descriptor, frame, script, name, optional)
+    if frame and type(frame.GetScript) == "function" and type(frame:GetScript(script)) == "function" then
+        table.insert(descriptor.targets, {kind = "script", frame = frame, script = script, name = name})
+        return true
+    end
+    if not optional then
+        descriptor.partial = true; table.insert(descriptor.missingTargets, name)
+    end
+    return false
+end
+function Booty.GetProfilingTargets()
+    local descriptor = Diagnostics.CreateProfilingDescriptor(Booty.version,
+        "Shared guild-directory operations and responsive UI layout. Nested callers retain inclusive time; this is selected Lua work, not total UI or addon CPU.")
+    local core, ui = Booty.Core, Booty.UI and Booty.UI.Components
+    Diagnostics.AddProfilingFunction(descriptor, core and core.Runtime, "RefreshDirectory", "Guild directory refresh")
+    Diagnostics.AddProfilingFunction(descriptor, Booty.GuildDirectory, "Step", "Guild directory scan step")
+    Diagnostics.AddProfilingFunction(descriptor, ui, "LayoutFlow", "UI flow layout")
+    Diagnostics.AddProfilingFunction(descriptor, ui, "LayoutResponsiveCanvas", "Responsive canvas layout")
+    return descriptor
+end
+
 function Diagnostics.GetOperationTotals(scope)
     local calls, elapsed, memoryChange, largestIncrease, slowestTime, slowestName = 0, 0, 0, 0, 0, nil
     local name, entry

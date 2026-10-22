@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.60 — 2026-10-22
+
+- Expose explicit on-demand timing targets for Booty Diagnostics without idle scanning or memory measurements.
+
 ## 0.1.0-dev.59 — 2026-10-21
 
 - Add shaped inner shadows for the thirteen BootyFrame styles, adapted from native frame shading without changing their original artwork.
