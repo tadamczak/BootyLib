@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.62 — 2026-10-24
+
+- Add six shared layered HUD textures, circular icons and a reusable bar renderer with mirrored/rotated UV clipping, tintable fill and ornament-aware progress bounds.
+
 ## 0.1.0-dev.61 — 2026-10-24
 
 - Export custom castbar artwork at display-appropriate resolution with area filtering to reduce isolated white speckles.
