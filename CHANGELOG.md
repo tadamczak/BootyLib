@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.61 — 2026-10-24
+
+- Export custom castbar artwork at display-appropriate resolution with area filtering to reduce isolated white speckles.
+
 ## 0.1.0-dev.60 — 2026-10-22
 
 - Expose explicit on-demand timing targets for Booty Diagnostics without idle scanning or memory measurements.
