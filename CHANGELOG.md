@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.64 — 2026-10-25
+
+- Support explicit dependent setting refresh and nonpersistent action buttons in shared settings panels.
+
 ## 0.1.0-dev.63 — 2026-10-24
 
 - Repair the six Focus artwork cutouts, preserve full casing contours and separate neutral glass highlights from recolorable fills.

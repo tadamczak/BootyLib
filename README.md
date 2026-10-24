@@ -23,7 +23,9 @@ Its preferences remain included in shared profiles from Settings.
 BootyFocus places its options and profiles in the Focus tab. The shared texture
 library includes six HUD bar styles with mirrored sides, colored fills and
 replaceable circular icons for the Runic style. Recolored fills retain their
-glass highlights, and decorative casings keep their complete contours.
+glass highlights, and decorative casings keep their complete contours. Focus
+provides per-bar proportional scale and a default fill-color reset; linked size
+controls update immediately when a texture or orientation changes.
 
 Settings fields use one to four columns as space permits. Each column fits its full labels; color labels stay next to their swatches.
 Mixed controls align by their bottom edges; captions stay attached to their own controls through resizing.

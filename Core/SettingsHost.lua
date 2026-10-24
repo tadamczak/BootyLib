@@ -51,6 +51,13 @@ local function GetValue(node)
     if field.displayScale and type(value)=="number" then return value*field.displayScale end
     return value
 end
+local Synchronize
+local function RefreshDependents(nodes, owner)
+    for _, node in ipairs(nodes) do
+        if node.provider == owner.provider and node.control and owner.field.refreshKeys[node.key] then Synchronize(node) end
+        if node.children then RefreshDependents(node.children, owner) end
+    end
+end
 local function SetValue(node, value, state)
     local field = node.field
     if field.displayScale then
@@ -63,6 +70,7 @@ local function SetValue(node, value, state)
     if node.provider.OnSettingChanged then node.provider.OnSettingChanged(field.key) end
     if node.provider.OnSettingsChanged then node.provider.OnSettingsChanged(field.key) end
     if state and state.host.ApplySettings then state.host.ApplySettings() end
+    if state and field.refreshKeys then RefreshDependents(state.tree, node) end
 end
 local function CommitPending(nodes)
     for _, node in ipairs(nodes) do
@@ -251,7 +259,15 @@ local function CreateField(node, page, state)
         set = function(_, value) SetValue(node, value, state); state.RefreshEnabled() end}
     local kind = field.type
     local control, label
-    if kind == "checkbox" then
+    if kind == "action" then
+        control = UI.CreateButton(page, nil, node.text, 180, 24); UI.StyleActionButton(control)
+        control:SetScript("OnClick", function()
+            field.action(node.db)
+            if field.refreshKeys then RefreshDependents(state.tree, node) end
+            state.RefreshEnabled()
+        end)
+        node.height = 32
+    elseif kind == "checkbox" then
         control = UI.Settings.CreateCheckbox(page, 0, 0, node.text, field.key, nil, binding)
         node.height = 30
     elseif kind == "slider" then
@@ -284,7 +300,8 @@ local function CreateField(node, page, state)
     if field.tooltip then UI.AttachTooltip(control, node.text, field.tooltip) end
     return control
 end
-local function Synchronize(node)
+Synchronize = function(node)
+    if node.field.type == "action" then return end
     local control, field, value = node.control, node.field, GetValue(node)
     if field.type == "checkbox" then control:SetChecked(value and value ~= 0 and 1 or nil)
     elseif field.type == "slider" then UI.Settings.SynchronizeSlider(control, tonumber(value) or field.min or 0)
@@ -321,6 +338,7 @@ NaturalLabelHeight = function(label, width)
 end
 local function MeasureField(node)
     local control, kind = node.control, node.field.type
+    if kind == "action" then return math.max(120, NaturalLabelWidth(control.label) + 24) end
     if node.label then
         local width = math.max(180, NaturalLabelWidth(node.label))
         if kind == "choice" or kind == "dropdown" or kind=="multiselect" then
@@ -356,7 +374,8 @@ local function FieldLabelWidth(node, label, width)
     if node.label then
         if node.field.inlineLabel then width = width - math.min(80, width / 2) - 10 end
     elseif node.field.type == "checkbox" then width = width - node.control:GetWidth() - 6
-    elseif node.field.type == "color" then width = width - 26 end
+    elseif node.field.type == "color" then width = width - 26
+    elseif node.field.type == "action" then width = width - 24 end
     return math.max(1, math.min(natural, width))
 end
 local function MeasureFieldHeight(node, width)
@@ -367,6 +386,7 @@ local function MeasureFieldHeight(node, width)
     if node.label and node.field.inlineLabel then top=math.max(0,(labelHeight-control:GetHeight())/2) end
     local bottom=top+control:GetHeight()
     local height=node.label and bottom+10 or kind=="slider" and bottom+18 or math.max(kind=="color" and 32 or 30,labelHeight+8)
+    if kind == "action" then height = math.max(24, labelHeight + 8) + 8 end
     if node.label and node.field.inlineLabel then height=math.max(control:GetHeight(),labelHeight)+10 end
     return height,bottom,top
 end
@@ -418,7 +438,10 @@ local function LayoutField(node, page, x, y, width)
     else
         local _,_,top=MeasureFieldHeight(node,width)
         control:SetPoint("TOPLEFT", page, "TOPLEFT", x, y - top)
-        if kind == "slider" then
+        if kind == "action" then
+            control:SetWidth(width); control:SetHeight(math.max(24, labelHeight + 8))
+            control.label:SetWidth(labelWidth); node.height = control:GetHeight() + 8
+        elseif kind == "slider" then
             control:SetWidth(width)
             label:SetWidth(labelWidth); label:SetJustifyH("LEFT")
             if node.bootyWrapWidth then label:SetHeight(labelHeight) end
