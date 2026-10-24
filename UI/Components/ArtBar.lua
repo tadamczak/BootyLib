@@ -17,17 +17,20 @@ function B.SetValue(bar, value)
     value = math.max(0, math.min(1, value or 0))
     if bar.value == value and not bar.dirty then return end
     bar.value, bar.dirty = value, false
-    if value <= 0 then bar.fill:Hide(); return end
+    if value <= 0 then bar.fill:Hide(); bar.highlight:Hide(); return end
     local x0, y0, x1, y1 = bar.x0, bar.y0, bar.x1, bar.y1
     if bar.vertical then
         if bar.reverse then y1 = y0 + (y1 - y0) * value else y0 = y1 - (y1 - y0) * value end
     elseif bar.reverse then x0 = x1 - (x1 - x0) * value else x1 = x0 + (x1 - x0) * value end
     Crop(bar, bar.fill, x0, y0, x1, y1); bar.fill:Show()
+    if bar.hasHighlight then Crop(bar, bar.highlight, x0, y0, x1, y1); bar.highlight:Show()
+    else bar.highlight:Hide() end
 end
 function B.Create(parent)
     local bar = UI.CreateContainer(nil, parent)
     bar.background = UI.CreateTexture(bar, nil, "BACKGROUND")
-    bar.fill = UI.CreateTexture(bar, nil, "ARTWORK")
+    bar.fill = UI.CreateTexture(bar, nil, "BORDER")
+    bar.highlight = UI.CreateTexture(bar, nil, "ARTWORK")
     bar.shell = UI.CreateTexture(bar, nil, "OVERLAY")
     -- The source socket is opaque. Its replacement must render above the shell,
     -- independent of ordering among textures in the same draw layer.
@@ -54,6 +57,8 @@ function B.Apply(bar, options)
     bar.x0, bar.y0, bar.x1, bar.y1 = x0, y0, x1, y1
     local path = art and art.fill or options.texture == "flat" and "Interface\\Buttons\\WHITE8X8" or "Interface\\TargetingFrame\\UI-StatusBar"
     bar.background:SetTexture(path); bar.fill:SetTexture(path)
+    bar.hasHighlight = art and art.highlight ~= nil
+    if bar.hasHighlight then bar.highlight:SetTexture(art.highlight); bar.highlight:SetVertexColor(1, 1, 1, 1) end
     bar.background:SetVertexColor(options.background[1], options.background[2], options.background[3], options.backgroundOpacity)
     bar.fill:SetVertexColor(options.color[1], options.color[2], options.color[3], 1)
     Crop(bar, bar.background, 0, 0, 1, 1)

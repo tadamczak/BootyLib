@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.63 — 2026-10-24
+
+- Repair the six Focus artwork cutouts, preserve full casing contours and separate neutral glass highlights from recolorable fills.
+
 ## 0.1.0-dev.62 — 2026-10-24
 
 - Add six shared layered HUD textures, circular icons and a reusable bar renderer with mirrored/rotated UV clipping, tintable fill and ornament-aware progress bounds.
