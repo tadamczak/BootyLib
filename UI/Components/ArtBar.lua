@@ -56,11 +56,14 @@ function B.Apply(bar, options)
     if bar.rotated then x0, y0, x1, y1 = 1 - y1, x0, 1 - y0, x1 end
     bar.x0, bar.y0, bar.x1, bar.y1 = x0, y0, x1, y1
     local path = art and art.fill or options.texture == "flat" and "Interface\\Buttons\\WHITE8X8" or "Interface\\TargetingFrame\\UI-StatusBar"
-    bar.background:SetTexture(path); bar.fill:SetTexture(path)
+    local preset = art and art.fills and art.fills[options.fillPreset or "energy"]
+    bar.presetFill = preset ~= nil and preset ~= false
+    bar.background:SetTexture(path); bar.fill:SetTexture(preset or path)
     bar.hasHighlight = art and art.highlight ~= nil
     if bar.hasHighlight then bar.highlight:SetTexture(art.highlight); bar.highlight:SetVertexColor(1, 1, 1, 1) end
     bar.background:SetVertexColor(options.background[1], options.background[2], options.background[3], options.backgroundOpacity)
-    bar.fill:SetVertexColor(options.color[1], options.color[2], options.color[3], 1)
+    if bar.presetFill then bar.fill:SetVertexColor(1, 1, 1, 1)
+    else bar.fill:SetVertexColor(options.color[1], options.color[2], options.color[3], 1) end
     Crop(bar, bar.background, 0, 0, 1, 1)
     if art and options.border then bar.shell:SetTexture(art.shell); Crop(bar, bar.shell, 0, 0, 1, 1); bar.shell:Show()
     else bar.shell:Hide() end

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.65 — 2026-10-25
+
+- Add ten supplied HUD casings and thirty original resource fills; preserve preset colors while retaining neutral custom tint and directional clipping.
+
 ## 0.1.0-dev.64 — 2026-10-25
 
 - Support explicit dependent setting refresh and nonpersistent action buttons in shared settings panels.

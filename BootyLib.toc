@@ -2,7 +2,7 @@
 ## Title: BootyLib
 ## Notes: Shared UI and integration library for Booty addons.
 ## Author: Mukla
-## Version: 0.1.0-dev.64
+## Version: 0.1.0-dev.65
 ## SavedVariables: BootyLibDB
 
 Core\Bootstrap.lua
@@ -25,6 +25,7 @@ UI\Components\ChoiceField.lua
 UI\Components\Dashboard.lua
 UI\Components\ProgressBar.lua
 UI\Components\HUDTextures.lua
+UI\Components\HUDResourceTextures.lua
 UI\Components\ArtBar.lua
 UI\Components\Table.lua
 UI\Components\FilterPanel.lua
