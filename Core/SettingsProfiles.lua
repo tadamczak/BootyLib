@@ -258,16 +258,42 @@ function Profiles.Create(providers,options)
             end
         end
     end
+    local checkedStore
     local function Store()
         local root=Root()
         if not options.scoped then return root.settingsProfiles end
-        if root.addonSettingsProfiles and root.addonSettingsProfiles[context.id] then return root.addonSettingsProfiles[context.id] end
+        local function Owns(source,name)
+            if source.owner then return source.owner==context.id end
+            if context.id=="suite" then return source.addonProfiles~=nil or source.providers and source.providers.suite~=nil or root.currentSettingsProfile==name end
+            if source.addonProfiles or source.providers and source.providers.suite then return false end
+            if root.currentSettingsProfiles[context.id]==name then return true end
+            if source.version~=2 then return false end
+            for id in pairs(source.providers) do if id~=context.id then return false end end
+            return source.providers[context.id]~=nil
+        end
+        local existing=root.addonSettingsProfiles and root.addonSettingsProfiles[context.id]
+        if existing then
+            if checkedStore==existing then return existing end
+            for name,profile in pairs(existing) do
+                if not profile.owner then
+                    local source=root.settingsProfiles[name]
+                    -- Remove only unchanged broad imports; the complete source
+                    -- remains in the retained legacy store. Authored edits stay.
+                    if Valid(source) and not Owns(source,name) and source.providers and profile.providers
+                        and source.providers[context.id] and profile.providers[context.id]
+                        and Equal(source.providers[context.id].settings,profile.providers[context.id].settings) then existing[name]=nil
+                    else profile.owner=context.id end
+                end
+            end
+            checkedStore=existing;return existing
+        end
         -- Copy owned values from old shared profiles once. Retain the original
         -- payloads, including unknown/absent owners, for lossless compatibility.
         local profiles={}
         for name,source in pairs(root.settingsProfiles) do
-            if Valid(source) then
-                local snapshot={version=2,providers={}}
+            if Valid(source) and Owns(source,name) then
+                local snapshot={version=2,owner=context.id,providers={}}
+                if context.id=="suite" then snapshot=Copy(source);snapshot.owner="suite";snapshot.providers=snapshot.providers or {} end
                 if source.version==2 then
                     for _,provider in ipairs(context.providers) do
                         if source.providers[provider.id] then snapshot.providers[provider.id]=Copy(source.providers[provider.id]) end
@@ -285,6 +311,7 @@ function Profiles.Create(providers,options)
             end
         end
         root.addonSettingsProfiles=root.addonSettingsProfiles or {};root.addonSettingsProfiles[context.id]=profiles
+        checkedStore=profiles
         return profiles
     end
     local function Select(name)
@@ -296,6 +323,7 @@ function Profiles.Create(providers,options)
         if previous and previous.version==2 then snapshot=Copy(previous)
         else snapshot={version=2,providers={}};if previous then snapshot.legacy=Copy(previous) end end
         snapshot.providers=snapshot.providers or {}
+        snapshot.owner=context.id
         Schemas(function(provider,db,field)
             local section=snapshot.providers[provider.id]
             if not section then section={settings={},keys={}};snapshot.providers[provider.id]=section end
@@ -311,7 +339,7 @@ function Profiles.Create(providers,options)
         local profiles=Store()
         local name=Name(Root().currentSettingsProfiles[context.id])
         if not name or not Valid(profiles[name]) then
-            local base=(context.providers[1] and context.providers[1].name or "Booty").." Custom"
+            local base=(context.providers[1] and context.providers[1].name or "Booty").." custom"
             local index=1;name=base
             while profiles[name] do index=index+1;name=base.." "..index end
         end
@@ -356,7 +384,7 @@ function Profiles.Create(providers,options)
         local root=Root()
         local name=root.currentSettingsProfiles[context.id] or context.id=="suite" and root.currentSettingsProfile
         if name and (not options.scoped or context.Exists(name)) then return name end
-        local base=options.defaultName or (context.id=="suite" and "Default" or (context.providers[1] and context.providers[1].name or "Booty")..(options.scoped and " Custom" or " Default"))
+        local base=options.defaultName or (context.id=="suite" and "Default" or (context.providers[1] and context.providers[1].name or "Booty")..(options.scoped and " custom" or " Default"))
         local index=1;name=base
         while context.Exists(name) do index=index+1;name=base.." "..index end
         local ok,failure=Save(name,true);if not ok then error(failure) end
@@ -376,7 +404,10 @@ function Profiles.Create(providers,options)
         if not Valid(profile) then return true end
         local dirty=false
         Schemas(function(provider,db,field)
-            local found,saved=Saved(profile,provider.id,field)
+            local source=profile
+            local selected=context.addons and profile.addonProfiles and profile.addonProfiles[provider.id]
+            if selected and context.addons[provider.id] then source=context.addons[provider.id].GetStore()[selected] or profile end
+            local found,saved=Saved(source,provider.id,field)
             if not found then saved=nil end
             if not Equal(saved,Read(field,db)) then dirty=true end
         end)
@@ -392,20 +423,25 @@ function Profiles.Create(providers,options)
         local profile=Store()[name or ""]
         if not Valid(profile) then return false,"Profile not found or unsupported." end
         local changes,pending={},{}
+        local effective=profile
         local ok,failure=pcall(function()
             if context.addons and profile.addonProfiles then
+                effective=Copy(profile)
                 for _,id in ipairs(context.addonOrder) do
                     local selected=profile.addonProfiles[id]
                     if selected then
                         assert(Name(selected),"Invalid addon profile name.")
-                        local section=profile.providers and profile.providers[id]
+                        local childStore=context.addons[id].GetStore()
+                        local child=childStore[selected]
+                        local section=child and child.providers and child.providers[id] or profile.providers and profile.providers[id]
                         assert(type(section)=="table" and type(section.settings)=="table","Missing addon profile snapshot: "..id)
-                        table.insert(pending,{store=context.addons[id].GetStore(),id=id,name=selected,snapshot={version=2,providers={[id]=Copy(section)}}})
+                        effective.providers[id]=Copy(section)
+                        table.insert(pending,{store=childStore,id=id,name=selected,snapshot=child or {version=2,owner=id,providers={[id]=Copy(section)}}})
                     end
                 end
             end
             Schemas(function(provider,db,field)
-                local found,value=Saved(profile,provider.id,field)
+                local found,value=Saved(effective,provider.id,field)
                 if found then table.insert(changes,Change(provider,db,field,value)) end
             end)
         end)
@@ -524,7 +560,7 @@ function Profiles.Create(providers,options)
     if options.bundle then
         context.addons,context.addonOrder={},{}
         for _,provider in ipairs(context.providers) do
-            local schema=provider.id~=context.id and provider.GetSettings and provider.GetSettings()
+            local schema=provider.id~=context.id and provider.id~="lib" and provider.GetSettings and provider.GetSettings()
             local available=false
             if schema and type(schema.db)=="table" then
                 for _,field in ipairs(schema.fields or {}) do if IsSetting(field) then available=true;break end end

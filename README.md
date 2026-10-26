@@ -17,7 +17,7 @@ Windows, controls and menus use a consistent foreground order across installed B
 Booty Suite can open a feature in its dashboard or in a separate window. Both
 presentations retain the same addon state and use the shared Settings gear.
 
-Settings groups options under each addon name with the same icon as its menu tab. Each addon has its own named profiles; Suite profiles also save the current settings and selected profile of each available addon. Missing addon profiles are created as uniquely named Custom profiles.
+Settings groups options under each addon name with the same icon as its menu tab. Each feature addon and Suite have separate profile lists; BootyLib does not need a profile. General appears first in Settings. A Suite profile saves a map of the selected addon profiles, saving their current settings too. Loading Suite loads those named addon profiles. Missing profiles are recreated from its backup; an addon with no selected profile gets a uniquely named BootyAddon custom profile.
 
 BootyFrame places its complete options, search and profiles in the Frames tab.
 Its preferences remain included in shared profiles from Settings.

@@ -36,6 +36,7 @@ function SettingsHost.BuildTree(providers, integrated, product, includeViewSetti
             end
         end
     end
+    for index,root in ipairs(roots) do if root.key=="General" then table.remove(roots,index);table.insert(roots,1,root);break end end
     Lib.Core.SettingsSearch.Index(roots)
     return roots
 end
@@ -627,9 +628,9 @@ local function ResizeSettingsTick()
     end
 end
 local function AddProfiles(state, product, providers)
-    if not Lib.Core.SettingsProfiles then return end
+    if not Lib.Core.SettingsProfiles or product.id=="lib" then return end
     local suite=product.id=="suite" and state.host.integrated
-    state.ProfileContext=Lib.Core.SettingsProfiles.Create(providers,{id=product.id or product.name,scoped=not suite,bundle=suite,
+    state.ProfileContext=Lib.Core.SettingsProfiles.Create(providers,{id=product.id or product.name,scoped=true,bundle=suite,
         onApplied=function() if state.host.ApplySettings then state.host.ApplySettings() end;state.Reflow() end})
     state.ProfileContexts={[product.id or product.name]=state.ProfileContext}
     local children={}
@@ -645,7 +646,7 @@ local function AddProfiles(state, product, providers)
             if api then state.ProfileContexts[provider.id]=api;AddProfile(provider,api,provider.name) end
         end
     end
-    table.insert(state.tree,1,{key="Profile",text="Profile",expanded=false,children=children})
+    table.insert(state.tree,state.tree[1] and state.tree[1].key=="General" and 2 or 1,{key="Profile",text="Profile",expanded=false,children=children})
     Lib.Core.SettingsSearch.Index(state.tree)
 end
 
