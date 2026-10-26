@@ -16,29 +16,30 @@ local function AddPath(roots, path)
     return children
 end
 function SettingsHost.BuildTree(providers, integrated, product, includeViewSettings)
-    local roots = {}
-    local ownerView = product and product.views and product.views[1]
-    local ownerLabel = not integrated and product and (product.settingsLabel or ownerView and ownerView.label or product.title or product.name)
-    for _, provider in ipairs(providers) do
-        local schema = provider.GetSettings and provider.GetSettings()
+    local roots={}
+    for _,provider in ipairs(providers) do
+        local schema=provider.GetSettings and provider.GetSettings()
         if schema and (includeViewSettings or not provider.settingsInView) then
-            for _, field in ipairs(schema.fields or {}) do
+            local first=provider.views and provider.views[1]
+            local caption=provider.id=="lib" and "General" or provider.name or provider.title or provider.id
+            for _,field in ipairs(schema.fields or {}) do
                 if not field.profileOnly then
-                local path = field.path or {}
-                local caption = ownerLabel or integrated and provider.id == "profiler" and "Profiler"
-                if caption and path[1] ~= caption then
-                    local nested = {caption}; for _, item in ipairs(path) do table.insert(nested, item) end; path = nested
+                    local path,source={caption},field.path or {}
+                    local skip=source[1]==caption or source[1]==provider.settingsLabel or first and source[1]==first.label
+                    for index=skip and 2 or 1,table.getn(source) do table.insert(path,source[index]) end
+                    local children=AddPath(roots,path)
+                    table.insert(children,{text=field.label or field.key,key=field.key,field=field,db=schema.db,provider=provider})
                 end
-                local children = AddPath(roots, path)
-                table.insert(children, {text = field.label or field.key, key = field.key, field = field, db = schema.db, provider = provider})
-                end
+            end
+            for _,root in ipairs(roots) do
+                if root.key==caption then root.productId=provider.id;root.icon=UI.GetProductIcon and UI.GetProductIcon(provider) or first and first.icon or "settings" end
             end
         end
     end
-    if ownerLabel and roots[1] then roots[1].icon = ownerView and ownerView.icon end
     Lib.Core.SettingsSearch.Index(roots)
     return roots
 end
+
 local function GetValue(node)
     local field = node.field
     local value
@@ -137,10 +138,15 @@ local function AttachPreview(node, page, state)
     AfterEdit("OnEnterPressed"); AfterEdit("OnEscapePressed"); AfterEdit("OnEditFocusLost"); AfterEdit("OnHide")
 end
 
+local function CloseProfiles(state)
+    for _,view in ipairs(state.profileViews or {}) do view.Close();view.name:ClearFocus() end
+end
 local function CreateProfileControls(node, page, state)
-    local api, view = state.ProfileContext, {rows = {}, first = 1}
+    local api, view = node.profileContext or state.ProfileContext, {rows = {}, first = 1}
     view.frame = UI.CreateContainer(nil, page)
-    node.control, node.profileView, state.profiles = view.frame, view, view
+    node.control, node.profileView = view.frame, view
+    state.profileViews=state.profileViews or {};table.insert(state.profileViews,view)
+    if api==state.ProfileContext then state.profiles=view end
     view.api = api
     local function Label(text, color)
         local label = UI.CreateComponentLabel(view.frame, nil, color or "white")
@@ -520,7 +526,7 @@ local function LayoutNodes(nodes, page, state, depth, y)
                 index = index - 1
             else
                 if not node.control then
-                    if depth == 0 then node.control = UI.Settings.CreateSectionAccordion(page, node.text, 0, 0, 2, node.icon or icons[node.text] or "list")
+                    if depth == 0 then node.control = UI.Settings.CreateSectionAccordion(page, node.text, 0, 0, state.sectionHeadingLevel or 2, node.icon or icons[node.text] or "list")
                     else node.control = UI.Settings.CreateAccordion(page, node.text, 0) end
                     node.control.bootySettingsNode = node
                     node.control.bootySettingsState = state
@@ -622,12 +628,24 @@ local function ResizeSettingsTick()
 end
 local function AddProfiles(state, product, providers)
     if not Lib.Core.SettingsProfiles then return end
-    state.ProfileContext = Lib.Core.SettingsProfiles.Create(providers, {id = product.id or product.name,
-        onApplied = function() if state.host.ApplySettings then state.host.ApplySettings() end; state.Reflow() end})
-    state.profileNode = {key = "profileControls", text = "Current profile Load profile New profile Save Add Delete Export", profileControls = true}
-    table.insert(state.tree, 1, {key = "Profile", text = "Profile", expanded = false, children = {
-        {key = "General", text = "General", expanded = false, children = {state.profileNode}}
-    }})
+    local suite=product.id=="suite" and state.host.integrated
+    state.ProfileContext=Lib.Core.SettingsProfiles.Create(providers,{id=product.id or product.name,scoped=not suite,bundle=suite,
+        onApplied=function() if state.host.ApplySettings then state.host.ApplySettings() end;state.Reflow() end})
+    state.ProfileContexts={[product.id or product.name]=state.ProfileContext}
+    local children={}
+    local function AddProfile(owner,api,caption)
+        local node={key="profileControls",text="Current profile Load profile New profile Save Add Delete Export",profileControls=true,profileContext=api}
+        if api==state.ProfileContext then state.profileNode=node end
+        table.insert(children,{key=caption,text=caption,expanded=false,children={node},icon=UI.GetProductIcon and UI.GetProductIcon(owner)})
+    end
+    AddProfile(product,state.ProfileContext,suite and "BootySuite" or "General")
+    if suite then
+        for _,provider in ipairs(providers) do
+            local api=state.ProfileContext.addons[provider.id]
+            if api then state.ProfileContexts[provider.id]=api;AddProfile(provider,api,provider.name) end
+        end
+    end
+    table.insert(state.tree,1,{key="Profile",text="Profile",expanded=false,children=children})
     Lib.Core.SettingsSearch.Index(state.tree)
 end
 
@@ -723,7 +741,7 @@ function SettingsHost.CreatePanel(parent, product, host)
     end)
     local function Cleanup()
         CommitPending(state.tree); CloseChoices(state.tree); state.search:ClearFocus()
-        if state.profiles then state.profiles.Close(); state.profiles.name:ClearFocus() end
+        CloseProfiles(state)
         if state.profileConfirm then state.profileConfirm:Hide() end
     end
     local function RefreshValues(nodes)
@@ -740,7 +758,7 @@ function SettingsHost.CreatePanel(parent, product, host)
         -- A setting can refresh its product while a multi-select is still open.
         -- Synchronize values without running geometry cleanup or closing menus.
         RefreshValues(self.tree); self.RefreshEnabled()
-        if self.profiles and self.profiles.frame:IsVisible() then self.profiles.Refresh() end
+        for _,view in ipairs(self.profileViews or {}) do if view.frame:IsVisible() then view.Refresh() end end
         return true
     end
     function state:OnResize() self.Reflow() end
@@ -748,6 +766,82 @@ function SettingsHost.CreatePanel(parent, product, host)
     return state
 end
 
+-- The feature-page header, tab strip and compact body follow Action Bars.
+-- Domain schemas still own which settings and sections appear inside each tab.
+function SettingsHost.CreateTabbedPanel(parent,product,host,options)
+    options=options or {}
+    local shell=UI.CreateContainer(nil,parent);shell:SetAllPoints(parent);shell.bootyTextSizeDelta=-2
+    local header=UI.CreateToolbarSurface(shell,false,true)
+    local heading=UI.CreateHeading(header,product.name,2,"gold",UI.GetProductIcon(product))
+    heading:SetPoint("LEFT",header,"LEFT",12,0);heading:SetHeight(24);heading:SetJustifyH("LEFT")
+    local navigation=UI.CreateToolbarSurface(shell,false,true)
+    local body=UI.CreateContainer(nil,shell)
+    local state=SettingsHost.CreatePanel(body,product,host)
+    state.layoutHost=parent;state.allTree=state.tree;state.sections={};state.buttons={};state.selectionOrder={}
+    state.header,state.heading,state.navigation,state.navigationFrame=header,heading,navigation,navigation
+    state.sectionHeadingLevel=3
+    for _,root in ipairs(state.allTree) do
+        if root.productId==product.id then
+            for _,section in ipairs(root.children) do state.sections[section.key]=section;table.insert(state.selectionOrder,section.key) end
+        end
+    end
+    for _,root in ipairs(state.allTree) do
+        if root.productId~=product.id then state.sections[root.key]=root;table.insert(state.selectionOrder,root.key) end
+    end
+    if options.prepareSections then options.prepareSections(state.sections) end
+    Lib.Core.SettingsSearch.Index(state.allTree)
+    local baseShow,baseHide,baseResize=state.Show,state.Hide,state.OnResize
+    local tabRow={}
+    function state:SelectSection(key)
+        local section=self.sections[key];if not section then return false end
+        if self.selectedSection~=key then
+            baseHide(self)
+            for _,node in ipairs(self.tree) do node.visible=false end
+            baseShow(self)
+            self.selectedSection=key;self.tree=section.children
+            Lib.Core.SettingsSearch.Apply(self.tree,"");self.search:SetText("")
+            for _,node in ipairs(self.tree) do if node.key=="General" then node.expanded=true end end
+            self.viewport:SetVerticalScroll(0)
+        end
+        for id,button in pairs(self.buttons) do UI.SetOpenButtonBorder(button,id==key,"bottom") end
+        self:OnResize();return true
+    end
+    for _,key in ipairs(state.selectionOrder) do
+        local id=key
+        local button=UI.CreateSelectionButton(navigation,nil,id,104,26)
+        button:SetScript("OnClick",function() state:SelectSection(id) end)
+        button.bootyTabWidth=math.max(82,math.ceil(button.label:GetStringWidth())+24)
+        state.buttons[id]=button;table.insert(tabRow,button)
+    end
+    function state:OnResize()
+        if not shell:IsVisible() then return end
+        local width,height=UI.GetFrameSpan(parent);width,height=math.max(1,width),math.max(1,height)
+        shell:SetWidth(width);shell:SetHeight(height)
+        header:ClearAllPoints();header:SetPoint("TOPLEFT",shell,"TOPLEFT",0,0);header:SetWidth(width);header:SetHeight(36)
+        heading:SetWidth(math.max(1,width-24))
+        navigation:ClearAllPoints();navigation:SetPoint("TOPLEFT",shell,"TOPLEFT",0,-36);navigation:SetWidth(width)
+        for _,button in ipairs(tabRow) do button:SetWidth(math.min(button.bootyTabWidth,math.max(1,width-16))) end
+        local navigationHeight=UI.LayoutFlow(navigation,tabRow,8,8,math.max(1,width-16),6)+8
+        navigation:SetHeight(navigationHeight)
+        local top=36+navigationHeight+8
+        body:ClearAllPoints();body:SetPoint("TOPLEFT",shell,"TOPLEFT",0,-top)
+        body:SetWidth(width);body:SetHeight(math.max(1,height-top))
+        baseResize(self)
+    end
+    function state:Show()
+        shell:Show()
+        if not self.selectedSection then return self:SelectSection(options.defaultSection or "General") end
+        self:OnResize();return baseShow(self)
+    end
+    function state:Hide() baseHide(self);shell:Hide();return true end
+    shell:Hide();return state
+end
+
+function SettingsHost.Toggle(product,host,providers)
+    local state=SettingsHost.windows[product.id or product.name]
+    if state and state.window:IsShown() and not state.window.minimized then state.window:Hide();return state end
+    return SettingsHost.Open(product,host,providers)
+end
 function SettingsHost.Open(product, host, providers)
     local owner = product.id or product.name
     local state = SettingsHost.windows[owner]
@@ -822,7 +916,7 @@ function SettingsHost.Open(product, host, providers)
         window:SetScript("OnUpdate", nil)
         state.viewport:SetScript("OnUpdate", nil); state.resizeQueued = nil
         CommitPending(state.tree); CloseChoices(state.tree)
-        if state.profiles then state.profiles.Close() end
+        CloseProfiles(state)
         if state.profileConfirm then state.profileConfirm:Hide() end
         state.search:ClearFocus()
     end)
@@ -863,7 +957,7 @@ function SettingsHost.Open(product, host, providers)
     state.viewport:SetScript("OnHide", function()
         state.viewport:SetScript("OnUpdate", nil); state.resizeQueued = nil
         CommitPending(state.tree); CloseChoices(state.tree); state.search:ClearFocus()
-        if state.profiles then state.profiles.Close() end
+        CloseProfiles(state)
         if state.profileConfirm then state.profileConfirm:Hide() end
     end)
     state.page = UI.CreateContainer(nil, state.viewport); state.page:SetWidth(700); state.page:SetHeight(1)

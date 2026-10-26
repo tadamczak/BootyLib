@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.70 — 2026-10-26
+
+- Group settings by addon, keep separate addon profiles and save their current snapshots in Suite profiles. Share compact feature tabs, gold action icons, Settings toggle and native Main Menu precedence.
+
 ## 0.1.0-dev.69 — 2026-10-26
 
 - Identify chat messages with bracketed product names and explain each common command.

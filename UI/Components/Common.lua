@@ -1033,13 +1033,26 @@ function UI.CreateSettingsButton(parent)
     return button
 end
 
+-- One semantic icon vocabulary for product navigation and settings groups.
+local productIcons={guild="roster",raider="raids",profiler="performance",actionbars="list",chat="archive",focus="view",frame="monitor",map="ping",suite="groups",lib="settings"}
+function UI.GetProductIcon(product)
+    local first=product.views and product.views[1]
+    return productIcons[product.id] or first and first.icon or "settings"
+end
 function UI.CreateGoldToolbarButton(parent, iconKey)
     local button = UI.CreateButton(parent, nil, "", 18, 18)
     UI.SetClassicButtonCompact(button, true)
     button.icon = button:CreateTexture(nil, "OVERLAY")
     button.icon:SetPoint("CENTER", button, "CENTER", 0, 0)
     button.icon:SetWidth(13); button.icon:SetHeight(13)
-    button.icon:SetTexture("Interface\\AddOns\\BootyLib\\Assets\\Skins\\Classic\\Icons\\" .. iconKey .. ".tga")
+    button.bootyActionKey=iconKey
+    if iconKey=="plus" then
+        button.icon:Hide()
+        button.symbol=UI.CreateComponentLabel(button,"+","gold")
+        button.symbol:SetPoint("CENTER",button,"CENTER",0,0)
+        local font,_,flags=button.symbol:GetFont();button.symbol:SetFont(font,18,flags);button.symbol:SetHeight(20)
+    elseif iconKey=="trash" then button.icon:SetTexture("Interface\\AddOns\\BootyLib\\Assets\\DeleteRaid")
+    else button.icon:SetTexture("Interface\\AddOns\\BootyLib\\Assets\\Skins\\Classic\\Icons\\" .. iconKey .. ".tga") end
     button.icon:SetVertexColor(unpack(UI.Theme.colors.goldIcon))
     UI.AttachGoldHoverBorder(button, 0.35, 0.35, 0.35, 1)
     return button

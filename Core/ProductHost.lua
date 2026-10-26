@@ -102,7 +102,7 @@ function ProductHost.Create(product, options)
             update = function() ResizeContent(id) end,
             onSettings = function(source)
                 host.window = source
-                return host.OpenSettings()
+                return host.ToggleSettings()
             end,
         })
         windows[id] = window
@@ -260,6 +260,11 @@ function ProductHost.Create(product, options)
         if not settings or not settings.Open then return false end
         if options.OpenSettings then return options.OpenSettings(host.window) end
         return settings.Open(product, host)
+    end
+    host.ToggleSettings = function()
+        if host.menu then host.menu:Close() end
+        if options.ToggleSettings then return options.ToggleSettings(host.window) end
+        return Lib.Core.SettingsHost.Toggle(product,host)
     end
     host.Close = function()
         if host.menu then host.menu:Close() end

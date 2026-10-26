@@ -12,12 +12,12 @@ When updating this development family, update BootyLib and all installed Booty
 products together, then restart the client. Their shared controls require a
 matching set of builds. Previous saved data and preferences are retained.
 
-Windows, controls and menus use a consistent foreground order across installed Booty addons.
+Windows, controls and menus use a consistent foreground order across installed Booty addons. The native Main Menu stays above Booty windows. Click the Settings cog again to close Settings.
 
 Booty Suite can open a feature in its dashboard or in a separate window. Both
 presentations retain the same addon state and use the shared Settings gear.
 
-Settings keeps compact text and clear plus/minus controls for expanding sections.
+Settings groups options under each addon name with the same icon as its menu tab. Each addon has its own named profiles; Suite profiles also save the current settings and selected profile of each available addon. Missing addon profiles are created as uniquely named Custom profiles.
 
 BootyFrame places its complete options, search and profiles in the Frames tab.
 Its preferences remain included in shared profiles from Settings.

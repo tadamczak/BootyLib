@@ -5,6 +5,11 @@ UI.WindowStack = Stack
 local order, context, applying = {}, nil, false
 local FIRST_LEVEL, CHILD_LIMIT = 64, 510
 local function Visible(frame) return frame and frame.IsVisible and frame:IsVisible() end
+local belowMenu={LOW="BACKGROUND",MEDIUM="LOW",HIGH="MEDIUM",DIALOG="HIGH",FULLSCREEN="DIALOG",FULLSCREEN_DIALOG="FULLSCREEN",TOOLTIP="FULLSCREEN_DIALOG"}
+local function PresentationStrata()
+    if Visible(GameMenuFrame) then return belowMenu[GameMenuFrame:GetFrameStrata()] or "BACKGROUND" end
+    return "FULLSCREEN_DIALOG"
+end
 local function Source(owner) if type(owner) == "function" then return owner() end; return owner end
 local function Find(frame, depth)
     frame = Source(frame)
@@ -32,7 +37,8 @@ local function NativeLevel(frame, value)
     if frame:GetFrameLevel() ~= value then (frame.bootyStackSetLevel or frame.SetFrameLevel)(frame, value) end
 end
 local function NativeStrata(frame)
-    if frame:GetFrameStrata() ~= "FULLSCREEN_DIALOG" then (frame.bootyStackSetStrata or frame.SetFrameStrata)(frame, "FULLSCREEN_DIALOG") end
+    local strata=PresentationStrata()
+    if frame:GetFrameStrata() ~= strata then (frame.bootyStackSetStrata or frame.SetFrameStrata)(frame, strata) end
 end
 local function Bound(record, value) return math.max(record.low + 1, math.min(record.low + CHILD_LIMIT, value)) end
 local function SetLevel(self, value)
@@ -45,7 +51,7 @@ local function SetLevel(self, value)
     return self.bootyStackSetLevel(self, Bound(record, parentLevel + self.bootyStackLevelOffset))
 end
 local function SetStrata(self, value)
-    if not applying and Find(self) then value = "FULLSCREEN_DIALOG" end
+    if not applying and Find(self) then value = PresentationStrata() end
     return self.bootyStackSetStrata(self, value)
 end
 local function FocusInput(frame, handler)
@@ -314,8 +320,17 @@ local function Hook(frame)
     frame.Raise = function(self) Stack.Raise(self) end
     if frame.SetToplevel then frame:SetToplevel(false) end
 end
+local function ObserveMainMenu()
+    if Stack.menuObserver or not GameMenuFrame or type(CreateFrame)~="function" then return end
+    -- An owned child observes inherited visibility; native scripts and levels
+    -- remain untouched. Only our stack yields while Main Menu is visible.
+    local observer=CreateFrame("Frame",nil,GameMenuFrame)
+    observer:SetScript("OnShow",Reflow);observer:SetScript("OnHide",Reflow)
+    Stack.menuObserver=observer;observer:Show()
+end
 function Stack.Register(frame, options)
     if not frame then return end
+    ObserveMainMenu()
     options = options or {}
     local record = frame.bootyWindowStackRecord
     if not record then

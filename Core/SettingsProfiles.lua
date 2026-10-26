@@ -258,6 +258,35 @@ function Profiles.Create(providers,options)
             end
         end
     end
+    local function Store()
+        local root=Root()
+        if not options.scoped then return root.settingsProfiles end
+        if root.addonSettingsProfiles and root.addonSettingsProfiles[context.id] then return root.addonSettingsProfiles[context.id] end
+        -- Copy owned values from old shared profiles once. Retain the original
+        -- payloads, including unknown/absent owners, for lossless compatibility.
+        local profiles={}
+        for name,source in pairs(root.settingsProfiles) do
+            if Valid(source) then
+                local snapshot={version=2,providers={}}
+                if source.version==2 then
+                    for _,provider in ipairs(context.providers) do
+                        if source.providers[provider.id] then snapshot.providers[provider.id]=Copy(source.providers[provider.id]) end
+                    end
+                end
+                Schemas(function(provider,db,field)
+                    local found,value=Saved(source,provider.id,field)
+                    if found then
+                        local section=snapshot.providers[provider.id] or {settings={},keys={}}
+                        snapshot.providers[provider.id]=section;section.settings=section.settings or {};section.keys=section.keys or {}
+                        section.settings[field.key]=Copy(value);section.keys[field.key]=true
+                    end
+                end)
+                if next(snapshot.providers) then profiles[name]=snapshot end
+            end
+        end
+        root.addonSettingsProfiles=root.addonSettingsProfiles or {};root.addonSettingsProfiles[context.id]=profiles
+        return profiles
+    end
     local function Select(name)
         local root=Root();root.currentSettingsProfiles[context.id]=name
         if context.id=="suite" then root.currentSettingsProfile=name end
@@ -278,21 +307,46 @@ function Profiles.Create(providers,options)
         end)
         return snapshot
     end
+    function context.PrepareCurrentSnapshot()
+        local profiles=Store()
+        local name=Name(Root().currentSettingsProfiles[context.id])
+        if not name or not Valid(profiles[name]) then
+            local base=(context.providers[1] and context.providers[1].name or "Booty").." Custom"
+            local index=1;name=base
+            while profiles[name] do index=index+1;name=base.." "..index end
+        end
+        return {store=profiles,id=context.id,name=name,snapshot=Capture(profiles[name])}
+    end
+    local function PublishChildren(pending)
+        for _,entry in ipairs(pending) do entry.store[entry.name]=entry.snapshot;Root().currentSettingsProfiles[entry.id]=entry.name end
+    end
     local function Save(name,add)
         name=Name(name);if not name then return false,"Enter a profile name (1-64 characters)." end
-        local profiles=Root().settingsProfiles
+        local profiles=Store()
         if add and profiles[name] then return false,"This profile already exists. Use Save to update it." end
         if not add and not profiles[name] then return false,"Profile not found. Use Add first." end
-        local ok,snapshot=pcall(Capture,profiles[name])
+        local pending={}
+        local ok,snapshot=pcall(function()
+            local captured=Capture(profiles[name])
+            if context.addons then
+                captured.addonProfiles=captured.addonProfiles or {}
+                for _,id in ipairs(context.addonOrder) do
+                    local entry=context.addons[id].PrepareCurrentSnapshot()
+                    table.insert(pending,entry);captured.addonProfiles[id]=entry.name
+                    captured.providers[id]=Copy(entry.snapshot.providers[id])
+                end
+            end
+            return captured
+        end)
         if not ok then return false,tostring(snapshot) end
-        profiles[name]=snapshot
+        PublishChildren(pending);profiles[name]=snapshot
         return true,"Saved profile: "..name
     end
     function context.List()
-        local names={};for name in pairs(Root().settingsProfiles) do if type(name)=="string" then table.insert(names,name) end end
+        local names={};for name in pairs(Store()) do if type(name)=="string" then table.insert(names,name) end end
         table.sort(names);return names
     end
-    function context.Exists(name) return Root().settingsProfiles[Name(name) or ""]~=nil end
+    function context.Exists(name) return Store()[Name(name) or ""]~=nil end
     function context.CanAdd(name)
         name=Name(name);if not name then return false,"Enter a profile name (1-64 characters)." end
         if context.Exists(name) then return false,"This profile already exists." end
@@ -301,8 +355,8 @@ function Profiles.Create(providers,options)
     function context.GetCurrent()
         local root=Root()
         local name=root.currentSettingsProfiles[context.id] or context.id=="suite" and root.currentSettingsProfile
-        if name then return name end
-        local base=options.defaultName or (context.id=="suite" and "Default" or (context.providers[1] and context.providers[1].name or "Booty").." Default")
+        if name and (not options.scoped or context.Exists(name)) then return name end
+        local base=options.defaultName or (context.id=="suite" and "Default" or (context.providers[1] and context.providers[1].name or "Booty")..(options.scoped and " Custom" or " Default"))
         local index=1;name=base
         while context.Exists(name) do index=index+1;name=base.." "..index end
         local ok,failure=Save(name,true);if not ok then error(failure) end
@@ -318,7 +372,7 @@ function Profiles.Create(providers,options)
         local name=context.GetCurrent();return Save(name,not context.Exists(name))
     end
     function context.IsDirty()
-        local profile=Root().settingsProfiles[context.GetCurrent()]
+        local profile=Store()[context.GetCurrent()]
         if not Valid(profile) then return true end
         local dirty=false
         Schemas(function(provider,db,field)
@@ -326,14 +380,30 @@ function Profiles.Create(providers,options)
             if not found then saved=nil end
             if not Equal(saved,Read(field,db)) then dirty=true end
         end)
+        if context.addons and profile.addonProfiles then
+            for _,id in ipairs(context.addonOrder) do
+                if profile.addonProfiles[id] and profile.addonProfiles[id]~=Root().currentSettingsProfiles[id] then dirty=true end
+            end
+        end
         return dirty
     end
     function context.Load(name)
         name=Name(name)
-        local profile=Root().settingsProfiles[name or ""]
+        local profile=Store()[name or ""]
         if not Valid(profile) then return false,"Profile not found or unsupported." end
-        local changes={}
+        local changes,pending={},{}
         local ok,failure=pcall(function()
+            if context.addons and profile.addonProfiles then
+                for _,id in ipairs(context.addonOrder) do
+                    local selected=profile.addonProfiles[id]
+                    if selected then
+                        assert(Name(selected),"Invalid addon profile name.")
+                        local section=profile.providers and profile.providers[id]
+                        assert(type(section)=="table" and type(section.settings)=="table","Missing addon profile snapshot: "..id)
+                        table.insert(pending,{store=context.addons[id].GetStore(),id=id,name=selected,snapshot={version=2,providers={[id]=Copy(section)}}})
+                    end
+                end
+            end
             Schemas(function(provider,db,field)
                 local found,value=Saved(profile,provider.id,field)
                 if found then table.insert(changes,Change(provider,db,field,value)) end
@@ -357,13 +427,14 @@ function Profiles.Create(providers,options)
         end
         ok,failure=EndBatches(groups,true)
         if not ok then return Rollback(changes,written,groups,snapshots,true,failure) end
-        Select(name);if options.onApplied then options.onApplied() end
+        PublishChildren(pending);Select(name);if options.onApplied then options.onApplied() end
         return true,"Loaded profile: "..name
     end
     function context.Delete(name)
-        name=Name(name);local profiles=Root().settingsProfiles
+        name=Name(name);local profiles=Store()
         if not name or not profiles[name] then return false,"Profile not found." end
         profiles[name]=nil
+        if options.scoped and Root().currentSettingsProfiles[context.id]==name then Select(nil) end
         return true,"Deleted profile: "..name
     end
     function context.ResetDefaults(selected)
@@ -406,7 +477,7 @@ function Profiles.Create(providers,options)
         return true,"Reset settings to defaults."
     end
     function context.Export(name)
-        name=Name(name);local profile=Root().settingsProfiles[name or ""]
+        name=Name(name);local profile=Store()[name or ""]
         if not Valid(profile) then return nil,"Profile not found or unsupported. Save or Add it first." end
         local ok,text=pcall(function()
             local checked=Copy(profile)
@@ -448,6 +519,21 @@ function Profiles.Create(providers,options)
         end)
         if not ok then return nil,tostring(text) end
         return text
+    end
+    context.GetStore=Store
+    if options.bundle then
+        context.addons,context.addonOrder={},{}
+        for _,provider in ipairs(context.providers) do
+            local schema=provider.id~=context.id and provider.GetSettings and provider.GetSettings()
+            local available=false
+            if schema and type(schema.db)=="table" then
+                for _,field in ipairs(schema.fields or {}) do if IsSetting(field) then available=true;break end end
+            end
+            if available then
+                context.addons[provider.id]=Profiles.Create({provider},{id=provider.id,store=options.store,scoped=true,onApplied=options.onApplied})
+                table.insert(context.addonOrder,provider.id)
+            end
+        end
     end
     return context
 end
