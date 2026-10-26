@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.68 — 2026-10-26
+
+- Show full tab-name tooltips for top and bottom navigation tabs, including icon-only tabs.
+
 ## 0.1.0-dev.67 — 2026-10-26
 
 - Add shared product commands, installed/runtime version reporting and configurable native bindings for Booty tabs.

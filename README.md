@@ -78,3 +78,5 @@ Nature XP and Azure ornaments include detailed original-source cutouts; long ban
 Moon upper/lower now include detailed wide rails with smooth transparent ends. The shared library also includes repaired Azure, Nature moon, drapery and small metal ornament contours.
 
 With current BootyProfiler installed, **Booty Diagnostics → Profile Booty** can measure selected BootyLib operations after you select the addon and press **Start**. **Stop** ends the capture. The report covers the listed Lua entry points; it does not measure total addon CPU, RAM or disk size.
+
+Hover a top or bottom navigation tab to see its full name, including when tabs show only icons.
