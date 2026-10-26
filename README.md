@@ -44,17 +44,16 @@ If loading a profile or resetting Settings fails, the previous preferences are r
 
 If an addon cannot start or stop safely, Booty reports the reason. Failed startup cleanup must finish before another startup attempt. Feature views remain unavailable until the addon starts successfully; its Settings remains accessible.
 
-BootyFrame uses thirteen shared decorative unit-frame styles supplied by BootyLib.
+BootyFrame offers fifteen shared decorative unit-frame styles supplied by BootyLib, including ten new black, gold, steel and violet designs with shaped bar openings. Four matching Alliance emblems are separately selectable.
 The lion shield and banner are separate PvP choices. Native gold elite and silver
-rare decorations can be positioned around unit portraits; Silver and gold includes
-a textured name panel.
+rare decorations can be positioned around unit portraits.
 Health and resource bars fit these decorative openings, including their empty
 backgrounds and mirrored shapes, while retaining the native gradient.
 Their name, health and resource panels have inner shadows adapted from Blizzard's
 frame artwork, so the fill blends into the decorative rim.
 
-Moonshadow, Kaldria and Talandria include textured name panels, separate Alliance
-PvP emblems and status effects. Seven combo-point styles provide empty and lit
+The new unit frames include textured name panels and separate Alliance
+PvP emblems. Seven combo-point styles provide empty and lit
 slots; Dark metal and Silver and gold add two selectable castbar frames, with smoother metal details at normal gameplay sizes.
 Bronze ruby uses a connected five-slot frame with matching empty/lit size.
 Combo artwork has clean contours prepared for small UI rendering.
@@ -70,7 +69,7 @@ Action buttons can use rounded or circular icons, shadows and the existing proje
 
 Rounded indicators retain the icon contour while draining. Rounded outlines keep their chosen thickness as corner radius increases.
 
-The accompanying texture library includes extracted chat skins, action-bar borders (including Fine gold rail and Border 02–15) and ornaments, and Nature / Silver and gold unit-frame artwork for compatible Booty addons. Supplied border strips repeat their complete pattern along all four sides, with matching corners and corrected Border 08/09 orientation. Moon stone is available as a background; Parchment includes a clean gradient background and matching ornate chat border. Chat borders scale around fixed edges while the chat background keeps its position and size.
+The accompanying texture library includes extracted chat skins, action-bar borders (including Fine gold rail and Border 02–15) and ornaments, and decorative unit-frame artwork for compatible Booty addons. Supplied border strips repeat their complete pattern along all four sides, with matching corners and corrected Border 08/09 orientation. Moon stone is available as a background; Parchment includes a clean gradient background and matching ornate chat border. Chat borders scale around fixed edges while the chat background keeps its position and size.
 
 Nature XP and Azure ornaments include detailed original-source cutouts; long banners, drapery and lions retain their metal and cloth outlines.
 

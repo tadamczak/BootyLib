@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.66 — 2026-10-26
+
+- Add ten new unit-frame styles and four separate Alliance emblems; retain shaped apertures, panel opacity and mirrors.
+
 ## 0.1.0-dev.65 — 2026-10-25
 
 - Add ten supplied HUD casings and thirty original resource fills; preserve preset colors while retaining neutral custom tint and directional clipping.
