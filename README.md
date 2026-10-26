@@ -80,3 +80,5 @@ Moon upper/lower now include detailed wide rails with smooth transparent ends. T
 With current BootyProfiler installed, **Booty Diagnostics → Profile Booty** can measure selected BootyLib operations after you select the addon and press **Start**. **Stop** ends the capture. The report covers the listed Lua entry points; it does not measure total addon CPU, RAM or disk size.
 
 Hover a top or bottom navigation tab to see its full name, including when tabs show only icons.
+
+Common command help explains `open`, `settings`, `about` and `versions`. Chat messages identify their owner as `[BootySuite]` in the dashboard or the standalone addon name, such as `[BootyRaider]`.

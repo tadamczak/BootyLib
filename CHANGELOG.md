@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.69 — 2026-10-26
+
+- Identify chat messages with bracketed product names and explain each common command.
+
 ## 0.1.0-dev.68 — 2026-10-26
 
 - Show full tab-name tooltips for top and bottom navigation tabs, including icon-only tabs.

@@ -38,7 +38,7 @@ function ProductHost.Create(product, options)
     for _, definition in ipairs(product.views or {}) do definitions[definition.id] = definition end
     host.Print = options.Print or function(message)
         if DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.AddMessage then
-            DEFAULT_CHAT_FRAME:AddMessage("|cffe0b95a" .. (product.title or product.name) .. "|r: " .. tostring(message))
+            DEFAULT_CHAT_FRAME:AddMessage("|cffe0b95a[" .. product.name .. "]|r " .. tostring(message))
         end
     end
     local function Available()

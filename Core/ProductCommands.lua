@@ -32,8 +32,16 @@ function Commands.Version(name)
     return "Unknown"
 end
 
+function Commands.Help(name, command)
+    Lib.Print("Available commands:",name)
+    Lib.Print(command .. " open - Open the addon window.",name)
+    Lib.Print(command .. " settings - Open addon settings.",name)
+    Lib.Print(command .. " about - Show addon information.",name)
+    Lib.Print(command .. " versions - " .. (name=="BootySuite" and "List versions of all installed Booty addons." or "Show this addon's version."),name)
+end
+
 function Commands.PrintVersions(name)
-    if name then Lib.Print(name .. ": " .. Commands.Version(name)); return end
+    if name then Lib.Print("Version: " .. Commands.Version(name), name); return end
     local inventory = Commands.Inventory()
     local names, seen = {}, {}
     local function Add(value)
@@ -44,7 +52,7 @@ function Commands.PrintVersions(name)
     for _, id in ipairs(Lib.GetProducts()) do local product=Lib.GetProduct(id); Add(product.addonName or product.name) end
     for addon in pairs(inventory) do if string.find(addon,"^Booty") then Add(addon) end end
     table.sort(names)
-    for _, addon in ipairs(names) do Lib.Print(addon .. ": " .. Commands.Version(addon)) end
+    for _, addon in ipairs(names) do Lib.Print(addon .. ": " .. Commands.Version(addon), "BootySuite") end
 end
 
 function Commands.Available(product)
@@ -63,7 +71,7 @@ function Lib.OpenBoundView(id)
     end
     local owner = runtime.viewOwners[id]
     local product, host = runtime.products[owner], runtime.hosts[owner]
-    if not Commands.Available(product) or not host then Lib.Print("This Booty addon is unavailable."); return false end
+    if not Commands.Available(product) or not host then Lib.Print("This Booty addon is unavailable.", product and product.name); return false end
     return host.OpenView(id)
 end
 
@@ -77,23 +85,23 @@ function Commands.Install(product, host)
         local _, _, command, argument = string.find(tostring(message or ""), "^%s*(%S*)%s*(.-)%s*$")
         command = string.lower(command or "")
         if command == "versions" then Commands.PrintVersions(product.addonName or product.name)
-        elseif command == "about" then Lib.Print(product.name .. " " .. Commands.Version(product.addonName or product.name) .. ": " .. (product.description or "Booty addon"))
-        elseif command == "help" then Lib.Print("/" .. string.lower(product.name) .. " open | settings | about | versions")
+        elseif command == "about" then Lib.Print("Version " .. Commands.Version(product.addonName or product.name) .. ". " .. (product.description or "Booty addon"), product.name)
+        elseif command == "help" then Commands.Help(product.name, "/" .. string.lower(product.name))
         elseif command == "open" or command == "settings" or not original and command == "" then
             if command == "settings" then
                 if original then return original(message) end
                 return host.OpenSettings()
             end
-            if not Commands.Available(product) then Lib.Print("This Booty addon is unavailable."); return false end
+            if not Commands.Available(product) then Lib.Print("This Booty addon is unavailable.", product and product.name); return false end
             local id = product.views[1] and product.views[1].id
             if argument ~= "" then
                 id = nil
                 for _, view in ipairs(product.views) do if string.lower(view.id) == string.lower(argument) then id=view.id end end
             end
             if id then return host.OpenView(id) end
-            Lib.Print("Unknown Booty section.")
+            Lib.Print("Unknown section. Use " .. "/" .. string.lower(product.name) .. " help for available commands.", product.name)
         elseif original then return original(message)
-        else Lib.Print("/" .. string.lower(product.name) .. " open | settings | about | versions") end
+        else Commands.Help(product.name, "/" .. string.lower(product.name)) end
     end
     product.bootyCommandsInstalled = true
 end

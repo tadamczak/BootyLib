@@ -1,7 +1,7 @@
 local memoryBeforeLoad = type(gcinfo) == "function" and gcinfo() or nil
 BootyLib = BootyLib or {}
 local Lib = BootyLib
-Lib.version = "0.1.0-dev.68"
+Lib.version = "0.1.0-dev.69"
 Lib.API_VERSION = 1
 Lib.Core = Lib.Core or {}
 Lib.Services = Lib.Services or {}
@@ -12,6 +12,7 @@ Lib.Diagnostics.memoryBeforeLoad = memoryBeforeLoad
 function Lib.Diagnostics.Count(metric)
     Lib.Diagnostics[metric] = (tonumber(Lib.Diagnostics[metric]) or 0) + 1
 end
-function Lib.Print(message)
-    if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cffffd36b[Booty]|r " .. tostring(message)) end
+function Lib.Print(message, owner)
+    owner = owner or (Lib.Core.Runtime and Lib.Core.Runtime.suite and "BootySuite" or "BootyLib")
+    if DEFAULT_CHAT_FRAME then DEFAULT_CHAT_FRAME:AddMessage("|cffffd36b[" .. owner .. "]|r " .. tostring(message)) end
 end
