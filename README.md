@@ -6,6 +6,8 @@ BootyLib supplies the shared appearance and integration used by BootyGuild, Boot
 
 Install the `BootyLib` folder in `Interface/AddOns` alongside any Booty product. Enable it in the character's addon list. Only one copy is needed, regardless of how many Booty products are installed. The library has no separate minimap button or feature window.
 
+Assign shortcuts under **Booty addons and tabs** in WoW Key Bindings. They open installed features with or without Suite. Each standalone product also accepts its full command (for example `/bootyguild` or `/bootyraider`) with `open`, `settings`, `about` or `versions`; existing short aliases and feature commands remain available.
+
 When updating this development family, update BootyLib and all installed Booty
 products together, then restart the client. Their shared controls require a
 matching set of builds. Previous saved data and preferences are retained.

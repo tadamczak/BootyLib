@@ -140,6 +140,7 @@ function Runtime.Activate(product)
         end
     end
     product.initialized, product.failure, product.activationFailure = true, nil, nil
+    if Lib.Core.ProductCommands then Lib.Core.ProductCommands.Install(product, host) end
     return true
 end
 local function WantsDirectory(product)

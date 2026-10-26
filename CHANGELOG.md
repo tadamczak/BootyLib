@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.67 — 2026-10-26
+
+- Add shared product commands, installed/runtime version reporting and configurable native bindings for Booty tabs.
+
 ## 0.1.0-dev.66 — 2026-10-26
 
 - Add ten new unit-frame styles and four separate Alliance emblems; retain shaped apertures, panel opacity and mirrors.

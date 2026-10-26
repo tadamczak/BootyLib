@@ -1,0 +1,44 @@
+<Bindings>
+    <Binding name="BOOTYOPEN_SUITE" header="BOOTYOPEN">
+        BootyLib.OpenBoundView("suite");
+    </Binding>
+    <Binding name="BOOTYOPEN_ROSTER">
+        BootyLib.OpenBoundView("roster");
+    </Binding>
+    <Binding name="BOOTYOPEN_STATISTICS">
+        BootyLib.OpenBoundView("statistics");
+    </Binding>
+    <Binding name="BOOTYOPEN_RAID">
+        BootyLib.OpenBoundView("raid");
+    </Binding>
+    <Binding name="BOOTYOPEN_RAIDSTATISTICS">
+        BootyLib.OpenBoundView("raidStatistics");
+    </Binding>
+    <Binding name="BOOTYOPEN_CSR">
+        BootyLib.OpenBoundView("csr");
+    </Binding>
+    <Binding name="BOOTYOPEN_PROFILER">
+        BootyLib.OpenBoundView("profiler");
+    </Binding>
+    <Binding name="BOOTYOPEN_ACTIONBARS">
+        BootyLib.OpenBoundView("actionbars");
+    </Binding>
+    <Binding name="BOOTYOPEN_CHAT">
+        BootyLib.OpenBoundView("chat");
+    </Binding>
+    <Binding name="BOOTYOPEN_MAP">
+        BootyLib.OpenBoundView("map");
+    </Binding>
+    <Binding name="BOOTYOPEN_FRAME">
+        BootyLib.OpenBoundView("frame");
+    </Binding>
+    <Binding name="BOOTYOPEN_FOCUS">
+        BootyLib.OpenBoundView("focus");
+    </Binding>
+    <Binding name="BOOTYOPEN_PLUGINS">
+        BootyLib.OpenBoundView("plugins");
+    </Binding>
+    <Binding name="BOOTYOPEN_ABOUT">
+        BootyLib.OpenBoundView("about");
+    </Binding>
+</Bindings>
