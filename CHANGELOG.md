@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.73 — 2026-10-27
+
+- Add shared resize-grip handling for dialogs whose owners save dimensions and reflow their contents.
+
 ## 0.1.0-dev.72 — 2026-10-27
 
 - Move an open Settings window to another clicked source immediately; clicking its current source again closes it. Preserve pooled windows and retry after failed refreshes.
