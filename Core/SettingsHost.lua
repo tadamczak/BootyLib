@@ -839,8 +839,10 @@ function SettingsHost.CreateTabbedPanel(parent,product,host,options)
 end
 
 function SettingsHost.Toggle(product,host,providers)
+    -- The host follows the click before Toggle. Keep the last successful source
+    -- separately so a failed Open/Reflow can be retried instead of closed.
     local state=SettingsHost.windows[product.id or product.name]
-    if state and state.window:IsShown() and not state.window.minimized then state.window:Hide();return state end
+    if state and state.settingsSource==host.window and state.window:IsShown() and not state.window.minimized then state.window:Hide();return state end
     return SettingsHost.Open(product,host,providers)
 end
 function SettingsHost.Open(product, host, providers)
@@ -848,7 +850,7 @@ function SettingsHost.Open(product, host, providers)
     local state = SettingsHost.windows[owner]
     if state then
         if UI.WindowStack then UI.WindowStack.SetOwner(state.window, host.window) end
-        state.window.Open(); state.Reflow(); return state
+        state.window.Open(); state.Reflow(); state.settingsSource=host.window; return state
     end
     local window
     state = {host = host, ownerName = product.name}
@@ -978,5 +980,6 @@ function SettingsHost.Open(product, host, providers)
     Lib.Core.SettingsSearch.Apply(state.tree, "")
     SettingsHost.windows[owner] = state
     window.Open()
+    state.settingsSource = host.window
     return state
 end

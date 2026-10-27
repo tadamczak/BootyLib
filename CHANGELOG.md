@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.72 — 2026-10-27
+
+- Move an open Settings window to another clicked source immediately; clicking its current source again closes it. Preserve pooled windows and retry after failed refreshes.
+
 ## 0.1.0-dev.71 — 2026-10-27
 
 - Isolate addon profile lists, exclude BootyLib profiles, load Suite profile mappings and put General first.

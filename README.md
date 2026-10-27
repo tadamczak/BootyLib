@@ -12,7 +12,7 @@ When updating this development family, update BootyLib and all installed Booty
 products together, then restart the client. Their shared controls require a
 matching set of builds. Previous saved data and preferences are retained.
 
-Windows, controls and menus use a consistent foreground order across installed Booty addons. The native Main Menu stays above Booty windows. Click the Settings cog again to close Settings.
+Windows, controls and menus use a consistent foreground order across installed Booty addons. The native Main Menu stays above Booty windows. Click the same Settings cog again to close Settings. A cog on another window moves the open Settings to that source immediately.
 
 Booty Suite can open a feature in its dashboard or in a separate window. Both
 presentations retain the same addon state and use the shared Settings gear.
