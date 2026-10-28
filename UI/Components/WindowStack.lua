@@ -6,8 +6,13 @@ local order, context, applying = {}, nil, false
 local FIRST_LEVEL, CHILD_LIMIT = 64, 510
 local function Visible(frame) return frame and frame.IsVisible and frame:IsVisible() end
 local belowMenu={LOW="BACKGROUND",MEDIUM="LOW",HIGH="MEDIUM",DIALOG="HIGH",FULLSCREEN="DIALOG",FULLSCREEN_DIALOG="FULLSCREEN",TOOLTIP="FULLSCREEN_DIALOG"}
+local rank={BACKGROUND=1,LOW=2,MEDIUM=3,HIGH=4,DIALOG=5,FULLSCREEN=6,FULLSCREEN_DIALOG=7,TOOLTIP=8}
 local function PresentationStrata()
-    if Visible(GameMenuFrame) then return belowMenu[GameMenuFrame:GetFrameStrata()] or "BACKGROUND" end
+    local lowest
+    for native in pairs(Stack.nativeObservers or {}) do
+        if Visible(native) then local strata=native:GetFrameStrata();if not lowest or (rank[strata] or 1)<(rank[lowest] or 1) then lowest=strata end end
+    end
+    if lowest then return belowMenu[lowest] or "BACKGROUND" end
     return "FULLSCREEN_DIALOG"
 end
 local function Source(owner) if type(owner) == "function" then return owner() end; return owner end
@@ -321,12 +326,18 @@ local function Hook(frame)
     if frame.SetToplevel then frame:SetToplevel(false) end
 end
 local function ObserveMainMenu()
-    if Stack.menuObserver or not GameMenuFrame or type(CreateFrame)~="function" then return end
-    -- An owned child observes inherited visibility; native scripts and levels
-    -- remain untouched. Only our stack yields while Main Menu is visible.
-    local observer=CreateFrame("Frame",nil,GameMenuFrame)
-    observer:SetScript("OnShow",Reflow);observer:SetScript("OnHide",Reflow)
-    Stack.menuObserver=observer;observer:Show()
+    if type(CreateFrame)~="function" then return end
+    Stack.nativeObservers=Stack.nativeObservers or {}
+    local function Observe(native)
+        if not native or Stack.nativeObservers[native] then return end
+        -- Owned children observe inherited visibility without replacing native scripts.
+        local observer=CreateFrame("Frame",nil,native)
+        Stack.nativeObservers[native]=observer
+        observer:SetScript("OnShow",Reflow);observer:SetScript("OnHide",Reflow);observer:Show()
+        if native==GameMenuFrame then Stack.menuObserver=observer end
+    end
+    Observe(GameMenuFrame)
+    for index=1,4 do Observe(getglobal and getglobal("StaticPopup"..index)) end
 end
 function Stack.Register(frame, options)
     if not frame then return end

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.74 — 2026-10-28
+
+- Keep native popup dialogs, including logout countdowns, above Booty windows without modifying native scripts.
+
 ## 0.1.0-dev.73 — 2026-10-27
 
 - Add shared resize-grip handling for dialogs whose owners save dimensions and reflow their contents.
