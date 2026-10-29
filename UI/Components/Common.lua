@@ -536,11 +536,12 @@ function UI.CreateItemListDialog(name)
             if item and rowIndex <= visible then
                 row:ClearAllPoints();row:SetPoint("TOPLEFT",self,"TOPLEFT",8,-36-(rowIndex-1)*24);row:SetWidth(width)
                 UI.ApplyRowBackground(row,offset+rowIndex,false)
-                row.context:SetWidth(math.floor(width*0.35));row.label:SetJustifyV("MIDDLE")
+                row.context:SetWidth(math.min(width-80,math.max(math.floor(width*0.35),self.contextWidth or 0)));row.label:SetJustifyV("MIDDLE")
                 row.itemId = item.itemId; row.itemName = item.name; row.itemCount = item.count; row.labelSuffix = (tonumber(item.count) or 1) > 1 and (" x " .. item.count) or ""
                 row.context:SetText(item.context or "")
+                if item.contextColor=="gold" then row.context:SetTextColor(unpack(UI.TextColors.gold)) else row.context:SetTextColor(0.5,0.5,0.5) end
                 if item.missing or not item.itemId then
-                    row.itemId = nil; row.iconRegion:Hide(); row.label:SetText("-")
+                    row.itemId = nil; row.iconRegion:Hide(); row.label:SetText(not item.missing and item.name and (item.name..row.labelSuffix) or "-")
                 else
                     row.iconRegion:Show(); row.label:SetText(UI.GetItemLabel(item.itemId) .. row.labelSuffix)
                     local texture = type(GetItemIcon) == "function" and GetItemIcon(item.itemId) or nil
@@ -561,7 +562,14 @@ function UI.CreateItemListDialog(name)
     frame.Open = function(self, title, items)
         self.title:SetText(title or "Items"); self.items = items or {}; self.scroll.offset = 0; self.scroll:SetVerticalScroll(0)
         local showContext, itemIndex = false, nil
-        for itemIndex = 1, table.getn(self.items) do if self.items[itemIndex].context then showContext = true; break end end
+        self.contextWidth=0
+        for itemIndex = 1, table.getn(self.items) do
+            local item=self.items[itemIndex]
+            if item.context then
+                showContext=true;local measure=self.rows[1].context;measure:SetWidth(0);measure:SetText(item.context)
+                self.contextWidth=math.max(self.contextWidth,math.ceil(measure:GetStringWidth())+4)
+            end
+        end
         for itemIndex = 1, table.getn(self.rows) do
             local row = self.rows[itemIndex]; row.iconRegion:ClearAllPoints()
             if showContext then row.context:Show(); row.iconRegion:SetPoint("LEFT", row.context, "RIGHT", 5, 0) else row.context:Hide(); row.iconRegion:SetPoint("LEFT", row, "LEFT", 1, 0) end

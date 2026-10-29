@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.78 — 2026-10-29
+
+- Size item-list context columns for full loot dates and times, with per-row context colors and safe reuse between item lists.
+
 ## 0.1.0-dev.77 — 2026-10-29
 
 - Restore dashboard content before refreshing its active page, removing the delayed first render of Raid Stats.

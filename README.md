@@ -90,3 +90,5 @@ Standalone and detached feature windows use the same resize behavior as Suite, a
 Press a page keybinding again to close the same open page. If its window is minimized, the binding restores it. Opening a different page still selects that page.
 
 Restoring a minimized dashboard lays out its content before refreshing the active page, so the page returns immediately rather than showing a scrollbar while waiting for its first repaint.
+
+Item lists keep complete loot dates and times visible and distinguish timestamp context in project gold. Switching back to another item list restores its normal context color.
