@@ -522,11 +522,12 @@ function Dashboard.BindWindow(view, options)
                 view.titleBar:ClearAllPoints(); view.titleBar:SetPoint("TOPLEFT", frame, "TOPLEFT", 8, -8); view.titleBar:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -8, -8); view.titleBar:SetHeight(44)
             end
             view.sidebar:Show(); options.statusBar:Show(); view.versionText:Show(); view.resizeGrip:Show(); view.sidebarToggle:Show()
-            if options.setNavigationVisible then options.setNavigationVisible(true) end
             -- Restore owners and anchors before descendant OnShow handlers run;
             -- chrome also reapplies hidden sidebar/footer preferences.
             options.applyOrRefreshLayout()
             view.contentPanel:Show()
+            -- Active pages render in Show only under a visible content owner.
+            if options.setNavigationVisible then options.setNavigationVisible(true) end
             finalizer:SetScript("OnUpdate", FinishRestoreLayout); finalizer:Show()
         else
             view.widthBeforeMinimize = frame:GetWidth(); view.heightBeforeMinimize = frame:GetHeight(); view.leftBeforeMinimize = frame:GetLeft(); view.bottomBeforeMinimize = frame:GetBottom()

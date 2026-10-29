@@ -86,3 +86,7 @@ Common command help explains `open`, `settings`, `about` and `versions`. Chat me
 Native game dialogs, including the logout countdown, stay above Booty windows.
 
 Standalone and detached feature windows use the same resize behavior as Suite, apply the final size on release and remember it for the next opening.
+
+Press a page keybinding again to close the same open page. If its window is minimized, the binding restores it. Opening a different page still selects that page.
+
+Restoring a minimized dashboard lays out its content before refreshing the active page, so the page returns immediately rather than showing a scrollbar while waiting for its first repaint.

@@ -67,12 +67,15 @@ end
 function Lib.OpenBoundView(id)
     local runtime = Lib.Core.Runtime
     if runtime.suite and (id == "suite" or id == "plugins" or id == "about") then
-        return runtime.suite.OpenView(id == "suite" and (runtime.suite.active or runtime.suite.order[1]) or id)
+        local suite = runtime.suite
+        local toggle = suite.ToggleView or suite.OpenView
+        return toggle(id == "suite" and (suite.active or suite.order[1]) or id)
     end
     local owner = runtime.viewOwners[id]
     local product, host = runtime.products[owner], runtime.hosts[owner]
     if not Commands.Available(product) or not host then Lib.Print("This Booty addon is unavailable.", product and product.name); return false end
-    return host.OpenView(id)
+    local toggle = host.ToggleView or host.OpenView
+    return toggle(id)
 end
 
 function Commands.Install(product, host)

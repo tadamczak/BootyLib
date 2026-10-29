@@ -228,7 +228,10 @@ function ProductHost.Create(product, options)
         end
         window.Toggle = function()
             if not Available() then return false end
-            if window:IsVisible() and not window.minimized then window:Hide()
+            if window:IsVisible() and not window.minimized then
+                local ready,reason=HideView()
+                if not ready then host.Print(reason or "Cannot close this addon window.");return false end
+                window:Hide()
             else return window.Open() end
             return controller
         end
@@ -265,6 +268,28 @@ function ProductHost.Create(product, options)
         if not controller then return false end
         if not windows[id] then CreateWindow(definitions[id]) end
         return windows[id].Open()
+    end
+    host.ToggleDetachedView = function(id)
+        local controller=host.GetView(id)
+        if not controller then return false end
+        if not windows[id] then CreateWindow(definitions[id]) end
+        return windows[id].Toggle()
+    end
+    host.ToggleView = function(id)
+        if not Available() then return false end
+        if not host.standalone and options.ToggleView then return options.ToggleView(id) end
+        local controller=host.GetView(id)
+        if not controller then return false end
+        if host.standalone then return windows[id].Toggle() end
+        if controller.frame and controller.frame:IsVisible() then
+            if controller.Hide then
+                local ready,reason=controller:Hide()
+                if ready==false then return false,reason end
+            end
+            if host.activeView==id then host.activeView=nil end
+            return controller
+        end
+        return host.OpenView(id)
     end
     host.CloseDetachedViews = function()
         -- Cleanup refusal must leave the presentation choice unchanged.

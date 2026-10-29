@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.77 — 2026-10-29
+
+- Restore dashboard content before refreshing its active page, removing the delayed first render of Raid Stats.
+- Bound view shortcuts close an already-open page and reopen it on the next press.
+
 ## 0.1.0-dev.76 — 2026-10-29
 
 - Share the Suite resize handler with standalone/detached windows; keep native content bounds live while dragging.
