@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.75 — 2026-10-29
+
+- Match standalone/detached feature resize cadence to Suite, with immediate final sizing and saved geometry.
+- Prevent duplicate child layout callbacks and retain correct content insets.
+
 ## 0.1.0-dev.74 — 2026-10-28
 
 - Keep native popup dialogs, including logout countdowns, above Booty windows without modifying native scripts.

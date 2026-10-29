@@ -84,3 +84,5 @@ Hover a top or bottom navigation tab to see its full name, including when tabs s
 Common command help explains `open`, `settings`, `about` and `versions`. Chat messages identify their owner as `[BootySuite]` in the dashboard or the standalone addon name, such as `[BootyRaider]`.
 
 Native game dialogs, including the logout countdown, stay above Booty windows.
+
+Standalone and detached feature windows update their contents smoothly while resizing, apply the final size on release and remember it for the next opening.

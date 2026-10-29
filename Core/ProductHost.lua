@@ -66,15 +66,31 @@ function ProductHost.Create(product, options)
         local left, bottom = window.GetLeft and window:GetLeft(), window.GetBottom and window:GetBottom()
         if Finite(left) and Finite(bottom) then geometry.left, geometry.bottom = left, bottom end
     end
+    local function ApplyContentSize(window, controller, width, height)
+        window.content:SetWidth(width); window.content:SetHeight(height)
+        if controller and controller.OnResize then controller:OnResize() end
+    end
     local function ResizeContent(id)
         local window, controller = windows[id], host.controllers[id]
         if not window or window.minimized then return end
         -- Permanent chrome owns the rectangle; there is no scrollbar gutter at
         -- this layer. A feature's own viewport reserves actual overflow space.
-        window.content:SetWidth(math.max(1, window:GetWidth() - 8))
-        window.content:SetHeight(math.max(1, window:GetHeight() - 34))
+        local width, height = math.max(1, window:GetWidth() - 8), math.max(1, window:GetHeight() - 34)
         local mount = options.GetParent and options.GetParent(id)
-        if controller and controller.OnResize and (host.standalone or mount and mount:GetParent() == window.content) then controller:OnResize() end
+        if not host.standalone and not (mount and mount:GetParent() == window.content) then controller=nil end
+        if window.bootyContentWidth==width and window.bootyContentHeight==height and window.bootyResizedController==controller then return end
+        local page=controller and controller.frame
+        window.content.bootyResizeInProgress=true
+        if page then page.bootyResizeInProgress=true end
+        local ok,failure=pcall(ApplyContentSize,window,controller,width,height)
+        window.content.bootyResizeInProgress=nil
+        if page then page.bootyResizeInProgress=nil end
+        if not ok then error(failure) end
+        window.bootyContentWidth,window.bootyContentHeight,window.bootyResizedController=width,height,controller
+    end
+    local function RequestResize(id)
+        local window=windows[id]
+        if window and not window.bootyResizeDragging then ResizeContent(id) end
     end
     local function RestoreBounds(window, definition, geometry)
         local screenWidth, screenHeight = UI.GetFrameSpan(UIParent)
@@ -98,8 +114,9 @@ function ProductHost.Create(product, options)
         local window = UI.Window.Create({ name = product.name .. "View" .. id .. instance,
             title = definition.title or (table.getn(product.views) == 1 and product.name or definition.label),
             icon = definition.icon, plainHeader = true, compact = true, minimizedWidth = 400, owner = false,
+            viewportWidthInset = 8, viewportHeightInset = 34,
             attach = function() end,
-            update = function() ResizeContent(id) end,
+            update = function() RequestResize(id) end,
             onSettings = function(source)
                 host.window = source
                 return host.ToggleSettings()
@@ -107,6 +124,28 @@ function ProductHost.Create(product, options)
         })
         windows[id] = window
         host.window = window
+        -- A dual-anchored viewport would resize its child page on every native
+        -- sizing event, bypassing the same 80ms cadence used by Suite.
+        window.content:ClearAllPoints();window.content:SetPoint("TOPLEFT",window,"TOPLEFT",4,-30)
+        local grip=window.resizeGrip
+        local down,up,gripHide=grip:GetScript("OnMouseDown"),grip:GetScript("OnMouseUp"),grip:GetScript("OnHide")
+        local elapsed=0
+        local function CancelResize()
+            window.bootyResizeDragging=nil;grip:SetScript("OnUpdate",nil);elapsed=0
+        end
+        local function UpdateResize()
+            if not window:IsVisible() or window.minimized then CancelResize();return end
+            elapsed=elapsed+(arg1 or 0)
+            if elapsed>=0.08 then elapsed=0;ResizeContent(id) end
+        end
+        grip:SetScript("OnMouseDown",function()
+            window.bootyResizeDragging=true;elapsed=0
+            Invoke(grip,down);grip:SetScript("OnUpdate",UpdateResize)
+        end)
+        grip:SetScript("OnMouseUp",function()
+            CancelResize();Invoke(grip,up);ResizeContent(id);SaveGeometry(id)
+        end)
+        grip:SetScript("OnHide",function() CancelResize();Invoke(grip,gripHide) end)
         local geometry = Geometry(id)
         RestoreBounds(window, definition, geometry)
         window.content.bootyWidthOwner, window.content.bootyWidthInset = window, 8
@@ -129,6 +168,7 @@ function ProductHost.Create(product, options)
         window.HideView = HideView
         local hidden = window:GetScript("OnHide")
         window:SetScript("OnHide", function()
+            CancelResize()
             SaveGeometry(id)
             if hidden then hidden() end
             HideView()
