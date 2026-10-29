@@ -85,4 +85,4 @@ Common command help explains `open`, `settings`, `about` and `versions`. Chat me
 
 Native game dialogs, including the logout countdown, stay above Booty windows.
 
-Standalone and detached feature windows update their contents smoothly while resizing, apply the final size on release and remember it for the next opening.
+Standalone and detached feature windows use the same resize behavior as Suite, apply the final size on release and remember it for the next opening.

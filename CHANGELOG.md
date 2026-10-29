@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.76 — 2026-10-29
+
+- Share the Suite resize handler with standalone/detached windows; keep native content bounds live while dragging.
+- Allow standalone view navigation to retain the current window rectangle.
+
 ## 0.1.0-dev.75 — 2026-10-29
 
 - Match standalone/detached feature resize cadence to Suite, with immediate final sizing and saved geometry.

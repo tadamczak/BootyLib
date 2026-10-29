@@ -80,11 +80,13 @@ function ProductHost.Create(product, options)
         if not host.standalone and not (mount and mount:GetParent() == window.content) then controller=nil end
         if window.bootyContentWidth==width and window.bootyContentHeight==height and window.bootyResizedController==controller then return end
         local page=controller and controller.frame
+        local contentGuard=window.content.bootyResizeInProgress
+        local pageGuard=page and page.bootyResizeInProgress
         window.content.bootyResizeInProgress=true
         if page then page.bootyResizeInProgress=true end
         local ok,failure=pcall(ApplyContentSize,window,controller,width,height)
-        window.content.bootyResizeInProgress=nil
-        if page then page.bootyResizeInProgress=nil end
+        window.content.bootyResizeInProgress=contentGuard
+        if page then page.bootyResizeInProgress=pageGuard end
         if not ok then error(failure) end
         window.bootyContentWidth,window.bootyContentHeight,window.bootyResizedController=width,height,controller
     end
@@ -124,28 +126,16 @@ function ProductHost.Create(product, options)
         })
         windows[id] = window
         host.window = window
-        -- A dual-anchored viewport would resize its child page on every native
-        -- sizing event, bypassing the same 80ms cadence used by Suite.
+        -- Keep visible surfaces attached to the native window, as in Suite.
+        -- Only explicit layout callbacks are paced; native anchors remain live.
         window.content:ClearAllPoints();window.content:SetPoint("TOPLEFT",window,"TOPLEFT",4,-30)
-        local grip=window.resizeGrip
-        local down,up,gripHide=grip:GetScript("OnMouseDown"),grip:GetScript("OnMouseUp"),grip:GetScript("OnHide")
-        local elapsed=0
-        local function CancelResize()
-            window.bootyResizeDragging=nil;grip:SetScript("OnUpdate",nil);elapsed=0
-        end
-        local function UpdateResize()
-            if not window:IsVisible() or window.minimized then CancelResize();return end
-            elapsed=elapsed+(arg1 or 0)
-            if elapsed>=0.08 then elapsed=0;ResizeContent(id) end
-        end
-        grip:SetScript("OnMouseDown",function()
-            window.bootyResizeDragging=true;elapsed=0
-            Invoke(grip,down);grip:SetScript("OnUpdate",UpdateResize)
-        end)
-        grip:SetScript("OnMouseUp",function()
-            CancelResize();Invoke(grip,up);ResizeContent(id);SaveGeometry(id)
-        end)
-        grip:SetScript("OnHide",function() CancelResize();Invoke(grip,gripHide) end)
+        window.content:SetPoint("BOTTOMRIGHT",window,"BOTTOMRIGHT",-4,4)
+        local CancelResize=UI.Dashboard.BindResize(window,window.resizeGrip,{
+            begin=function() window.bootyResizeDragging=true end,
+            cancel=function() window.bootyResizeDragging=nil end,
+            refresh=function() ResizeContent(id) end,
+            finish=function() ResizeContent(id);SaveGeometry(id) end,
+        })
         local geometry = Geometry(id)
         RestoreBounds(window, definition, geometry)
         window.content.bootyWidthOwner, window.content.bootyWidthInset = window, 8
@@ -205,7 +195,7 @@ function ProductHost.Create(product, options)
         end
         -- Window.Create supplies project chrome; its Settings-specific deferred
         -- scroll setup is not part of a standalone feature host.
-        window.Open = function()
+        window.Open = function(geometrySource)
             if not Available() then return false end
             host.window = window
             host.windows = windows
@@ -220,6 +210,13 @@ function ProductHost.Create(product, options)
                 mount:Show()
             end
             if window.minimized and minimize then Invoke(minimize, minimize:GetScript("OnClick")) end
+            if geometrySource and geometrySource~=window then
+                local left,bottom=geometrySource:GetLeft(),geometrySource:GetBottom()
+                window:SetWidth(geometrySource:GetWidth());window:SetHeight(geometrySource:GetHeight())
+                if Finite(left) and Finite(bottom) then
+                    window:ClearAllPoints();window:SetPoint("BOTTOMLEFT",UIParent,"BOTTOMLEFT",left,bottom)
+                end
+            end
             window:SetScript("OnUpdate", nil)
             window.content:Show(); window.resizeGrip:Show(); window:Show(); window:Raise()
             ResizeContent(id)
@@ -252,12 +249,12 @@ function ProductHost.Create(product, options)
         end
         return CreateWindow(definition)
     end
-    host.OpenView = function(id)
+    host.OpenView = function(id, geometrySource)
         local controller = host.GetView(id)
         if not controller then return false end
-        if host.standalone then host.window = host.windows[id] end
+        if host.standalone then host.window=host.windows[id] end
         if options.OpenView and not host.standalone then return options.OpenView(id, controller) end
-        if host.standalone then return host.windows[id].Open() end
+        if host.standalone then return host.windows[id].Open(geometrySource) end
         for key, view in pairs(host.controllers) do if key ~= id and view.Hide then view:Hide() end end
         if controller.Show then controller:Show() end
         host.activeView = id

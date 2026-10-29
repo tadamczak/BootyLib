@@ -428,6 +428,30 @@ function Dashboard.ToggleWindow(view)
     end
 end
 
+-- Native anchors follow the cursor every frame; the explicit layout callback is paced.
+function Dashboard.BindResize(frame, grip, options)
+    local function Cancel()
+        frame:StopMovingOrSizing();grip:SetScript("OnUpdate",nil)
+        if options.cancel then options.cancel() end
+    end
+    grip.UpdateLayout=function()
+        this.layoutElapsed=this.layoutElapsed+arg1
+        if this.layoutElapsed>=0.08 then this.layoutElapsed=0;options.refresh() end
+    end
+    grip:SetScript("OnMouseDown",function()
+        if options.begin then options.begin() end
+        frame:StartSizing("BOTTOMRIGHT")
+        this.layoutElapsed=0;this:SetScript("OnUpdate",this.UpdateLayout)
+    end)
+    grip:SetScript("OnMouseUp",function()
+        Cancel()
+        if frame.SetUserPlaced then frame:SetUserPlaced(false) end
+        options.finish()
+    end)
+    grip:SetScript("OnHide",Cancel)
+    return Cancel
+end
+
 function Dashboard.BindWindow(view, options)
     local frame, grip = view.frame, view.resizeGrip
     -- Anchored child bounds can still describe the 250x30 shell during Show.
@@ -453,15 +477,6 @@ function Dashboard.BindWindow(view, options)
         options.applyOrRefreshLayout()
     end)
     frame.bootyDashboardView = view
-    grip.UpdateLayout = function()
-        this.layoutElapsed = this.layoutElapsed + arg1
-        if this.layoutElapsed >= 0.08 then
-            this.layoutElapsed = 0
-            if options.isLootMasterMode() then options.refreshLayout()
-            elseif options.isTabLayout() then options.applyLayout()
-            else options.refreshLayout() end
-        end
-    end
     frame:SetScript("OnDragStart", function() this:StartMoving() end)
     frame:SetScript("OnDragStop", function()
         this:StopMovingOrSizing()
@@ -470,20 +485,19 @@ function Dashboard.BindWindow(view, options)
             view.minimizedLeft, view.minimizedBottom = frame:GetLeft(), frame:GetBottom()
         elseif options.isLootMasterMode() then options.saveLootGeometry() else options.saveGeometry() end
     end)
-    grip:SetScript("OnMouseDown", function()
-        frame:StartSizing("BOTTOMRIGHT")
-        this.layoutElapsed = 0
-        this:SetScript("OnUpdate", this.UpdateLayout)
-    end)
-    grip:SetScript("OnMouseUp", function()
-        frame:StopMovingOrSizing(); this:SetScript("OnUpdate", nil)
-        if frame.SetUserPlaced then frame:SetUserPlaced(false) end
-        if view.minimized then
-            view.minimizedLeft, view.minimizedBottom = frame:GetLeft(), frame:GetBottom()
-        elseif options.isLootMasterMode() then options.saveLootGeometry() else options.saveGeometry() end
-        if options.isLootMasterMode() then options.refreshLayout() else options.applyOrRefreshLayout() end
-    end)
-    grip:SetScript("OnHide", function() frame:StopMovingOrSizing(); this:SetScript("OnUpdate", nil) end)
+    Dashboard.BindResize(frame,grip,{
+        refresh=function()
+            if options.isLootMasterMode() then options.refreshLayout()
+            elseif options.isTabLayout() then options.applyLayout()
+            else options.refreshLayout() end
+        end,
+        finish=function()
+            if view.minimized then
+                view.minimizedLeft, view.minimizedBottom = frame:GetLeft(), frame:GetBottom()
+            elseif options.isLootMasterMode() then options.saveLootGeometry() else options.saveGeometry() end
+            if options.isLootMasterMode() then options.refreshLayout() else options.applyOrRefreshLayout() end
+        end,
+    })
 
     view.ToggleMinimize = function(restoreOnly)
         if options.isLootMasterMode() and not (restoreOnly == true and view.minimized) then return end
