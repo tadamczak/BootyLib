@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.81 — 2026-10-30
+
+- Remember Settings size across reloads, support single-column preset forms and scoped resets, and keep action icons clear of captions. Add persistent item-list sizing and aligned context columns; allow native highlights on transparent raid slots.
+
 ## 0.1.0-dev.80 — 2026-10-30
 
 - Refresh dynamic settings choices without rebuilding the panel; commit the focused field before running a settings action.

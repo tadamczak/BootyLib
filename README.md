@@ -35,7 +35,7 @@ Mixed controls align by their bottom edges; captions stay attached to their own 
 Related settings can share dedicated rows that wrap with the window. Multi-select dropdowns keep their menu open while choices are checked and save selections in profiles.
 Choices added through a settings editor become available without reopening Settings. Clicking a settings action includes the text currently being edited.
 
-Resizing Settings reuses its measured labels and leaves current values and drafts intact.
+Resizing Settings reuses its measured labels and leaves current values and drafts intact. Its size is remembered across reloads in standalone addons and BootySuite. Section Reset buttons affect only the named section; other preferences and saved raid data are retained. Preset editors use one column with inline save feedback.
 
 Supported message settings show a full example below the text field and update it while you type. Examples wrap to fit the window.
 

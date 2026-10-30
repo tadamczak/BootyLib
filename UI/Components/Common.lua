@@ -495,7 +495,8 @@ function UI.KeepTooltipAboveWindows(tooltip)
     tooltip:SetFrameStrata("TOOLTIP")
 end
 
-function UI.CreateItemListDialog(name)
+function UI.CreateItemListDialog(name,options)
+    options=options or {}
     local frame = CreateFrame("Frame", name, UIParent)
     frame:SetWidth(430); frame:SetHeight(350); frame:SetPoint("CENTER", UIParent, "CENTER", 0, 20)
     frame:SetFrameStrata("FULLSCREEN_DIALOG"); frame:SetFrameLevel(230); frame:SetMovable(true); frame:SetResizable(true); frame:EnableMouse(true)
@@ -517,10 +518,17 @@ function UI.CreateItemListDialog(name)
     for index = 1, 28 do
         local row = UI.CreateControl(nil, frame); row:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -48 - ((index - 1) * 24)); row:SetPoint("RIGHT", frame, "RIGHT", -34, 0); row:SetHeight(22)
         row.context = row:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall"); row.context:SetPoint("LEFT", row, "LEFT", 1, 0); row.context:SetWidth(150); row.context:SetJustifyH("LEFT"); row.context:Hide()
+        row.context2=row:CreateFontString(nil,"OVERLAY","GameFontHighlightSmall");row.context2:SetJustifyH("LEFT");row.context2:Hide()
         row.iconRegion = row:CreateTexture(nil, "ARTWORK"); row.iconRegion:SetPoint("LEFT", row, "LEFT", 1, 0); row.iconRegion:SetWidth(20); row.iconRegion:SetHeight(20)
         row.label = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); row.label:SetPoint("LEFT", row.iconRegion, "RIGHT", 7, 0); row.label:SetPoint("RIGHT", row, "RIGHT", -2, 0); row.label:SetJustifyH("LEFT")
         local highlight = row:CreateTexture(nil, "HIGHLIGHT"); highlight:SetAllPoints(row); highlight:SetTexture(1, 0.72, 0.12, 0.14)
-        row:SetScript("OnEnter", function() UI.ShowItemTooltip(this) end); row:SetScript("OnLeave", function() GameTooltip:Hide() end); row:SetScript("OnClick", function() UI.HandleItemClick(this) end)
+        row:SetScript("OnEnter", function()
+            UI.ShowItemTooltip(this)
+            if this.contextHint and GameTooltip then
+                if not this.itemId then GameTooltip:SetOwner(this,"ANCHOR_RIGHT");GameTooltip:SetText(this.itemName or "Item") end
+                GameTooltip:AddLine(this.contextHint,1,0.82,0.28,true);GameTooltip:Show()
+            end
+        end); row:SetScript("OnLeave", function() GameTooltip:Hide() end); row:SetScript("OnClick", function() UI.HandleItemClick(this) end)
         row:Hide(); frame.rows[index] = row
     end
     UI.Window.StyleProjectDialog(frame)
@@ -530,16 +538,25 @@ function UI.CreateItemListDialog(name)
         if self.refreshing then return end
         self.refreshing=true
         local offset,visible,width=UI.Table.LayoutViewport(self.scroll,self,8,36,self:GetWidth()-16,self:GetHeight()-78,table.getn(self.items),24,table.getn(self.rows))
+        local secondWidth=self.showContext2 and math.min(self.context2Width,math.max(1,width-100)) or 0
+        local contextWidth=self.showContext and math.max(1,math.min(self.contextWidth,width-secondWidth-100-(self.showContext2 and 8 or 0))) or 0
         local rowIndex
         for rowIndex = 1, table.getn(self.rows) do
             local row, item = self.rows[rowIndex], self.items[offset + rowIndex]
             if item and rowIndex <= visible then
                 row:ClearAllPoints();row:SetPoint("TOPLEFT",self,"TOPLEFT",8,-36-(rowIndex-1)*24);row:SetWidth(width)
                 UI.ApplyRowBackground(row,offset+rowIndex,false)
-                row.context:SetWidth(math.min(width-80,math.max(math.floor(width*0.35),self.contextWidth or 0)));row.label:SetJustifyV("MIDDLE")
+                local x=1
+                row.context:ClearAllPoints();row.context:SetPoint("LEFT",row,"LEFT",x,0);row.context:SetWidth(contextWidth);row.context:SetHeight(22);row.context:SetJustifyV("MIDDLE")
+                if self.showContext then row.context:Show();x=x+contextWidth+8 else row.context:Hide() end
+                row.context2:ClearAllPoints();row.context2:SetPoint("LEFT",row,"LEFT",x,0);row.context2:SetWidth(secondWidth);row.context2:SetHeight(22);row.context2:SetJustifyV("MIDDLE")
+                if self.showContext2 then row.context2:Show();x=x+secondWidth+8 else row.context2:Hide() end
+                row.iconRegion:ClearAllPoints();row.iconRegion:SetPoint("LEFT",row,"LEFT",x,0);row.label:SetJustifyV("MIDDLE")
                 row.itemId = item.itemId; row.itemName = item.name; row.itemCount = item.count; row.labelSuffix = (tonumber(item.count) or 1) > 1 and (" x " .. item.count) or ""
                 row.context:SetText(item.context or "")
+                row.context2:SetText(item.context2 or "");row.contextHint=item.contextHint
                 if item.contextColor=="gold" then row.context:SetTextColor(unpack(UI.TextColors.gold)) else row.context:SetTextColor(0.5,0.5,0.5) end
+                if item.context2Color=="gold" then row.context2:SetTextColor(unpack(UI.TextColors.gold)) else row.context2:SetTextColor(0.5,0.5,0.5) end
                 if item.missing or not item.itemId then
                     row.itemId = nil; row.iconRegion:Hide(); row.label:SetText(not item.missing and item.name and (item.name..row.labelSuffix) or "-")
                 else
@@ -554,26 +571,38 @@ function UI.CreateItemListDialog(name)
     end
     frame.scroll.refreshCallback = function() frame:Refresh() end
     frame.scroll:SetScript("OnVerticalScroll", function() FauxScrollFrame_OnVerticalScroll(24, this.refreshCallback) end)
-    frame:SetScript("OnSizeChanged", function() this:Refresh() end)
+    frame.SaveSize=function(self)
+        if self.sizeKey and options.saveSize then options.saveSize(self.sizeKey,self:GetWidth(),self:GetHeight()) end
+    end
+    frame:SetScript("OnSizeChanged", function() if this:IsShown() and not this.restoringSize then this:Refresh();this:SaveSize() end end)
+    frame:SetScript("OnHide",function() frame:SaveSize() end)
     frame.grip = UI.CreateControl(nil, frame); frame.grip:SetWidth(12); frame.grip:SetHeight(12); frame.grip:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
 
-    frame.grip:SetScript("OnMouseDown", function() frame:StartSizing("BOTTOMRIGHT") end); frame.grip:SetScript("OnMouseUp", function() frame:StopMovingOrSizing(); frame:Refresh() end)
+    frame.grip:SetScript("OnMouseDown", function() frame:StartSizing("BOTTOMRIGHT") end); frame.grip:SetScript("OnMouseUp", function() frame:StopMovingOrSizing(); frame:Refresh();frame:SaveSize() end)
     frame.close:SetScript("OnClick", function() frame:Hide() end); frame.ok:SetScript("OnClick", function() frame:Hide() end)
-    frame.Open = function(self, title, items)
+    frame.Open = function(self, title, items,sizeKey)
+        if self:IsShown() then self:SaveSize() end
+        self.sizeKey=sizeKey;self.restoringSize=true
+        if options.getSize and sizeKey then
+            local width,height=options.getSize(sizeKey)
+            self:SetWidth(math.max(320,math.min(700,tonumber(width) or 430)));self:SetHeight(math.max(220,math.min(700,tonumber(height) or 350)))
+        end
+        self.restoringSize=nil
         self.title:SetText(title or "Items"); self.items = items or {}; self.scroll.offset = 0; self.scroll:SetVerticalScroll(0)
         local showContext, itemIndex = false, nil
-        self.contextWidth=0
+        self.contextWidth=0;self.context2Width=0;self.showContext2=false
         for itemIndex = 1, table.getn(self.items) do
             local item=self.items[itemIndex]
             if item.context then
                 showContext=true;local measure=self.rows[1].context;measure:SetWidth(0);measure:SetText(item.context)
                 self.contextWidth=math.max(self.contextWidth,math.ceil(measure:GetStringWidth())+4)
             end
+            if item.context2 then
+                self.showContext2=true;local measure=self.rows[1].context2;measure:SetWidth(0);measure:SetText(item.context2)
+                self.context2Width=math.max(self.context2Width,math.ceil(measure:GetStringWidth())+4)
+            end
         end
-        for itemIndex = 1, table.getn(self.rows) do
-            local row = self.rows[itemIndex]; row.iconRegion:ClearAllPoints()
-            if showContext then row.context:Show(); row.iconRegion:SetPoint("LEFT", row.context, "RIGHT", 5, 0) else row.context:Hide(); row.iconRegion:SetPoint("LEFT", row, "LEFT", 1, 0) end
-        end
+        self.showContext=showContext
         self:Refresh(); self:Show()
     end
     frame:Hide()

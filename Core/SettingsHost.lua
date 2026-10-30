@@ -72,7 +72,7 @@ local function SetValue(node, value, state)
     if node.provider.OnSettingChanged then node.provider.OnSettingChanged(field.key) end
     if node.provider.OnSettingsChanged then node.provider.OnSettingsChanged(field.key) end
     if state and state.host.ApplySettings then state.host.ApplySettings() end
-    if state and field.refreshKeys then RefreshDependents(state.tree, node) end
+    if state and field.refreshKeys then RefreshDependents(state.tree, node);state.Reflow() end
 end
 local function CommitPending(nodes)
     for _, node in ipairs(nodes) do
@@ -266,13 +266,25 @@ local function CreateField(node, page, state)
         set = function(_, value) SetValue(node, value, state); state.RefreshEnabled() end}
     local kind = field.type
     local control, label
-    if kind == "action" then
+    if kind == "heading" or kind == "status" then
+        control = UI.CreateComponentLabel(page, nil, kind == "heading" and "gold" or "white")
+        control:SetJustifyH("LEFT"); control:SetJustifyV("TOP")
+    elseif kind == "action" then
         control = UI.CreateButton(page, nil, node.text, 180, 24); UI.StyleActionButton(control)
         control:SetScript("OnClick", function()
             CommitPending(state.tree)
+            if field.resetKeys then
+                local context = state.ProfileContexts and state.ProfileContexts[node.provider.id] or state.ProfileContext
+                assert(context, "Section reset requires a settings profile context.")
+                Confirm(state, "Reset " .. field.resetCaption, "Reset only " .. field.resetCaption .. " to defaults?", "Reset", function()
+                    local _, message = context.ResetDefaults(field.resetKeys)
+                    if state.host.Print then state.host.Print(message) else Lib.Print(message,node.provider.name) end
+                end)
+                return
+            end
             field.action(node.db)
             if field.refreshKeys then RefreshDependents(state.tree, node) end
-            state.RefreshEnabled()
+            state.Reflow()
         end)
         node.height = 32
     elseif kind == "checkbox" then
@@ -312,7 +324,9 @@ end
 Synchronize = function(node)
     if node.field.type == "action" then return end
     local control, field, value = node.control, node.field, GetValue(node)
-    if field.type == "checkbox" then control:SetChecked(value and value ~= 0 and 1 or nil)
+    if field.type == "heading" then control:SetText(node.text)
+    elseif field.type == "status" then control:SetText(tostring(value or ""))
+    elseif field.type == "checkbox" then control:SetChecked(value and value ~= 0 and 1 or nil)
     elseif field.type == "slider" then UI.Settings.SynchronizeSlider(control, tonumber(value) or field.min or 0)
     elseif field.type == "color" then
         value = type(value) == "table" and value or defaultColor
@@ -348,7 +362,8 @@ NaturalLabelHeight = function(label, width)
 end
 local function MeasureField(node)
     local control, kind = node.control, node.field.type
-    if kind == "action" then return math.max(120, NaturalLabelWidth(control.label) + 24) end
+    if kind == "heading" or kind == "status" then return NaturalLabelWidth(control) end
+    if kind == "action" then return math.max(58, NaturalLabelWidth(control.label) + 24) end
     if node.label then
         local width = math.max(180, NaturalLabelWidth(node.label))
         if kind == "choice" or kind == "dropdown" or kind=="multiselect" then
@@ -390,6 +405,11 @@ local function FieldLabelWidth(node, label, width)
 end
 local function MeasureFieldHeight(node, width)
     local control,kind=node.control,node.field.type
+    if kind == "heading" or kind == "status" then
+        if kind == "status" and control:GetText() == "" then return 0,0,0 end
+        local height=NaturalLabelHeight(control,width)
+        return height+10,height,0
+    end
     local label=node.label or control.label or kind=="slider" and getglobal(control:GetName().."Text")
     local labelHeight=label and NaturalLabelHeight(label,FieldLabelWidth(node,label,width)) or 0
     local top=node.label and not node.field.inlineLabel and labelHeight+4 or kind=="slider" and math.max(18,labelHeight+4) or 0
@@ -402,6 +422,13 @@ local function MeasureFieldHeight(node, width)
 end
 local function LayoutField(node, page, x, y, width)
     local control, kind = node.control, node.field.type
+    if kind == "heading" or kind == "status" then
+        node.height=MeasureFieldHeight(node,width)
+        if node.height == 0 then control:Hide();return 0 end
+        control:ClearAllPoints();control:SetPoint("TOPLEFT",page,"TOPLEFT",x,y)
+        control:SetWidth(width);control:SetHeight(node.height-10);control:Show()
+        return node.height
+    end
     if node.preview then width = math.max(1, page:GetWidth() - x - 4) end
     local label = node.label or control.label or kind == "slider" and getglobal(control:GetName() .. "Text")
     local labelWidth = label and FieldLabelWidth(node, label, width)
@@ -505,6 +532,12 @@ local function LayoutNodes(nodes, page, state, depth, y)
             if node.profileControls then
                 local view = node.profileView or CreateProfileControls(node, page, state)
                 view.Layout(x, y, math.max(1, page:GetWidth() - x - 4)); y = y - node.height
+            elseif node.field and node.field.fullWidth then
+                local width=math.max(1,page:GetWidth()-x-4)
+                node.bootyWrapWidth=width
+                if not node.control then CreateField(node,page,state);Synchronize(node)
+                elseif not state.geometryOnly then Synchronize(node) end
+                y=y-LayoutField(node,page,x,y,width)
             elseif node.field then
                 local items = node.gridItems
                 if not items then
@@ -514,6 +547,7 @@ local function LayoutNodes(nodes, page, state, depth, y)
                 while table.getn(items) > 0 do table.remove(items) end
                 while index <= table.getn(nodes) and nodes[index].field do
                     local fieldNode = nodes[index]
+                    if fieldNode.field.fullWidth then break end
                     if fieldNode.field.row~=node.field.row then break end
                     if fieldNode ~= node and (node.field.preview or fieldNode.field.preview) then break end
                     if Visible(fieldNode) then
@@ -584,7 +618,9 @@ local function RefreshNodes(nodes)
             if type(enabled) == "function" then enabled = enabled(node.db)
             elseif enabled == nil then enabled = true end
             enabled = enabled and enabled ~= 0
-            if node.field.type == "checkbox" then UI.Settings.SetCheckboxEnabled(node.control, enabled)
+            if node.field.type == "heading" or node.field.type == "status" then
+                -- Informational rows are labels, never editable or disabled inputs.
+            elseif node.field.type == "checkbox" then UI.Settings.SetCheckboxEnabled(node.control, enabled)
             elseif node.field.type == "slider" then UI.Settings.SetSliderEnabled(node.control, enabled)
             else
                 if node.control.CommitValue and node.control.RefreshValue then
@@ -916,8 +952,37 @@ function SettingsHost.Open(product, host, providers)
         end,
         update = function() state.Resize() end, refresh = function() state.Reflow() end})
     state.window = window
+    local function Database()
+        if product.GetDatabase then return product.GetDatabase() end
+        local schema=product.GetSettings and product.GetSettings()
+        return schema and schema.db
+    end
+    local db = Database()
+    if db then
+        db.presentation = db.presentation or {}
+        local saved = db.presentation.settingsWindow
+        local function Dimension(value)
+            return type(value) == "number" and value > 0 and value-value == 0 and value or nil
+        end
+        if type(saved) == "table" then window.ApplyResizeBounds(Dimension(saved.width),Dimension(saved.height)) end
+        local function SaveSize()
+            local width=Dimension(window.minimized and window.expandedWidth or window:GetWidth())
+            local height=Dimension(window.minimized and window.expandedHeight or window:GetHeight())
+            if width and height then
+                local store=Database()
+                store.presentation=store.presentation or {}
+                store.presentation.settingsWindow={width=width,height=height}
+            end
+        end
+        state.SaveSize=SaveSize
+        local finishResize=window.resizeGrip:GetScript("OnMouseUp")
+        window.resizeGrip:SetScript("OnMouseUp",function() if finishResize then finishResize() end;SaveSize() end)
+        window:RegisterEvent("PLAYER_LOGOUT")
+        window:SetScript("OnEvent",SaveSize)
+    end
     local hidden = window:GetScript("OnHide")
     window:SetScript("OnHide", function()
+        if state.SaveSize then state.SaveSize() end
         if hidden then hidden() end
         window:SetScript("OnUpdate", nil)
         state.viewport:SetScript("OnUpdate", nil); state.resizeQueued = nil

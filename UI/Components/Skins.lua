@@ -496,7 +496,7 @@ function UI.SetAtlasHighlight(frame, visible, style, size, color)
         texture:SetBlendMode("ADD")
         texture:SetVertexColor(color[1], color[2], color[3], 1)
     end
-    SetNineSliceShown(frame.bootyAtlasHighlight, visible and frame.bootyAtlasStyle ~= nil)
+    SetNineSliceShown(frame.bootyAtlasHighlight, visible and (frame.bootyAtlasStyle ~= nil or frame.bootyTransparentSurface))
     frame.bootyAtlasHighlight.textures[5]:Hide()
 end
 
@@ -571,10 +571,13 @@ local function ApplySizedButtonGeometry(button, entry)
         end
     end
     if button.label then
+        local labelInsets = button.bootyLabelInsets
+        local left = labelInsets and labelInsets[1] or button.bootyClassicIconKey and inset + iconSize + 4 or 0
+        local right = labelInsets and labelInsets[2] or 4
         button.label:ClearAllPoints()
-        button.label:SetPoint("TOPLEFT", button, "TOPLEFT", button.bootyClassicIconKey and inset + iconSize + 4 or 0, 0)
-        button.label:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -4, 0)
-        button.label:SetJustifyH(button.bootyClassicIconKey and "LEFT" or "CENTER"); button.label:SetJustifyV("MIDDLE")
+        button.label:SetPoint("TOPLEFT", button, "TOPLEFT", left, 0)
+        button.label:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -right, 0)
+        button.label:SetJustifyH((labelInsets or button.bootyClassicIconKey) and "LEFT" or "CENTER"); button.label:SetJustifyV("MIDDLE")
     end
     if UI.ApplyButtonCaptionBaseline then UI.ApplyButtonCaptionBaseline(button) end
 end
