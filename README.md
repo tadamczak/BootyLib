@@ -33,6 +33,7 @@ controls update immediately when a texture or orientation changes.
 Settings fields use one to four columns as space permits. Each column fits its full labels; color labels stay next to their swatches.
 Mixed controls align by their bottom edges; captions stay attached to their own controls through resizing.
 Related settings can share dedicated rows that wrap with the window. Multi-select dropdowns keep their menu open while choices are checked and save selections in profiles.
+Choices added through a settings editor become available without reopening Settings. Clicking a settings action includes the text currently being edited.
 
 Resizing Settings reuses its measured labels and leaves current values and drafts intact.
 

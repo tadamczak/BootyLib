@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.80 — 2026-10-30
+
+- Refresh dynamic settings choices without rebuilding the panel; commit the focused field before running a settings action.
+
 ## 0.1.0-dev.79 — 2026-10-30
 
 - Supply the default alternating-row background required by active and synchronized raid tables, preventing a missing-color error.

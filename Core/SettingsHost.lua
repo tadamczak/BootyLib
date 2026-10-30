@@ -269,6 +269,7 @@ local function CreateField(node, page, state)
     if kind == "action" then
         control = UI.CreateButton(page, nil, node.text, 180, 24); UI.StyleActionButton(control)
         control:SetScript("OnClick", function()
+            CommitPending(state.tree)
             field.action(node.db)
             if field.refreshKeys then RefreshDependents(state.tree, node) end
             state.RefreshEnabled()
@@ -287,12 +288,13 @@ local function CreateField(node, page, state)
     elseif kind == "dropdown" or kind == "choice" or kind == "multiselect" then
         local choices = {}
         for _, option in ipairs(field.choices or field.options or {}) do
-            if type(option) == "table" then table.insert(choices, {text = option.text or option.label or tostring(option.value), value = option.value})
+            if type(option) == "table" then table.insert(choices, {text = option.text or option.label or tostring(option.value), value = option.value,color=option.color})
             else table.insert(choices, {text = tostring(option), value = option}) end
         end
         label, control = UI.CreateChoiceField({parent = page, x = 0, y = 0, label = node.text,
             initialText = tostring(GetValue(node) or ""), choices = choices, getValue = function() return GetValue(node) end,
-            onSelect = function(value) SetValue(node, value, state); state.RefreshEnabled() end,
+            getChoices=field.getChoices and function() return field.getChoices(node.db) end or nil,
+            onSelect = function(value) if field.commitPending then CommitPending(state.tree) end;SetValue(node, value, state); state.RefreshEnabled() end,
             width = 180, height = math.max(32, table.getn(choices) * 24 + 12), firstY = -7, step = 24,
             buttonOffset = 220, color = UI.TextColors.white,multiple=kind=="multiselect"})
         node.label = label; node.height = 36
@@ -317,6 +319,7 @@ Synchronize = function(node)
         control.swatch:SetTexture(value[1] or 1, value[2] or 1, value[3] or 1, 1)
     elseif field.type=="multiselect" then control:RefreshChoiceValues()
     elseif field.type == "choice" or field.type == "dropdown" then
+        if field.getChoices then control:RefreshChoiceValues();return end
         local caption = tostring(value or "")
         for _, choice in ipairs(control.choices) do if choice.value == value then caption = choice.text; break end end
         control:SetText(caption)
