@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.79 — 2026-10-30
+
+- Supply the default alternating-row background required by active and synchronized raid tables, preventing a missing-color error.
+
 ## 0.1.0-dev.78 — 2026-10-29
 
 - Size item-list context columns for full loot dates and times, with per-row context colors and safe reuse between item lists.

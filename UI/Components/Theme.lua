@@ -240,7 +240,9 @@ function UI.SetButtonEnabled(button, enabled)
     if button.bootyActionIcon then button.bootyActionIcon:SetAlpha(enabled and 1 or 0.35) end
 end
 
+local defaultAlternatingRowBackground = {0.025, 0.025, 0.025}
 function UI.SetAlternatingRowColor(row, background, index, percentage)
+    background = background or defaultAlternatingRowBackground
     local amount = math.mod(index or 1, 2) == 0 and math.max(0, math.min(100, tonumber(percentage) or 5)) / 100 or 0
     local color = row.memberBackground
     if not color then color = {}; row.memberBackground = color end
