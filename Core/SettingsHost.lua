@@ -15,30 +15,32 @@ local function AddPath(roots, path)
     end
     return children
 end
-function SettingsHost.BuildTree(providers, integrated, product)
-    local roots = {}
-    local ownerView = product and product.views and product.views[1]
-    local ownerLabel = not integrated and product and (product.settingsLabel or ownerView and ownerView.label or product.title or product.name)
-    for _, provider in ipairs(providers) do
-        local schema = provider.GetSettings and provider.GetSettings()
-        if schema then
-            for _, field in ipairs(schema.fields or {}) do
+function SettingsHost.BuildTree(providers, integrated, product, includeViewSettings)
+    local roots={}
+    for _,provider in ipairs(providers) do
+        local schema=provider.GetSettings and provider.GetSettings()
+        if schema and (includeViewSettings or not provider.settingsInView) then
+            local first=provider.views and provider.views[1]
+            local caption=provider.id=="lib" and "General" or provider.name or provider.title or provider.id
+            for _,field in ipairs(schema.fields or {}) do
                 if not field.profileOnly then
-                local path = field.path or {}
-                local caption = ownerLabel or integrated and provider.id == "profiler" and "Profiler"
-                if caption and path[1] ~= caption then
-                    local nested = {caption}; for _, item in ipairs(path) do table.insert(nested, item) end; path = nested
+                    local path,source={caption},field.path or {}
+                    local skip=source[1]==caption or source[1]==provider.settingsLabel or first and source[1]==first.label
+                    for index=skip and 2 or 1,table.getn(source) do table.insert(path,source[index]) end
+                    local children=AddPath(roots,path)
+                    table.insert(children,{text=field.label or field.key,key=field.key,field=field,db=schema.db,provider=provider})
                 end
-                local children = AddPath(roots, path)
-                table.insert(children, {text = field.label or field.key, key = field.key, field = field, db = schema.db, provider = provider})
-                end
+            end
+            for _,root in ipairs(roots) do
+                if root.key==caption then root.productId=provider.id;root.icon=UI.GetProductIcon and UI.GetProductIcon(provider) or first and first.icon or "settings" end
             end
         end
     end
-    if ownerLabel and roots[1] then roots[1].icon = ownerView and ownerView.icon end
+    for index,root in ipairs(roots) do if root.key=="General" then table.remove(roots,index);table.insert(roots,1,root);break end end
     Lib.Core.SettingsSearch.Index(roots)
     return roots
 end
+
 local function GetValue(node)
     local field = node.field
     local value
@@ -50,6 +52,13 @@ local function GetValue(node)
     end
     if field.displayScale and type(value)=="number" then return value*field.displayScale end
     return value
+end
+local Synchronize
+local function RefreshDependents(nodes, owner)
+    for _, node in ipairs(nodes) do
+        if node.provider == owner.provider and node.control and owner.field.refreshKeys[node.key] then Synchronize(node) end
+        if node.children then RefreshDependents(node.children, owner) end
+    end
 end
 local function SetValue(node, value, state)
     local field = node.field
@@ -63,6 +72,7 @@ local function SetValue(node, value, state)
     if node.provider.OnSettingChanged then node.provider.OnSettingChanged(field.key) end
     if node.provider.OnSettingsChanged then node.provider.OnSettingsChanged(field.key) end
     if state and state.host.ApplySettings then state.host.ApplySettings() end
+    if state and field.refreshKeys then RefreshDependents(state.tree, node) end
 end
 local function CommitPending(nodes)
     for _, node in ipairs(nodes) do
@@ -129,10 +139,15 @@ local function AttachPreview(node, page, state)
     AfterEdit("OnEnterPressed"); AfterEdit("OnEscapePressed"); AfterEdit("OnEditFocusLost"); AfterEdit("OnHide")
 end
 
+local function CloseProfiles(state)
+    for _,view in ipairs(state.profileViews or {}) do view.Close();view.name:ClearFocus() end
+end
 local function CreateProfileControls(node, page, state)
-    local api, view = state.ProfileContext, {rows = {}, first = 1}
+    local api, view = node.profileContext or state.ProfileContext, {rows = {}, first = 1}
     view.frame = UI.CreateContainer(nil, page)
-    node.control, node.profileView, state.profiles = view.frame, view, view
+    node.control, node.profileView = view.frame, view
+    state.profileViews=state.profileViews or {};table.insert(state.profileViews,view)
+    if api==state.ProfileContext then state.profiles=view end
     view.api = api
     local function Label(text, color)
         local label = UI.CreateComponentLabel(view.frame, nil, color or "white")
@@ -251,7 +266,15 @@ local function CreateField(node, page, state)
         set = function(_, value) SetValue(node, value, state); state.RefreshEnabled() end}
     local kind = field.type
     local control, label
-    if kind == "checkbox" then
+    if kind == "action" then
+        control = UI.CreateButton(page, nil, node.text, 180, 24); UI.StyleActionButton(control)
+        control:SetScript("OnClick", function()
+            field.action(node.db)
+            if field.refreshKeys then RefreshDependents(state.tree, node) end
+            state.RefreshEnabled()
+        end)
+        node.height = 32
+    elseif kind == "checkbox" then
         control = UI.Settings.CreateCheckbox(page, 0, 0, node.text, field.key, nil, binding)
         node.height = 30
     elseif kind == "slider" then
@@ -284,7 +307,8 @@ local function CreateField(node, page, state)
     if field.tooltip then UI.AttachTooltip(control, node.text, field.tooltip) end
     return control
 end
-local function Synchronize(node)
+Synchronize = function(node)
+    if node.field.type == "action" then return end
     local control, field, value = node.control, node.field, GetValue(node)
     if field.type == "checkbox" then control:SetChecked(value and value ~= 0 and 1 or nil)
     elseif field.type == "slider" then UI.Settings.SynchronizeSlider(control, tonumber(value) or field.min or 0)
@@ -321,6 +345,7 @@ NaturalLabelHeight = function(label, width)
 end
 local function MeasureField(node)
     local control, kind = node.control, node.field.type
+    if kind == "action" then return math.max(120, NaturalLabelWidth(control.label) + 24) end
     if node.label then
         local width = math.max(180, NaturalLabelWidth(node.label))
         if kind == "choice" or kind == "dropdown" or kind=="multiselect" then
@@ -349,14 +374,26 @@ local function MeasureField(node)
     end
     return (kind == "color" and 26 or control:GetWidth() + 2) + NaturalLabelWidth(control.label) + 4
 end
-local function MeasureFieldHeight(node)
+local function FieldLabelWidth(node, label, width)
+    local natural = NaturalLabelWidth(label)
+    if not node.bootyWrapWidth then return natural end
+    width = width or node.bootyWrapWidth
+    if node.label then
+        if node.field.inlineLabel then width = width - math.min(80, width / 2) - 10 end
+    elseif node.field.type == "checkbox" then width = width - node.control:GetWidth() - 6
+    elseif node.field.type == "color" then width = width - 26
+    elseif node.field.type == "action" then width = width - 24 end
+    return math.max(1, math.min(natural, width))
+end
+local function MeasureFieldHeight(node, width)
     local control,kind=node.control,node.field.type
     local label=node.label or control.label or kind=="slider" and getglobal(control:GetName().."Text")
-    local labelHeight=label and NaturalLabelHeight(label,NaturalLabelWidth(label)) or 0
+    local labelHeight=label and NaturalLabelHeight(label,FieldLabelWidth(node,label,width)) or 0
     local top=node.label and not node.field.inlineLabel and labelHeight+4 or kind=="slider" and math.max(18,labelHeight+4) or 0
     if node.label and node.field.inlineLabel then top=math.max(0,(labelHeight-control:GetHeight())/2) end
     local bottom=top+control:GetHeight()
     local height=node.label and bottom+10 or kind=="slider" and bottom+18 or math.max(kind=="color" and 32 or 30,labelHeight+8)
+    if kind == "action" then height = math.max(24, labelHeight + 8) + 8 end
     if node.label and node.field.inlineLabel then height=math.max(control:GetHeight(),labelHeight)+10 end
     return height,bottom,top
 end
@@ -364,7 +401,7 @@ local function LayoutField(node, page, x, y, width)
     local control, kind = node.control, node.field.type
     if node.preview then width = math.max(1, page:GetWidth() - x - 4) end
     local label = node.label or control.label or kind == "slider" and getglobal(control:GetName() .. "Text")
-    local labelWidth = label and NaturalLabelWidth(label)
+    local labelWidth = label and FieldLabelWidth(node, label, width)
     local labelHeight = label and NaturalLabelHeight(label, labelWidth)
     if node.bootyLayoutX == x and node.bootyLayoutY == y and node.bootyLayoutWidth == width and node.bootyLayoutLabelWidth == labelWidth and node.bootyLayoutLabelHeight == labelHeight and node.bootyLayoutPreviewVersion == node.bootyPreviewVersion and control:IsShown() then return node.height end
     node.bootyLayoutX, node.bootyLayoutY, node.bootyLayoutWidth = x, y, width
@@ -378,7 +415,7 @@ local function LayoutField(node, page, x, y, width)
         node.label:ClearAllPoints()
         if node.field.inlineLabel then
             node.label:SetPoint("RIGHT",control,"LEFT",-10,0)
-            local _,_,top=MeasureFieldHeight(node)
+            local _,_,top=MeasureFieldHeight(node,width)
             control:SetPoint("TOPLEFT",page,"TOPLEFT",x+labelWidth+10,y-top)
             control:SetWidth(math.max(1,width-labelWidth-10));node.height=math.max(control:GetHeight(),labelHeight)+10
         else
@@ -388,18 +425,33 @@ local function LayoutField(node, page, x, y, width)
         end
         if kind == "choice" or kind == "dropdown" or kind=="multiselect" then
             if control.bootyDropdownText then control.bootyTextWidth = nil; UI.ReflowControlText(control) end
-            control.panel:SetWidth(control:GetWidth())
+            local popupWidth = control:GetWidth()
+            local padding = kind == "multiselect" and 44 or 30
+            if node.bootyWrapWidth then
+                -- A narrow embedded toggle must not truncate its fixed-height
+                -- choices. The existing popup is screen-owned, not pane-clipped.
+                for _, option in ipairs(control.panel.options) do
+                    if option.label then popupWidth = math.max(popupWidth, NaturalLabelWidth(option.label) + padding) end
+                end
+                popupWidth = math.min(popupWidth, math.max(1, UIParent:GetWidth() - 16))
+                if control.panel.SetClampedToScreen then control.panel:SetClampedToScreen(true) end
+            end
+            control.panel:SetWidth(popupWidth)
             for _, option in ipairs(control.panel.options) do
-                option:SetWidth(math.max(1, control:GetWidth() - 14))
-                if option.label then option.label:SetWidth(math.max(1, control:GetWidth() - (kind=="multiselect" and 44 or 30))) end
+                option:SetWidth(math.max(1, popupWidth - 14))
+                if option.label then option.label:SetWidth(math.max(1, popupWidth - padding)) end
             end
         end
     else
-        local _,_,top=MeasureFieldHeight(node)
+        local _,_,top=MeasureFieldHeight(node,width)
         control:SetPoint("TOPLEFT", page, "TOPLEFT", x, y - top)
-        if kind == "slider" then
+        if kind == "action" then
+            control:SetWidth(width); control:SetHeight(math.max(24, labelHeight + 8))
+            control.label:SetWidth(labelWidth); node.height = control:GetHeight() + 8
+        elseif kind == "slider" then
             control:SetWidth(width)
             label:SetWidth(labelWidth); label:SetJustifyH("LEFT")
+            if node.bootyWrapWidth then label:SetHeight(labelHeight) end
             node.height = top+control:GetHeight()+18
         elseif control.label then
             control.label:SetWidth(labelWidth); control.label:SetJustifyH("LEFT")
@@ -407,6 +459,18 @@ local function LayoutField(node, page, x, y, width)
             control.label:SetHeight(height)
             if kind == "color" then control:SetWidth(width) end
             if control.labelHit then control.labelHit:SetWidth(labelWidth); control.labelHit:SetHeight(height) end
+            if node.bootyWrapWidth then
+                local anchor = kind == "color" and control.swatchBorder or control
+                local gap = kind == "color" and 6 or 2
+                control.label:ClearAllPoints()
+                if labelHeight > control:GetHeight() then control.label:SetPoint("TOPLEFT", anchor, "TOPRIGHT", gap, 0)
+                else control.label:SetPoint("LEFT", anchor, "RIGHT", gap, 0) end
+                if control.labelHit then
+                    control.labelHit:ClearAllPoints()
+                    control.labelHit:SetPoint(labelHeight > control:GetHeight() and "TOPLEFT" or "LEFT", control,
+                        labelHeight > control:GetHeight() and "TOPRIGHT" or "RIGHT", 1, 0)
+                end
+            end
             node.height = math.max(kind == "color" and 32 or 30, height + 8)
         end
     end
@@ -441,7 +505,7 @@ local function LayoutNodes(nodes, page, state, depth, y)
             elseif node.field then
                 local items = node.gridItems
                 if not items then
-                    items = {bootyNoWrap = true, bootyMeasureItem = MeasureField, bootyMeasureHeight = MeasureFieldHeight, bootyLayoutItem = LayoutField}
+                    items = {bootyNoWrap = not state.wrapFields, bootyMeasureItem = MeasureField, bootyMeasureHeight = MeasureFieldHeight, bootyLayoutItem = LayoutField}
                     node.gridItems = items
                 end
                 while table.getn(items) > 0 do table.remove(items) end
@@ -451,6 +515,7 @@ local function LayoutNodes(nodes, page, state, depth, y)
                     if fieldNode ~= node and (node.field.preview or fieldNode.field.preview) then break end
                     if Visible(fieldNode) then
                         fieldNode.layoutVisible = true
+                        fieldNode.bootyWrapWidth = state.wrapFields and math.max(1, page:GetWidth() - x - 4) or nil
                         if not fieldNode.control then CreateField(fieldNode, page, state); Synchronize(fieldNode)
                         elseif not state.geometryOnly then Synchronize(fieldNode) end
                         table.insert(items, fieldNode)
@@ -462,7 +527,7 @@ local function LayoutNodes(nodes, page, state, depth, y)
                 index = index - 1
             else
                 if not node.control then
-                    if depth == 0 then node.control = UI.Settings.CreateSectionAccordion(page, node.text, 0, 0, 2, node.icon or icons[node.text] or "list")
+                    if depth == 0 then node.control = UI.Settings.CreateSectionAccordion(page, node.text, 0, 0, state.sectionHeadingLevel or 2, node.icon or icons[node.text] or "list")
                     else node.control = UI.Settings.CreateAccordion(page, node.text, 0) end
                     node.control.bootySettingsNode = node
                     node.control.bootySettingsState = state
@@ -562,26 +627,236 @@ local function ResizeSettingsTick()
         if not ok then error(failure, 0) end
     end
 end
+local function AddProfiles(state, product, providers)
+    if not Lib.Core.SettingsProfiles or product.id=="lib" then return end
+    local suite=product.id=="suite" and state.host.integrated
+    state.ProfileContext=Lib.Core.SettingsProfiles.Create(providers,{id=product.id or product.name,scoped=true,bundle=suite,
+        onApplied=function() if state.host.ApplySettings then state.host.ApplySettings() end;state.Reflow() end})
+    state.ProfileContexts={[product.id or product.name]=state.ProfileContext}
+    local children={}
+    local function AddProfile(owner,api,caption)
+        local node={key="profileControls",text="Current profile Load profile New profile Save Add Delete Export",profileControls=true,profileContext=api}
+        if api==state.ProfileContext then state.profileNode=node end
+        table.insert(children,{key=caption,text=caption,expanded=false,children={node},icon=UI.GetProductIcon and UI.GetProductIcon(owner)})
+    end
+    AddProfile(product,state.ProfileContext,suite and "BootySuite" or "General")
+    if suite then
+        for _,provider in ipairs(providers) do
+            local api=state.ProfileContext.addons[provider.id]
+            if api then state.ProfileContexts[provider.id]=api;AddProfile(provider,api,provider.name) end
+        end
+    end
+    table.insert(state.tree,state.tree[1] and state.tree[1].key=="General" and 2 or 1,{key="Profile",text="Profile",expanded=false,children=children})
+    Lib.Core.SettingsSearch.Index(state.tree)
+end
+
+-- Product pages share the same schema controls and profile transactions as the
+-- detached window. Their host owns geometry; only actual overflow adds a gutter.
+function SettingsHost.CreatePanel(parent, product, host)
+    local frame = UI.CreateContainer(nil, parent); frame:SetAllPoints(parent); frame:Hide()
+    local state = {frame = frame, host = host, ownerName = product.name .. "Options", window = host.window or frame, wrapFields = true}
+    state.tree = SettingsHost.BuildTree({product}, false, product, true)
+    for _, root in ipairs(state.tree) do
+        root.expanded = true
+        for _, child in ipairs(root.children or {}) do if child.key == "General" then child.expanded = true end end
+    end
+    AddProfiles(state, product, {product})
+    state.toolbar = UI.CreateToolbarSurface(frame, false, true); state.toolbar:SetHeight(32)
+    state.search = UI.CreateFramedEditBox(state.toolbar, nil, 250)
+    state.search:SetPoint("LEFT", state.toolbar, "LEFT", 0, 0); state.search:SetHeight(24)
+    UI.AttachTooltip(state.search, "Search settings", "Filter labels and their full section path. Open sections to inspect matching fields.")
+    UI.AttachPlaceholder(state.search, "Search settings")
+    serial = serial + 1
+    state.viewport = UI.CreateScrollFrame("BootySettingsPanelViewport" .. serial, frame, "UIPanelScrollFrameTemplate")
+    state.scrollBar = getglobal(state.viewport:GetName() .. "ScrollBar")
+    if state.scrollBar then UI.RegisterSkinnedScrollBar(state.scrollBar) end
+    state.page = UI.CreateContainer(nil, state.viewport); state.page.bootyTextSizeDelta = -2
+    state.page:SetWidth(1); state.page:SetHeight(1); state.viewport:SetScrollChild(state.page)
+    state.RefreshPreviews = function()
+        if state.previewBusy or not frame:IsVisible() then return end
+        state.previewBusy = true
+        local ok, changed = pcall(RefreshVisiblePreviews, state)
+        state.previewBusy = nil
+        if not ok then error(changed, 0) end
+        if changed and not state.reflowBusy then state.Reflow() end
+    end
+    state.RefreshEnabled = function() RefreshNodes(state.tree); state.RefreshPreviews() end
+    local function Measure(width)
+        state.page:SetWidth(width); ClearLayout(state.tree); state.requiredContentWidth = 1
+        local y = LayoutNodes(state.tree, state.page, state, 0, -4)
+        HideUnused(state.tree)
+        state.page.settingsContentHeight = math.max(1, -y + 4)
+        return state.page.settingsContentHeight
+    end
+    local function Layout()
+        state.window = host.window or frame
+        local width, height = UI.GetFrameSpan(parent)
+        width, height = math.max(1, width), math.max(1, height)
+        frame:SetWidth(width); frame:SetHeight(height)
+        state.toolbar:ClearAllPoints(); state.toolbar:SetPoint("TOPLEFT", frame, "TOPLEFT", 8, -4)
+        state.toolbar:SetWidth(math.max(1, width - 16))
+        state.search:SetWidth(math.max(1, math.min(250, width - 16 - (state.reset and 66 or 0))))
+        CloseChoices(state.tree)
+        local fullWidth, viewportHeight = math.max(1, width - 16), math.max(1, height - 48)
+        local contentWidth, contentHeight, overflow, maximum = UI.ResolveScrollLayout(fullWidth, viewportHeight, 20, Measure)
+        state.viewportHeight, state.maximumScroll = viewportHeight, maximum
+        state.viewport.bootyScrollGutter = overflow and 20 or 0
+        state.viewport:ClearAllPoints(); state.viewport:SetPoint("TOPLEFT", frame, "TOPLEFT", 8, -40)
+        state.viewport:SetWidth(contentWidth); state.viewport:SetHeight(viewportHeight)
+        state.page:SetWidth(contentWidth); state.page:SetHeight(contentHeight)
+        if state.scrollBar then
+            state.scrollBar:ClearAllPoints(); state.scrollBar:SetPoint("TOPLEFT", frame, "TOPLEFT", contentWidth + 12, -56)
+            state.scrollBar:SetWidth(16); state.scrollBar:SetHeight(math.max(1, viewportHeight - 32))
+        end
+        UI.ApplyScrollRange(state.viewport, state.scrollBar, maximum)
+        state.RefreshEnabled()
+    end
+    state.Reflow = function()
+        if state.reflowBusy or not frame:IsVisible() then return end
+        state.reflowBusy = true
+        local ok, failure = pcall(Layout)
+        state.reflowBusy = nil
+        if not ok then error(failure, 0) end
+    end
+    state.search:SetScript("OnTextChanged", function()
+        Lib.Core.SettingsSearch.Apply(state.tree, this:GetText()); state.viewport:SetVerticalScroll(0); state.Reflow()
+    end)
+    state.search:SetScript("OnEscapePressed", function() this:SetText(""); this:ClearFocus() end)
+    if state.ProfileContext then
+        state.reset = UI.CreateButton(state.toolbar, nil, "Reset", 58, 24); UI.StyleActionButton(state.reset)
+        state.reset:SetPoint("RIGHT", state.toolbar, "RIGHT", 0, 0)
+        UI.AttachTooltip(state.reset, "Reset settings to defaults", "Reset only this addon's preferences. Other addons and saved data are retained.")
+        state.reset:SetScript("OnClick", function()
+            CommitPending(state.tree)
+            Confirm(state, "Reset settings", "Reset this addon's settings to defaults?", "Reset", function()
+                local _, message = state.ProfileContext.ResetDefaults()
+                if state.profiles then state.profiles.status:SetText(message) elseif host.Print then host.Print(message) end
+                state.Reflow()
+            end)
+        end)
+    end
+    state.viewport:EnableMouseWheel(true)
+    state.viewport:SetScript("OnMouseWheel", function()
+        state.viewport:SetVerticalScroll(state.viewport:GetVerticalScroll() - (arg1 or 0) * 36)
+        UI.ApplyScrollRange(state.viewport, state.scrollBar, state.maximumScroll or 0)
+    end)
+    local function Cleanup()
+        CommitPending(state.tree); CloseChoices(state.tree); state.search:ClearFocus()
+        CloseProfiles(state)
+        if state.profileConfirm then state.profileConfirm:Hide() end
+    end
+    local function RefreshValues(nodes)
+        for _, node in ipairs(nodes) do
+            if node.layoutVisible and node.field and node.control then Synchronize(node) end
+            if node.children then RefreshValues(node.children) end
+        end
+    end
+    frame:SetScript("OnHide", Cleanup)
+    function state:Show() frame:Show(); self.Reflow(); return true end
+    function state:Hide() frame:Hide(); Cleanup(); return true end
+    function state:Refresh()
+        if not frame:IsVisible() or self.reflowBusy then return true end
+        -- A setting can refresh its product while a multi-select is still open.
+        -- Synchronize values without running geometry cleanup or closing menus.
+        RefreshValues(self.tree); self.RefreshEnabled()
+        for _,view in ipairs(self.profileViews or {}) do if view.frame:IsVisible() then view.Refresh() end end
+        return true
+    end
+    function state:OnResize() self.Reflow() end
+    Lib.Core.SettingsSearch.Apply(state.tree, "")
+    return state
+end
+
+-- The feature-page header, tab strip and compact body follow Action Bars.
+-- Domain schemas still own which settings and sections appear inside each tab.
+function SettingsHost.CreateTabbedPanel(parent,product,host,options)
+    options=options or {}
+    local shell=UI.CreateContainer(nil,parent);shell:SetAllPoints(parent);shell.bootyTextSizeDelta=-2
+    local header=UI.CreateToolbarSurface(shell,false,true)
+    local heading=UI.CreateHeading(header,product.name,2,"gold",UI.GetProductIcon(product))
+    heading:SetPoint("LEFT",header,"LEFT",12,0);heading:SetHeight(24);heading:SetJustifyH("LEFT")
+    local navigation=UI.CreateToolbarSurface(shell,false,true)
+    local body=UI.CreateContainer(nil,shell)
+    local state=SettingsHost.CreatePanel(body,product,host)
+    state.layoutHost=parent;state.allTree=state.tree;state.sections={};state.buttons={};state.selectionOrder={}
+    state.header,state.heading,state.navigation,state.navigationFrame=header,heading,navigation,navigation
+    state.sectionHeadingLevel=3
+    for _,root in ipairs(state.allTree) do
+        if root.productId==product.id then
+            for _,section in ipairs(root.children) do state.sections[section.key]=section;table.insert(state.selectionOrder,section.key) end
+        end
+    end
+    for _,root in ipairs(state.allTree) do
+        if root.productId~=product.id then state.sections[root.key]=root;table.insert(state.selectionOrder,root.key) end
+    end
+    if options.prepareSections then options.prepareSections(state.sections) end
+    Lib.Core.SettingsSearch.Index(state.allTree)
+    local baseShow,baseHide,baseResize=state.Show,state.Hide,state.OnResize
+    local tabRow={}
+    function state:SelectSection(key)
+        local section=self.sections[key];if not section then return false end
+        if self.selectedSection~=key then
+            baseHide(self)
+            for _,node in ipairs(self.tree) do node.visible=false end
+            baseShow(self)
+            self.selectedSection=key;self.tree=section.children
+            Lib.Core.SettingsSearch.Apply(self.tree,"");self.search:SetText("")
+            for _,node in ipairs(self.tree) do if node.key=="General" then node.expanded=true end end
+            self.viewport:SetVerticalScroll(0)
+        end
+        for id,button in pairs(self.buttons) do UI.SetOpenButtonBorder(button,id==key,"bottom") end
+        self:OnResize();return true
+    end
+    for _,key in ipairs(state.selectionOrder) do
+        local id=key
+        local button=UI.CreateSelectionButton(navigation,nil,id,104,26)
+        button:SetScript("OnClick",function() state:SelectSection(id) end)
+        button.bootyTabWidth=math.max(82,math.ceil(button.label:GetStringWidth())+24)
+        state.buttons[id]=button;table.insert(tabRow,button)
+    end
+    function state:OnResize()
+        if not shell:IsVisible() then return end
+        local width,height=UI.GetFrameSpan(parent);width,height=math.max(1,width),math.max(1,height)
+        shell:SetWidth(width);shell:SetHeight(height)
+        header:ClearAllPoints();header:SetPoint("TOPLEFT",shell,"TOPLEFT",0,0);header:SetWidth(width);header:SetHeight(36)
+        heading:SetWidth(math.max(1,width-24))
+        navigation:ClearAllPoints();navigation:SetPoint("TOPLEFT",shell,"TOPLEFT",0,-36);navigation:SetWidth(width)
+        for _,button in ipairs(tabRow) do button:SetWidth(math.min(button.bootyTabWidth,math.max(1,width-16))) end
+        local navigationHeight=UI.LayoutFlow(navigation,tabRow,8,8,math.max(1,width-16),6)+8
+        navigation:SetHeight(navigationHeight)
+        local top=36+navigationHeight+8
+        body:ClearAllPoints();body:SetPoint("TOPLEFT",shell,"TOPLEFT",0,-top)
+        body:SetWidth(width);body:SetHeight(math.max(1,height-top))
+        baseResize(self)
+    end
+    function state:Show()
+        shell:Show()
+        if not self.selectedSection then return self:SelectSection(options.defaultSection or "General") end
+        self:OnResize();return baseShow(self)
+    end
+    function state:Hide() baseHide(self);shell:Hide();return true end
+    shell:Hide();return state
+end
+
+function SettingsHost.Toggle(product,host,providers)
+    -- The host follows the click before Toggle. Keep the last successful source
+    -- separately so a failed Open/Reflow can be retried instead of closed.
+    local state=SettingsHost.windows[product.id or product.name]
+    if state and state.settingsSource==host.window and state.window:IsShown() and not state.window.minimized then state.window:Hide();return state end
+    return SettingsHost.Open(product,host,providers)
+end
 function SettingsHost.Open(product, host, providers)
     local owner = product.id or product.name
     local state = SettingsHost.windows[owner]
     if state then
         if UI.WindowStack then UI.WindowStack.SetOwner(state.window, host.window) end
-        state.window.Open(); state.Reflow(); return state
+        state.window.Open(); state.Reflow(); state.settingsSource=host.window; return state
     end
     local window
     state = {host = host, ownerName = product.name}
     providers = providers or {product}
     state.tree = SettingsHost.BuildTree(providers, host.integrated, product)
-    if Lib.Core.SettingsProfiles then
-        state.ProfileContext = Lib.Core.SettingsProfiles.Create(providers, {id = owner,
-            onApplied = function() if host.ApplySettings then host.ApplySettings() end; state.Reflow() end})
-        state.profileNode = {key = "profileControls", text = "Current profile Load profile New profile Save Add Delete Export", profileControls = true}
-        table.insert(state.tree, 1, {key = "Profile", text = "Profile", expanded = false, children = {
-            {key = "General", text = "General", expanded = false, children = {state.profileNode}}
-        }})
-        Lib.Core.SettingsSearch.Index(state.tree)
-    end
+    AddProfiles(state, product, providers)
     state.RefreshPreviews = function()
         if state.previewBusy or not state.window or not state.window:IsVisible() then return end
         state.previewBusy = true
@@ -644,7 +919,7 @@ function SettingsHost.Open(product, host, providers)
         window:SetScript("OnUpdate", nil)
         state.viewport:SetScript("OnUpdate", nil); state.resizeQueued = nil
         CommitPending(state.tree); CloseChoices(state.tree)
-        if state.profiles then state.profiles.Close() end
+        CloseProfiles(state)
         if state.profileConfirm then state.profileConfirm:Hide() end
         state.search:ClearFocus()
     end)
@@ -685,7 +960,7 @@ function SettingsHost.Open(product, host, providers)
     state.viewport:SetScript("OnHide", function()
         state.viewport:SetScript("OnUpdate", nil); state.resizeQueued = nil
         CommitPending(state.tree); CloseChoices(state.tree); state.search:ClearFocus()
-        if state.profiles then state.profiles.Close() end
+        CloseProfiles(state)
         if state.profileConfirm then state.profileConfirm:Hide() end
     end)
     state.page = UI.CreateContainer(nil, state.viewport); state.page:SetWidth(700); state.page:SetHeight(1)
@@ -705,5 +980,6 @@ function SettingsHost.Open(product, host, providers)
     Lib.Core.SettingsSearch.Apply(state.tree, "")
     SettingsHost.windows[owner] = state
     window.Open()
+    state.settingsSource = host.window
     return state
 end

@@ -5,6 +5,16 @@ UI.WindowStack = Stack
 local order, context, applying = {}, nil, false
 local FIRST_LEVEL, CHILD_LIMIT = 64, 510
 local function Visible(frame) return frame and frame.IsVisible and frame:IsVisible() end
+local belowMenu={LOW="BACKGROUND",MEDIUM="LOW",HIGH="MEDIUM",DIALOG="HIGH",FULLSCREEN="DIALOG",FULLSCREEN_DIALOG="FULLSCREEN",TOOLTIP="FULLSCREEN_DIALOG"}
+local rank={BACKGROUND=1,LOW=2,MEDIUM=3,HIGH=4,DIALOG=5,FULLSCREEN=6,FULLSCREEN_DIALOG=7,TOOLTIP=8}
+local function PresentationStrata()
+    local lowest
+    for native in pairs(Stack.nativeObservers or {}) do
+        if Visible(native) then local strata=native:GetFrameStrata();if not lowest or (rank[strata] or 1)<(rank[lowest] or 1) then lowest=strata end end
+    end
+    if lowest then return belowMenu[lowest] or "BACKGROUND" end
+    return "FULLSCREEN_DIALOG"
+end
 local function Source(owner) if type(owner) == "function" then return owner() end; return owner end
 local function Find(frame, depth)
     frame = Source(frame)
@@ -32,7 +42,8 @@ local function NativeLevel(frame, value)
     if frame:GetFrameLevel() ~= value then (frame.bootyStackSetLevel or frame.SetFrameLevel)(frame, value) end
 end
 local function NativeStrata(frame)
-    if frame:GetFrameStrata() ~= "FULLSCREEN_DIALOG" then (frame.bootyStackSetStrata or frame.SetFrameStrata)(frame, "FULLSCREEN_DIALOG") end
+    local strata=PresentationStrata()
+    if frame:GetFrameStrata() ~= strata then (frame.bootyStackSetStrata or frame.SetFrameStrata)(frame, strata) end
 end
 local function Bound(record, value) return math.max(record.low + 1, math.min(record.low + CHILD_LIMIT, value)) end
 local function SetLevel(self, value)
@@ -45,7 +56,7 @@ local function SetLevel(self, value)
     return self.bootyStackSetLevel(self, Bound(record, parentLevel + self.bootyStackLevelOffset))
 end
 local function SetStrata(self, value)
-    if not applying and Find(self) then value = "FULLSCREEN_DIALOG" end
+    if not applying and Find(self) then value = PresentationStrata() end
     return self.bootyStackSetStrata(self, value)
 end
 local function FocusInput(frame, handler)
@@ -314,8 +325,23 @@ local function Hook(frame)
     frame.Raise = function(self) Stack.Raise(self) end
     if frame.SetToplevel then frame:SetToplevel(false) end
 end
+local function ObserveMainMenu()
+    if type(CreateFrame)~="function" then return end
+    Stack.nativeObservers=Stack.nativeObservers or {}
+    local function Observe(native)
+        if not native or Stack.nativeObservers[native] then return end
+        -- Owned children observe inherited visibility without replacing native scripts.
+        local observer=CreateFrame("Frame",nil,native)
+        Stack.nativeObservers[native]=observer
+        observer:SetScript("OnShow",Reflow);observer:SetScript("OnHide",Reflow);observer:Show()
+        if native==GameMenuFrame then Stack.menuObserver=observer end
+    end
+    Observe(GameMenuFrame)
+    for index=1,4 do Observe(getglobal and getglobal("StaticPopup"..index)) end
+end
 function Stack.Register(frame, options)
     if not frame then return end
+    ObserveMainMenu()
     options = options or {}
     local record = frame.bootyWindowStackRecord
     if not record then

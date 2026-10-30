@@ -263,3 +263,23 @@ function Window.CreateProjectConfirmation(name, title, action, iconKey, options)
     end
     return frame
 end
+
+-- The caller owns persistence and content layout; resizing never scales fonts.
+function Window.MakeResizable(frame, options)
+    frame:SetResizable(true);frame:SetMinResize(options.minWidth,options.minHeight)
+    local grip=Booty.UI.Components.CreateResizeGrip(frame);frame.resizeGrip=grip
+    local busy
+    local function Layout()
+        if busy then return end;busy=true
+        if frame.LayoutContent then frame:LayoutContent(frame:GetWidth(),frame:GetHeight()) end
+        busy=nil
+    end
+    frame:SetScript("OnSizeChanged",Layout)
+    grip:SetScript("OnMouseDown",function() frame:StartSizing("BOTTOMRIGHT") end)
+    grip:SetScript("OnMouseUp",function()
+        frame:StopMovingOrSizing();Layout()
+        if options.save then options.save(frame:GetWidth(),frame:GetHeight()) end
+    end)
+    grip:SetScript("OnHide",function() frame:StopMovingOrSizing() end)
+    if options.width and options.height then frame:SetWidth(math.max(options.minWidth,options.width));frame:SetHeight(math.max(options.minHeight,options.height)) end
+end

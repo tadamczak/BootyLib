@@ -1,5 +1,114 @@
 # Changelog
 
+## 0.1.0-dev.79 — 2026-10-30
+
+- Supply the default alternating-row background required by active and synchronized raid tables, preventing a missing-color error.
+
+## 0.1.0-dev.78 — 2026-10-29
+
+- Size item-list context columns for full loot dates and times, with per-row context colors and safe reuse between item lists.
+
+## 0.1.0-dev.77 — 2026-10-29
+
+- Restore dashboard content before refreshing its active page, removing the delayed first render of Raid Stats.
+- Bound view shortcuts close an already-open page and reopen it on the next press.
+
+## 0.1.0-dev.76 — 2026-10-29
+
+- Share the Suite resize handler with standalone/detached windows; keep native content bounds live while dragging.
+- Allow standalone view navigation to retain the current window rectangle.
+
+## 0.1.0-dev.75 — 2026-10-29
+
+- Match standalone/detached feature resize cadence to Suite, with immediate final sizing and saved geometry.
+- Prevent duplicate child layout callbacks and retain correct content insets.
+
+## 0.1.0-dev.74 — 2026-10-28
+
+- Keep native popup dialogs, including logout countdowns, above Booty windows without modifying native scripts.
+
+## 0.1.0-dev.73 — 2026-10-27
+
+- Add shared resize-grip handling for dialogs whose owners save dimensions and reflow their contents.
+
+## 0.1.0-dev.72 — 2026-10-27
+
+- Move an open Settings window to another clicked source immediately; clicking its current source again closes it. Preserve pooled windows and retry after failed refreshes.
+
+## 0.1.0-dev.71 — 2026-10-27
+
+- Isolate addon profile lists, exclude BootyLib profiles, load Suite profile mappings and put General first.
+
+## 0.1.0-dev.70 — 2026-10-26
+
+- Group settings by addon, keep separate addon profiles and save their current snapshots in Suite profiles. Share compact feature tabs, gold action icons, Settings toggle and native Main Menu precedence.
+
+## 0.1.0-dev.69 — 2026-10-26
+
+- Identify chat messages with bracketed product names and explain each common command.
+
+## 0.1.0-dev.68 — 2026-10-26
+
+- Show full tab-name tooltips for top and bottom navigation tabs, including icon-only tabs.
+
+## 0.1.0-dev.67 — 2026-10-26
+
+- Add shared product commands, installed/runtime version reporting and configurable native bindings for Booty tabs.
+
+## 0.1.0-dev.66 — 2026-10-26
+
+- Add ten new unit-frame styles and four separate Alliance emblems; retain shaped apertures, panel opacity and mirrors.
+
+## 0.1.0-dev.65 — 2026-10-25
+
+- Add ten supplied HUD casings and thirty original resource fills; preserve preset colors while retaining neutral custom tint and directional clipping.
+
+## 0.1.0-dev.64 — 2026-10-25
+
+- Support explicit dependent setting refresh and nonpersistent action buttons in shared settings panels.
+
+## 0.1.0-dev.63 — 2026-10-24
+
+- Repair the six Focus artwork cutouts, preserve full casing contours and separate neutral glass highlights from recolorable fills.
+
+## 0.1.0-dev.62 — 2026-10-24
+
+- Add six shared layered HUD textures, circular icons and a reusable bar renderer with mirrored/rotated UV clipping, tintable fill and ornament-aware progress bounds.
+
+## 0.1.0-dev.61 — 2026-10-24
+
+- Export custom castbar artwork at display-appropriate resolution with area filtering to reduce isolated white speckles.
+
+## 0.1.0-dev.60 — 2026-10-22
+
+- Expose explicit on-demand timing targets for Booty Diagnostics without idle scanning or memory measurements.
+
+## 0.1.0-dev.59 — 2026-10-21
+
+- Add shaped inner shadows for the thirteen BootyFrame styles, adapted from native frame shading without changing their original artwork.
+
+## 0.1.0-dev.58 — 2026-10-21
+
+- Support clipping BootyFrame health/resource fills and backgrounds to decorative openings while preserving their native gradient and value display.
+
+## 0.1.0-dev.57 — 2026-10-21
+
+- Repair all seven combo styles' dotted contours with cleaned source artwork and exports sized for small UI rendering.
+- Replace Bronze ruby's separate sockets with the supplied connected five-slot design and fixed-rim glass highlights.
+
+## 0.1.0-dev.56 — 2026-10-20
+
+- Include seven combo-point styles, two castbar frames and Moonshadow, Kaldria and Talandria unit frames with separate Alliance PvP emblems and status masks.
+
+## 0.1.0-dev.55 — 2026-10-20
+
+- Separate lion/banner faction artwork from unit frames, repair the Silver and gold name fill and include native elite/rare portrait decorations.
+- Remove retired Style 4/5 textures from the shared unit-frame catalog.
+
+## 0.1.0-dev.54 — 2026-10-20
+
+- Support frame options directly in their feature tab, using the same settings controls, search and profiles.
+
 ## 0.1.0-dev.53 — 2026-10-17
 
 - Add matching gold eye, archive-box and restore-box action icons.

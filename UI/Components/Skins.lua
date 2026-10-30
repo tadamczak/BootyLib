@@ -225,81 +225,156 @@ end
 local function SetRoundedTextureColor(primary, r, g, b, a)
     TextureWrite(primary, "SetVertexColor", r, g, b, a)
     local set = primary.bootyRoundedTexture
-    if set and (not set.ready or set.r ~= r or set.g ~= g or set.b ~= b or set.a ~= a) then
+    if set and (not set.ready or set.r ~= r or set.g ~= g or set.b ~= b or set.a ~= a or set.colorCount ~= table.getn(set.textures)) then
         set.ready = false
         for _, region in ipairs(set.textures) do TextureWrite(region, "SetVertexColor", r, g, b, a) end
-        set.r, set.g, set.b, set.a, set.ready = r, g, b, a, true
+        set.r, set.g, set.b, set.a, set.ready, set.colorCount = r, g, b, a, true, table.getn(set.textures)
     end
 end
+local function TextureNumber(value)
+    return type(value)=="number" and value-value==0
+end
+local function TextureOption(value,fallback)
+    if value==nil then return fallback end
+    return value
+end
 local function SetRoundedTexture(primary, options)
-    local width, height, radius = options.width, options.height, options.radius or 0
-    if type(width) ~= "number" or type(height) ~= "number" or width <= 0 or height <= 0
-        or width ~= width or height ~= height or type(radius) ~= "number" or radius ~= radius then
+    if type(options)~="table" then error("Rounded texture options are invalid.") end
+    local width, height, radius = options.width, options.height, TextureOption(options.radius,0)
+    if not TextureNumber(width) or not TextureNumber(height) or width <= 0 or height <= 0 or not TextureNumber(radius) then
         error("Rounded texture geometry is invalid.")
     end
     radius = math.max(0, math.min(radius, width / 2, height / 2))
     local set = primary.bootyRoundedTexture
     local visible = options.visible ~= nil and options.visible ~= false and options.visible ~= 0 and options.path ~= nil
-    local left, right, top, bottom = options.left or 0, options.right or 1, options.top or 0, options.bottom or 1
-    local x, y = options.x or 0, options.y or 0
-    local clipTop,clipBottom=options.clipTop or 0,options.clipBottom or height
-    if type(clipTop)~="number" or type(clipBottom)~="number" or clipTop~=clipTop or clipBottom~=clipBottom
-        or clipTop<0 or clipBottom>height or clipTop>clipBottom then error("Rounded texture clipping is invalid.") end
-    if radius == 0 or not visible then
-        if set and set.visible then for _, region in ipairs(set.textures) do TextureVisibility(region,false) end;set.visible=false end
-        if set and radius==0 then set.radius=0;set.ready=false end
-        if radius == 0 and (not primary.bootySquareReady or primary.bootySquarePath~=options.path
+    local left,right,top,bottom=TextureOption(options.left,0),TextureOption(options.right,1),TextureOption(options.top,0),TextureOption(options.bottom,1)
+    local x,y=TextureOption(options.x,0),TextureOption(options.y,0)
+    if not TextureNumber(left) or not TextureNumber(right) or not TextureNumber(top) or not TextureNumber(bottom)
+        or not TextureNumber(x) or not TextureNumber(y) then error("Rounded texture coordinates are invalid.") end
+    local clipTop,clipBottom=TextureOption(options.clipTop,0),TextureOption(options.clipBottom,height)
+    local clipLeft,clipRight=TextureOption(options.clipLeft,0),TextureOption(options.clipRight,width)
+    if not TextureNumber(clipTop) or not TextureNumber(clipBottom) or not TextureNumber(clipLeft) or not TextureNumber(clipRight)
+        or clipTop<0 or clipBottom>height or clipTop>clipBottom or clipLeft<0 or clipRight>width or clipLeft>clipRight then
+        error("Rounded texture clipping is invalid.")
+    end
+    local rows,count=options.rows,32
+    if rows~=nil then
+        if type(rows)~="table" then error("Rounded texture rows are invalid.") end
+        count=table.getn(rows)
+        for index in pairs(rows) do
+            if not TextureNumber(index) or index~=math.floor(index) or index<1 or index>count then error("Rounded texture rows are invalid.") end
+        end
+        for index=1,count do
+            local row=rows[index]
+            if type(row)~="table" or not TextureNumber(row[1]) or not TextureNumber(row[2]) or not TextureNumber(row[3]) or not TextureNumber(row[4])
+                or row[1]<0 or row[2]<0 or row[3]<=0 or row[4]<=0 or row[1]+row[3]>width or row[2]+row[4]>height then
+                error("Rounded texture row geometry is invalid.")
+            end
+        end
+    end
+    local mirror=options.mirror~=nil and options.mirror~=false and options.mirror~=0
+    local pooled=rows~=nil or radius>0 or clipLeft~=0 or clipRight~=width or clipTop~=0 or clipBottom~=height
+    visible=visible and clipLeft<clipRight and clipTop<clipBottom and count>0
+    primary.bootyRoundedPaintPending=true
+    if not pooled or not visible then
+        if set then for _, region in ipairs(set.textures) do TextureVisibility(region,false) end;set.visible=false end
+        if set and not pooled then set.radius=0;set.rows=nil;set.pooled=false;set.ready=false end
+        if not pooled and (not primary.bootySquareReady or primary.bootySquarePath~=options.path
             or primary.bootySquareLeft~=left or primary.bootySquareRight~=right or primary.bootySquareTop~=top or primary.bootySquareBottom~=bottom) then
             primary.bootySquareReady=false
             TextureWrite(primary,"SetTexture",options.path);TextureWrite(primary,"SetTexCoord",left,right,top,bottom)
             primary.bootySquarePath,primary.bootySquareLeft,primary.bootySquareRight,primary.bootySquareTop,primary.bootySquareBottom=options.path,left,right,top,bottom
             primary.bootySquareReady=true
         end
-        local shown=primary:IsShown()
-        TextureVisibility(primary,visible and radius==0)
+        TextureVisibility(primary,visible and not pooled)
+        primary.bootyRoundedPaintPending=false
         return
     end
+    if rows==nil and radius==0 then count=1 end
     if not set then set={textures={}};primary.bootyRoundedTexture=set end
-    local changed = not set.ready or set.width ~= width or set.height ~= height or set.radius ~= radius or set.path ~= options.path
-        or set.left ~= left or set.right ~= right or set.top ~= top or set.bottom ~= bottom or set.x ~= x or set.y ~= y
-        or set.clipTop~=clipTop or set.clipBottom~=clipBottom
+    local r,g,b,a=options.r or 1,options.g or 1,options.b or 1,options.a or 1
+    -- Preserve the existing constant-cost warm path for animated round icons.
+    -- Authored rows are checked below because callers may edit them in place.
+    if rows==nil and set.rows==nil and set.ready and set.visible and set.width==width and set.height==height
+        and set.radius==radius and set.path==options.path and set.left==left and set.right==right and set.top==top and set.bottom==bottom
+        and set.x==x and set.y==y and set.clipTop==clipTop and set.clipBottom==clipBottom and set.clipLeft==clipLeft and set.clipRight==clipRight
+        and set.mirror==mirror and set.owner==options.owner and set.blend==options.blend then
+        if set.r~=r or set.g~=g or set.b~=b or set.a~=a then SetRoundedTextureColor(primary,r,g,b,a) end
+        TextureVisibility(primary,false);primary.bootyRoundedPaintPending=false
+        return
+    end
+    local repair=not set.ready
     set.ready=false
-    if changed or not set.visible then
-    for index=1,32 do
+    local anyShown=false
+    for index=1,count do
         local region=set.textures[index]
-        if not region then region=UI.CreateTexture(options.owner,nil,options.layer or "BACKGROUND");set.textures[index]=region;changed=true end
-        local rx,ry,rw,rh=UI.RoundedTextureRow(width,height,radius,index,32)
-        local clippedY=math.max(ry,clipTop);local clippedHeight=math.min(ry+rh,clipBottom)-clippedY
-        if changed and clippedHeight>0 then
-            ry,rh=clippedY,clippedHeight
-            TextureWrite(region,"SetTexture",options.path);TextureWrite(region,"ClearAllPoints")
-            TextureWrite(region,"SetPoint","TOPLEFT",options.owner,"TOPLEFT",x+rx,y-ry)
-            TextureWrite(region,"SetWidth",rw);TextureWrite(region,"SetHeight",rh)
-            TextureWrite(region,"SetTexCoord",left+rx/width*(right-left),left+(rx+rw)/width*(right-left),top+ry/height*(bottom-top),top+(ry+rh)/height*(bottom-top))
-            TextureWrite(region,"SetBlendMode",options.blend or "BLEND")
+        if not region then region=UI.CreateTexture(options.owner,nil,options.layer or "BACKGROUND");set.textures[index]=region end
+        local rx,ry,rw,rh
+        if rows then local row=rows[index];rx,ry,rw,rh=row[1],row[2],row[3],row[4]
+        else rx,ry,rw,rh=UI.RoundedTextureRow(width,height,radius,index,count) end
+        if mirror then rx=width-rx-rw end
+        local clippedX,clippedY=math.max(rx,clipLeft),math.max(ry,clipTop)
+        rw,rh=math.min(rx+rw,clipRight)-clippedX,math.min(ry+rh,clipBottom)-clippedY
+        rx,ry=clippedX,clippedY
+        local shown=rw>0 and rh>0
+        if shown then
+            local fresh=repair or not region.bootyRoundedReady
+            local px,py=x+rx,y-ry
+            local u0,u1=left+rx/width*(right-left),left+(rx+rw)/width*(right-left)
+            local v0,v1=top+ry/height*(bottom-top),top+(ry+rh)/height*(bottom-top)
+            local blend=options.blend or "BLEND"
+            if fresh or region.bootyRoundedPath~=options.path then TextureWrite(region,"SetTexture",options.path) end
+            if fresh or region.bootyRoundedOwner~=options.owner or region.bootyRoundedX~=px or region.bootyRoundedY~=py then
+                TextureWrite(region,"ClearAllPoints");TextureWrite(region,"SetPoint","TOPLEFT",options.owner,"TOPLEFT",px,py)
+            end
+            if fresh or region.bootyRoundedWidth~=rw then TextureWrite(region,"SetWidth",rw) end
+            if fresh or region.bootyRoundedHeight~=rh then TextureWrite(region,"SetHeight",rh) end
+            if fresh or region.bootyRoundedU0~=u0 or region.bootyRoundedU1~=u1 or region.bootyRoundedV0~=v0 or region.bootyRoundedV1~=v1 then
+                TextureWrite(region,"SetTexCoord",u0,u1,v0,v1)
+            end
+            if fresh or region.bootyRoundedBlend~=blend then TextureWrite(region,"SetBlendMode",blend) end
+            region.bootyRoundedX,region.bootyRoundedY,region.bootyRoundedWidth,region.bootyRoundedHeight=px,py,rw,rh
+            region.bootyRoundedU0,region.bootyRoundedU1,region.bootyRoundedV0,region.bootyRoundedV1=u0,u1,v0,v1
+            region.bootyRoundedPath,region.bootyRoundedOwner,region.bootyRoundedBlend,region.bootyRoundedReady=options.path,options.owner,blend,true
         end
-        if changed or not set.visible then TextureVisibility(region,clippedHeight>0) end
+        TextureVisibility(region,shown)
+        if shown then anyShown=true end
     end
-    end
+    for index=count+1,table.getn(set.textures) do TextureVisibility(set.textures[index],false) end
     primary.bootySquareReady=false
     TextureVisibility(primary,false)
     set.width,set.height,set.radius,set.path,set.left,set.right,set.top,set.bottom,set.x,set.y=width,height,radius,options.path,left,right,top,bottom,x,y
-    set.clipTop,set.clipBottom=clipTop,clipBottom
-    set.visible,set.ready=true,true
-    SetRoundedTextureColor(primary,options.r or 1,options.g or 1,options.b or 1,options.a or 1)
+    set.clipTop,set.clipBottom,set.clipLeft,set.clipRight=clipTop,clipBottom,clipLeft,clipRight
+    set.rows,set.count,set.mirror,set.owner,set.blend,set.pooled=rows,count,mirror,options.owner,options.blend,true
+    set.visible,set.ready=anyShown,true
+    if set.r~=r or set.g~=g or set.b~=b or set.a~=a or set.colorCount~=table.getn(set.textures) then SetRoundedTextureColor(primary,r,g,b,a) end
+    primary.bootyRoundedPaintPending=false
 end
 
 local function RoundedCall(callback,primary,first,second,third,fourth)
     local savedThis,savedEvent,a1,a2,a3,a4,a5,a6,a7,a8,a9=this,event,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9
     local ok,reason=pcall(callback,primary,first,second,third,fourth)
+    if not ok and primary.bootyRoundedPaintPending then
+        primary.bootyRoundedPaintPending=false;primary.bootySquareReady=false
+        local set=primary.bootyRoundedTexture
+        if set then
+            set.ready,set.visible,set.colorCount=false,false,nil
+            for _,region in ipairs(set.textures) do pcall(TextureVisibility,region,false) end
+        end
+        pcall(TextureVisibility,primary,false)
+    end
     this,event,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9=savedThis,savedEvent,a1,a2,a3,a4,a5,a6,a7,a8,a9
     if not ok then error(reason,0) end
 end
 function UI.SetRoundedTexture(primary,options) return RoundedCall(SetRoundedTexture,primary,options) end
+function UI.SetContourTexture(primary,options)
+    if type(options)~="table" or type(options.rows)~="table" then error("Contour texture rows are required.") end
+    return UI.SetRoundedTexture(primary,options)
+end
 function UI.SetRoundedTextureColor(primary,r,g,b,a) return RoundedCall(SetRoundedTextureColor,primary,r,g,b,a) end
 function UI.IsRoundedTextureShown(primary)
     local set=primary.bootyRoundedTexture
-    if set and set.radius>0 then return set.visible==true end
+    if set and set.pooled then return set.visible==true end
     return primary:IsShown()
 end
 function UI.SetProjectButtonOutline(button, visible, size, color, topInset, minimumLevel, radius, extent)

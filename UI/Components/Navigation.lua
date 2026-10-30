@@ -92,8 +92,17 @@ function Navigation.Create(options)
         button.selectedFill:SetAllPoints(button); button.selectedFill:SetTexture("Interface\\Buttons\\WHITE8X8"); button.selectedFill:SetVertexColor(0.82, 0.70, 0.43, 0.14); button.selectedFill:Hide()
         button.hoverFill = Booty.UI.Components.CreateTexture(button, nil, "HIGHLIGHT")
         button.hoverFill:SetAllPoints(button); button.hoverFill:SetTexture("Interface\\Buttons\\WHITE8X8"); button.hoverFill:SetVertexColor(0.82, 0.70, 0.43, 0.14)
-        button:SetScript("OnEnter", function() if this.navigationEnabled ~= false and this.navigationMode == "tabs" then this.SetTabBorderVisible(true) end end)
-        button:SetScript("OnLeave", function() if this.navigationMode == "tabs" then this.SetTabBorderVisible(true) end end)
+        button:SetScript("OnEnter", function()
+            if this.navigationMode == "tabs" then
+                if this.navigationEnabled ~= false then this.SetTabBorderVisible(true) end
+                Booty.UI.Components.AnchorTooltip(this); GameTooltip:SetText(this.navigationText); GameTooltip:Show()
+            end
+        end)
+        local function HideTabTooltip()
+            if GameTooltip and GameTooltip:GetOwner() == this then GameTooltip:Hide() end
+        end
+        button:SetScript("OnLeave", function() if this.navigationMode == "tabs" then this.SetTabBorderVisible(true) end; HideTabTooltip() end)
+        button:SetScript("OnHide", HideTabTooltip)
         Booty.UI.Components.RegisterSkinnedNavigation(button, name, iconPath)
         controller.buttons[name] = button
     end

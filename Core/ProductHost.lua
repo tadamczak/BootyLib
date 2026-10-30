@@ -38,7 +38,7 @@ function ProductHost.Create(product, options)
     for _, definition in ipairs(product.views or {}) do definitions[definition.id] = definition end
     host.Print = options.Print or function(message)
         if DEFAULT_CHAT_FRAME and DEFAULT_CHAT_FRAME.AddMessage then
-            DEFAULT_CHAT_FRAME:AddMessage("|cffe0b95a" .. (product.title or product.name) .. "|r: " .. tostring(message))
+            DEFAULT_CHAT_FRAME:AddMessage("|cffe0b95a[" .. product.name .. "]|r " .. tostring(message))
         end
     end
     local function Available()
@@ -66,15 +66,33 @@ function ProductHost.Create(product, options)
         local left, bottom = window.GetLeft and window:GetLeft(), window.GetBottom and window:GetBottom()
         if Finite(left) and Finite(bottom) then geometry.left, geometry.bottom = left, bottom end
     end
+    local function ApplyContentSize(window, controller, width, height)
+        window.content:SetWidth(width); window.content:SetHeight(height)
+        if controller and controller.OnResize then controller:OnResize() end
+    end
     local function ResizeContent(id)
         local window, controller = windows[id], host.controllers[id]
         if not window or window.minimized then return end
         -- Permanent chrome owns the rectangle; there is no scrollbar gutter at
         -- this layer. A feature's own viewport reserves actual overflow space.
-        window.content:SetWidth(math.max(1, window:GetWidth() - 8))
-        window.content:SetHeight(math.max(1, window:GetHeight() - 34))
+        local width, height = math.max(1, window:GetWidth() - 8), math.max(1, window:GetHeight() - 34)
         local mount = options.GetParent and options.GetParent(id)
-        if controller and controller.OnResize and (host.standalone or mount and mount:GetParent() == window.content) then controller:OnResize() end
+        if not host.standalone and not (mount and mount:GetParent() == window.content) then controller=nil end
+        if window.bootyContentWidth==width and window.bootyContentHeight==height and window.bootyResizedController==controller then return end
+        local page=controller and controller.frame
+        local contentGuard=window.content.bootyResizeInProgress
+        local pageGuard=page and page.bootyResizeInProgress
+        window.content.bootyResizeInProgress=true
+        if page then page.bootyResizeInProgress=true end
+        local ok,failure=pcall(ApplyContentSize,window,controller,width,height)
+        window.content.bootyResizeInProgress=contentGuard
+        if page then page.bootyResizeInProgress=pageGuard end
+        if not ok then error(failure) end
+        window.bootyContentWidth,window.bootyContentHeight,window.bootyResizedController=width,height,controller
+    end
+    local function RequestResize(id)
+        local window=windows[id]
+        if window and not window.bootyResizeDragging then ResizeContent(id) end
     end
     local function RestoreBounds(window, definition, geometry)
         local screenWidth, screenHeight = UI.GetFrameSpan(UIParent)
@@ -98,15 +116,26 @@ function ProductHost.Create(product, options)
         local window = UI.Window.Create({ name = product.name .. "View" .. id .. instance,
             title = definition.title or (table.getn(product.views) == 1 and product.name or definition.label),
             icon = definition.icon, plainHeader = true, compact = true, minimizedWidth = 400, owner = false,
+            viewportWidthInset = 8, viewportHeightInset = 34,
             attach = function() end,
-            update = function() ResizeContent(id) end,
+            update = function() RequestResize(id) end,
             onSettings = function(source)
                 host.window = source
-                return host.OpenSettings()
+                return host.ToggleSettings()
             end,
         })
         windows[id] = window
         host.window = window
+        -- Keep visible surfaces attached to the native window, as in Suite.
+        -- Only explicit layout callbacks are paced; native anchors remain live.
+        window.content:ClearAllPoints();window.content:SetPoint("TOPLEFT",window,"TOPLEFT",4,-30)
+        window.content:SetPoint("BOTTOMRIGHT",window,"BOTTOMRIGHT",-4,4)
+        local CancelResize=UI.Dashboard.BindResize(window,window.resizeGrip,{
+            begin=function() window.bootyResizeDragging=true end,
+            cancel=function() window.bootyResizeDragging=nil end,
+            refresh=function() ResizeContent(id) end,
+            finish=function() ResizeContent(id);SaveGeometry(id) end,
+        })
         local geometry = Geometry(id)
         RestoreBounds(window, definition, geometry)
         window.content.bootyWidthOwner, window.content.bootyWidthInset = window, 8
@@ -129,6 +158,7 @@ function ProductHost.Create(product, options)
         window.HideView = HideView
         local hidden = window:GetScript("OnHide")
         window:SetScript("OnHide", function()
+            CancelResize()
             SaveGeometry(id)
             if hidden then hidden() end
             HideView()
@@ -165,7 +195,7 @@ function ProductHost.Create(product, options)
         end
         -- Window.Create supplies project chrome; its Settings-specific deferred
         -- scroll setup is not part of a standalone feature host.
-        window.Open = function()
+        window.Open = function(geometrySource)
             if not Available() then return false end
             host.window = window
             host.windows = windows
@@ -180,6 +210,13 @@ function ProductHost.Create(product, options)
                 mount:Show()
             end
             if window.minimized and minimize then Invoke(minimize, minimize:GetScript("OnClick")) end
+            if geometrySource and geometrySource~=window then
+                local left,bottom=geometrySource:GetLeft(),geometrySource:GetBottom()
+                window:SetWidth(geometrySource:GetWidth());window:SetHeight(geometrySource:GetHeight())
+                if Finite(left) and Finite(bottom) then
+                    window:ClearAllPoints();window:SetPoint("BOTTOMLEFT",UIParent,"BOTTOMLEFT",left,bottom)
+                end
+            end
             window:SetScript("OnUpdate", nil)
             window.content:Show(); window.resizeGrip:Show(); window:Show(); window:Raise()
             ResizeContent(id)
@@ -191,7 +228,10 @@ function ProductHost.Create(product, options)
         end
         window.Toggle = function()
             if not Available() then return false end
-            if window:IsVisible() and not window.minimized then window:Hide()
+            if window:IsVisible() and not window.minimized then
+                local ready,reason=HideView()
+                if not ready then host.Print(reason or "Cannot close this addon window.");return false end
+                window:Hide()
             else return window.Open() end
             return controller
         end
@@ -212,12 +252,12 @@ function ProductHost.Create(product, options)
         end
         return CreateWindow(definition)
     end
-    host.OpenView = function(id)
+    host.OpenView = function(id, geometrySource)
         local controller = host.GetView(id)
         if not controller then return false end
-        if host.standalone then host.window = host.windows[id] end
+        if host.standalone then host.window=host.windows[id] end
         if options.OpenView and not host.standalone then return options.OpenView(id, controller) end
-        if host.standalone then return host.windows[id].Open() end
+        if host.standalone then return host.windows[id].Open(geometrySource) end
         for key, view in pairs(host.controllers) do if key ~= id and view.Hide then view:Hide() end end
         if controller.Show then controller:Show() end
         host.activeView = id
@@ -228,6 +268,28 @@ function ProductHost.Create(product, options)
         if not controller then return false end
         if not windows[id] then CreateWindow(definitions[id]) end
         return windows[id].Open()
+    end
+    host.ToggleDetachedView = function(id)
+        local controller=host.GetView(id)
+        if not controller then return false end
+        if not windows[id] then CreateWindow(definitions[id]) end
+        return windows[id].Toggle()
+    end
+    host.ToggleView = function(id)
+        if not Available() then return false end
+        if not host.standalone and options.ToggleView then return options.ToggleView(id) end
+        local controller=host.GetView(id)
+        if not controller then return false end
+        if host.standalone then return windows[id].Toggle() end
+        if controller.frame and controller.frame:IsVisible() then
+            if controller.Hide then
+                local ready,reason=controller:Hide()
+                if ready==false then return false,reason end
+            end
+            if host.activeView==id then host.activeView=nil end
+            return controller
+        end
+        return host.OpenView(id)
     end
     host.CloseDetachedViews = function()
         -- Cleanup refusal must leave the presentation choice unchanged.
@@ -260,6 +322,11 @@ function ProductHost.Create(product, options)
         if not settings or not settings.Open then return false end
         if options.OpenSettings then return options.OpenSettings(host.window) end
         return settings.Open(product, host)
+    end
+    host.ToggleSettings = function()
+        if host.menu then host.menu:Close() end
+        if options.ToggleSettings then return options.ToggleSettings(host.window) end
+        return Lib.Core.SettingsHost.Toggle(product,host)
     end
     host.Close = function()
         if host.menu then host.menu:Close() end

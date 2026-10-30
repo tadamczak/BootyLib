@@ -140,6 +140,7 @@ function Runtime.Activate(product)
         end
     end
     product.initialized, product.failure, product.activationFailure = true, nil, nil
+    if Lib.Core.ProductCommands then Lib.Core.ProductCommands.Install(product, host) end
     return true
 end
 local function WantsDirectory(product)
@@ -245,7 +246,7 @@ function Runtime.StopProduct(id)
 end
 
 Lib.Data.RegisterOwner("lib", "BootyLibDB", function(key)
-    return key == "uiSkin" or key == "chatActionLogs" or key == "suppressLoginMessage" or key == "settingsProfiles" or key == "currentSettingsProfile"
+    return key == "uiSkin" or key == "chatActionLogs" or key == "suppressLoginMessage" or key == "settingsProfiles" or key == "currentSettingsProfile" or key == "currentSettingsProfiles" or key == "addonSettingsProfiles"
 end, function(db)
     if db.uiSkin == nil then db.uiSkin = "classic" end
     if db.chatActionLogs == nil then db.chatActionLogs = false end
