@@ -7,13 +7,15 @@ local function Identifier(value)
     return type(value) == "string" and value ~= "" and not string.find(value, "[^%w_%-]")
 end
 
-function Data.RegisterOwner(id, dbGlobal, ownsField, defaultInitializer)
+function Data.RegisterOwner(id, dbGlobal, ownsField, defaultInitializer, ownsLegacyField)
     if not Identifier(id) or not Identifier(dbGlobal) or type(ownsField) ~= "function"
-        or defaultInitializer ~= nil and type(defaultInitializer) ~= "function" then
+        or defaultInitializer ~= nil and type(defaultInitializer) ~= "function"
+        or ownsLegacyField ~= nil and type(ownsLegacyField) ~= "function" then
         return nil, "Invalid data owner declaration."
     end
     if owners[id] then return nil, "This data owner is already registered." end
-    local owner = { id = id, dbGlobal = dbGlobal, OwnsField = ownsField, InitializeDefaults = defaultInitializer }
+    local owner = { id = id, dbGlobal = dbGlobal, OwnsField = ownsField, InitializeDefaults = defaultInitializer,
+        OwnsLegacyField = ownsLegacyField }
     owners[id] = owner
     table.insert(order, id)
     return owner

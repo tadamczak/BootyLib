@@ -31,8 +31,9 @@ function Migration.HasSource() return type(source) == "table" end
 local function Prepare(owner, target)
     local pending, count, key, value = {}, 0, nil, nil
     local copies, active = {}, {}
+    local ownsLegacyField = owner.OwnsLegacyField or owner.OwnsField
     for key, value in pairs(source) do
-        if key ~= MARKER and type(key) == "string" and target[key] == nil and owner.OwnsField(key, value) then
+        if key ~= MARKER and type(key) == "string" and target[key] == nil and ownsLegacyField(key, value) then
             pending[key] = Copy(value, copies, active)
             count = count + 1
         end

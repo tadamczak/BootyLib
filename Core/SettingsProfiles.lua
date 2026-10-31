@@ -75,12 +75,17 @@ local function Saved(profile,id,field)
     local found,value=ProviderSaved(section,field)
     if found then return true,value end
     local legacy=profile.version==1 and profile or profile.legacy
+    local key=field.legacyKey or field.key
+    local owner=Lib.Data and Lib.Data.GetOwner and Lib.Data.GetOwner(id)
+    -- New product preferences can reuse an old shell key. Explicit V2 sections
+    -- remain authoritative; unscoped data follows that key's legacy owner.
+    -- Schema adapters for shared preferences retain their existing behavior.
+    if owner and owner.OwnsLegacyField and owner.OwnsField(key) and not owner.OwnsLegacyField(key) then return false end
     -- Unscoped V1 keys belong to the declared legacy namespace. Only an
     -- explicit retiredKey rename permits its new spelling in the old shape.
     if field.retiredKey and type(legacy)=="table" and type(legacy.settings)=="table" and legacy.settings[field.key]~=nil then
         return true,SavedValue(field,legacy.settings[field.key])
     end
-    local key=field.legacyKey or field.key
     if type(legacy)=="table" and type(legacy.settings)=="table" and field.legacyGet then
         local value=field.legacyGet(legacy.settings)
         if value~=nil then return true,SavedValue(field,value) end

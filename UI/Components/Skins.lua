@@ -377,7 +377,7 @@ function UI.IsRoundedTextureShown(primary)
     if set and set.pooled then return set.visible==true end
     return primary:IsShown()
 end
-function UI.SetProjectButtonOutline(button, visible, size, color, topInset, minimumLevel, radius, extent)
+function UI.SetProjectButtonOutline(button, visible, size, color, topInset, minimumLevel, radius, extent, softEdges)
     visible=visible~=nil and visible~=false and visible~=0
     if not button.bootyProjectOutline then
         local border = UI.CreateContainer(nil, button)
@@ -452,9 +452,11 @@ function UI.SetProjectButtonOutline(button, visible, size, color, topInset, mini
         border.bootyRoundedOutlineActive = nil; border:SetAlpha(1)
     end
     local edgeSize = math.max(1, math.min(6, tonumber(size) or 2)) * 4
-    if radius == nil and border.bootyEdgeSize ~= edgeSize then
-        local backdrop = border:GetBackdrop(); backdrop.edgeSize = edgeSize
-        border:SetBackdrop(backdrop); border:SetBackdropColor(0, 0, 0, 0); border.bootyEdgeSize = edgeSize
+    local edgeFile = softEdges == true and "Interface\\AddOns\\BootyLib\\Assets\\ProjectTooltipBorder" or "Interface\\Tooltips\\UI-Tooltip-Border"
+    if radius == nil and (border.bootyEdgeSize ~= edgeSize or border.bootyOutlineEdgeFile ~= edgeFile) then
+        local backdrop = border:GetBackdrop(); backdrop.edgeSize = edgeSize; backdrop.edgeFile = edgeFile
+        border:SetBackdrop(backdrop); border:SetBackdropColor(0, 0, 0, 0)
+        border.bootyEdgeSize, border.bootyOutlineEdgeFile = edgeSize, edgeFile
     end
     if radius == nil then border:SetBackdropBorderColor(color[1], color[2], color[3], 1) end
     if visible then button.bootyProjectOutline:Show() else button.bootyProjectOutline:Hide() end

@@ -292,7 +292,10 @@ function UI.SelectableTableRowLeave()
 end
 function UI.StyleSelectableTableRow(button, even, selected)
     button.bootySelectableTableRow=true;button.bootyTableRowEven=even and true or false;button.bootyTableRowSelected=selected and true or false
-    UI.SetRowColor(button,selectableTableColor,even and 0.14 or 0.025)
+    -- Skin/selection refreshes retain an explicitly applied alternating palette.
+    if not button.memberBackground or button.bootyRowColor ~= button.memberBackground then
+        UI.SetRowColor(button,selectableTableColor,even and 0.14 or 0.025)
+    end
     button:SetBackdropBorderColor(0,0,0,0)
     if button.SetNormalTexture then button:SetNormalTexture("") end
     if button.SetPushedTexture then button:SetPushedTexture("") end

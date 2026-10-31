@@ -1,10 +1,10 @@
 # Changelog
 
-## 0.1.0 — 2026-10-31
+## 0.1.0-dev.84 — 2026-10-31
 
-- First production release of the shared Booty interface, product hosting, settings, profiles and guild-directory services.
-- Provide reusable windows and controls for standalone addons and Booty Suite, including persistent sizing and protected baseline profiles.
-- Keep wrapped text measurements correct at the requested width and reuse shared UI resources.
+- Include the softened project tooltip border and preserve each table's explicit alternating row colors.
+- Keep legacy settings/profile imports separate from current addon-owned preferences when their field names overlap.
+- Candidate for in-game verification with BootyRaider 1.0.0-dev.36.
 
 ## 0.1.0-dev.83 — 2026-10-31
 
