@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.0 — 2026-10-31
+
+- First production release of shared Booty windows, controls, product hosting, settings, profiles and guild-directory services.
+- Include persistent window sizes, protected addon profiles and correct wrapped text measurement with reusable UI resources.
+- Preserve addon-specific settings during legacy imports and provide consistent project borders and table colors.
+- Compatible with BootyRaider 1.0.0; existing settings and profiles are retained.
+
 ## 0.1.0-dev.84 — 2026-10-31
 
 - Include the softened project tooltip border and preserve each table's explicit alternating row colors.
