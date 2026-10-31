@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.0 — 2026-10-31
+
+- First production release of the shared Booty interface, product hosting, settings, profiles and guild-directory services.
+- Provide reusable windows and controls for standalone addons and Booty Suite, including persistent sizing and protected baseline profiles.
+- Keep wrapped text measurements correct at the requested width and reuse shared UI resources.
+
 ## 0.1.0-dev.83 — 2026-10-31
 
 - Measure wrapped Settings labels at the requested width on clients with backported text APIs, without changing the visible label's geometry.

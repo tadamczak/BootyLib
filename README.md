@@ -8,7 +8,7 @@ Install the `BootyLib` folder in `Interface/AddOns` alongside any Booty product.
 
 Assign shortcuts under **Booty addons and tabs** in WoW Key Bindings. They open installed features with or without Suite. Standalone products expose their command help through their full name (for example `/bootyguild`). BootyRaider uses `/br` or `/bootyraider` for its own list: `raid`, `stats`, `csr`, `config` and `roll`.
 
-When updating this development family, update BootyLib and all installed Booty
+When updating, install compatible versions of BootyLib and all installed Booty
 products together, then restart the client. Their shared controls require a
 matching set of builds. Previous saved data and preferences are retained.
 
