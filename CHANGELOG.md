@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.0-dev.82 — 2026-10-31
+
+- Support protected addon baseline profiles and compact profile forms directly under Profile. Suite saves changed baseline settings to a separate custom profile.
+- Respect addon-owned command lists and standalone-only settings such as BootyRaider's minimap preference.
+
 ## 0.1.0-dev.81 — 2026-10-30
 
 - Remember Settings size across reloads, support single-column preset forms and scoped resets, and keep action icons clear of captions. Add persistent item-list sizing and aligned context columns; allow native highlights on transparent raid slots.

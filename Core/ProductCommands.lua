@@ -83,6 +83,10 @@ function Commands.Install(product, host)
     local key = string.upper(product.name)
     if product.bootyCommandsInstalled then return end
     local original = SlashCmdList[key]
+    if product.ownsCommands and product.Command then
+        if not original then _G["SLASH_" .. key .. "1"] = "/" .. string.lower(product.name) end
+        SlashCmdList[key]=product.Command;product.bootyCommandsInstalled=true;return
+    end
     if not original then _G["SLASH_" .. key .. "1"] = "/" .. string.lower(product.name) end
     SlashCmdList[key] = function(message)
         local _, _, command, argument = string.find(tostring(message or ""), "^%s*(%S*)%s*(.-)%s*$")

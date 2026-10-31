@@ -243,6 +243,11 @@ end
 function Profiles.Create(providers,options)
     options=options or {}
     local context={id=options.id or "suite",providers=providers or {}}
+    local protectedName
+    for _,provider in ipairs(context.providers) do
+        if provider.id==context.id then protectedName=Name(provider.protectedProfileName) end
+    end
+    function context.IsProtected(name) return protectedName~=nil and Name(name)==protectedName end
     local function Root()
         local root=options.store or Lib.Data.Get("lib")
         if type(root)~="table" then error("Shared profile data is unavailable.") end
@@ -338,7 +343,10 @@ function Profiles.Create(providers,options)
     function context.PrepareCurrentSnapshot()
         local profiles=Store()
         local name=Name(Root().currentSettingsProfiles[context.id])
-        if not name or not Valid(profiles[name]) then
+        if context.IsProtected(name) and not context.IsDirty() then
+            return {store=profiles,id=context.id,name=name,snapshot=Copy(profiles[name])}
+        end
+        if not name or not Valid(profiles[name]) or context.IsProtected(name) then
             local base=(context.providers[1] and context.providers[1].name or "Booty").." custom"
             local index=1;name=base
             while profiles[name] do index=index+1;name=base.." "..index end
@@ -351,6 +359,7 @@ function Profiles.Create(providers,options)
     local function Save(name,add)
         name=Name(name);if not name then return false,"Enter a profile name (1-64 characters)." end
         local profiles=Store()
+        if context.IsProtected(name) then return false,"This profile is protected. Use Add to save a custom copy." end
         if add and profiles[name] then return false,"This profile already exists. Use Save to update it." end
         if not add and not profiles[name] then return false,"Profile not found. Use Add first." end
         local pending={}
@@ -384,6 +393,7 @@ function Profiles.Create(providers,options)
         local root=Root()
         local name=root.currentSettingsProfiles[context.id] or context.id=="suite" and root.currentSettingsProfile
         if name and (not options.scoped or context.Exists(name)) then return name end
+        if protectedName and context.Exists(protectedName) then Select(protectedName);return protectedName end
         local base=options.defaultName or (context.id=="suite" and "Default" or (context.providers[1] and context.providers[1].name or "Booty")..(options.scoped and " custom" or " Default"))
         local index=1;name=base
         while context.Exists(name) do index=index+1;name=base.." "..index end
@@ -469,6 +479,7 @@ function Profiles.Create(providers,options)
     function context.Delete(name)
         name=Name(name);local profiles=Store()
         if not name or not profiles[name] then return false,"Profile not found." end
+        if context.IsProtected(name) then return false,"This profile is protected and cannot be deleted." end
         profiles[name]=nil
         if options.scoped and Root().currentSettingsProfiles[context.id]==name then Select(nil) end
         return true,"Deleted profile: "..name
@@ -557,6 +568,14 @@ function Profiles.Create(providers,options)
         return text
     end
     context.GetStore=Store
+    if protectedName then
+        local profiles=Store()
+        -- Capture the live settings once, after SavedVariables/defaults load.
+        -- Later activations and Suite saves must never replace this baseline.
+        if not profiles[protectedName] or not profiles[protectedName].protected then
+            local snapshot=Capture();snapshot.protected=true;profiles[protectedName]=snapshot
+        end
+    end
     if options.bundle then
         context.addons,context.addonOrder={},{}
         for _,provider in ipairs(context.providers) do

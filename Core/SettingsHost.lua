@@ -3,7 +3,7 @@ local SettingsHost = { windows = {} }
 Lib.Core.SettingsHost = SettingsHost
 local serial = 0
 local defaultColor = {1, 1, 1}
-local icons = { ["Addon UI"] = "list", ["Game UI"] = "monitor", ["Addon Messages"] = "loot_tools", ["Profiler"] = "performance", ["Profile"] = "archive", ["Keybindings"] = "link", ["Debug"] = "analyze" }
+local icons = { ["Addon UI"] = "list", ["Game UI"] = "monitor", ["Addon Messages"] = "loot_tools", ["Profiler"] = "performance", ["Profile"] = "save", ["Keybindings"] = "link", ["Debug"] = "analyze" }
 
 local function AddPath(roots, path)
     local children, current = roots, nil
@@ -23,7 +23,7 @@ function SettingsHost.BuildTree(providers, integrated, product, includeViewSetti
             local first=provider.views and provider.views[1]
             local caption=provider.id=="lib" and "General" or provider.name or provider.title or provider.id
             for _,field in ipairs(schema.fields or {}) do
-                if not field.profileOnly then
+                if not field.profileOnly and not (field.standaloneOnly and integrated) then
                     local path,source={caption},field.path or {}
                     local skip=source[1]==caption or source[1]==provider.settingsLabel or first and source[1]==first.label
                     for index=skip and 2 or 1,table.getn(source) do table.insert(path,source[index]) end
@@ -154,12 +154,12 @@ local function CreateProfileControls(node, page, state)
         label:SetText(text); label:SetHeight(16); return label
     end
     local function Action(text, width)
-        local button = UI.CreateButton(view.frame, nil, text, width or 58, 24)
-        UI.StyleActionButton(button); return button
+        local button = UI.CreateButton(view.frame, nil, text, width or 58, 20)
+        UI.StyleActionButton(button); UI.SizeClassicButton(button,width or 58,20,1); return button
     end
-    view.currentLabel, view.current = Label("Current profile"), Label("", "gold")
+    view.currentLabel, view.current = Label("Current profile:"), Label("", "gold")
     view.Save, view.Load, view.Delete, view.Export, view.Add = Action("Save"), Action("Load"), Action("Delete"), Action("Export"), Action("Add")
-    view.loadLabel, view.newLabel = Label("Load profile"), Label("New profile")
+    view.loadLabel, view.newLabel = Label("Load profile:"), Label("New profile:")
     view.select = UI.CreateDropdownButton(view.frame, nil, "Select profile", 180)
     view.name = UI.CreateFramedEditBox(view.frame, nil, 180); view.name:SetMaxLetters(64)
     view.status = Label("", "gold")
@@ -172,7 +172,10 @@ local function CreateProfileControls(node, page, state)
         view.current:SetText(current .. (api.IsDirty() and " *" or ""))
         if view.selected and not api.Exists(view.selected) then view.selected = nil end
         view.select:SetText(view.selected or "Select profile")
-        UI.SetButtonEnabled(view.Load, view.selected ~= nil); UI.SetButtonEnabled(view.Delete, view.selected ~= nil); UI.SetButtonEnabled(view.Export, view.selected ~= nil)
+        UI.SetButtonEnabled(view.Save,not (api.IsProtected and api.IsProtected(current)))
+        UI.SetButtonEnabled(view.Load, view.selected ~= nil)
+        UI.SetButtonEnabled(view.Delete, view.selected ~= nil and not (api.IsProtected and api.IsProtected(view.selected)))
+        UI.SetButtonEnabled(view.Export, view.selected ~= nil)
     end
     local function RefreshMenu()
         view.names = api.List(); view.first = math.max(1, math.min(view.first, math.max(1, table.getn(view.names) - 5)))
@@ -198,7 +201,10 @@ local function CreateProfileControls(node, page, state)
             if ok and action == "Add" then view.name:SetText(""); view.selected = api.GetCurrent() end
             Message(message)
         end
-        if api.IsDirty() then
+        if action=="Add" then Apply()
+        elseif api.IsDirty() and api.IsProtected and api.IsProtected(api.GetCurrent()) then
+            Confirm(state,"Load settings profile","Discard unsaved settings and load "..target.."? Use Add first to keep a custom copy.","Load",Apply)
+        elseif api.IsDirty() then
             Confirm(state, "Unsaved profile changes", "Save current profile " .. api.GetCurrent() .. " before switching?", "Save", function()
                 local ok, message = api.SaveCurrent(); if ok then Apply() else Message(message) end
             end, Apply)
@@ -676,7 +682,8 @@ local function AddProfiles(state, product, providers)
     local function AddProfile(owner,api,caption)
         local node={key="profileControls",text="Current profile Load profile New profile Save Add Delete Export",profileControls=true,profileContext=api}
         if api==state.ProfileContext then state.profileNode=node end
-        table.insert(children,{key=caption,text=caption,expanded=false,children={node},icon=UI.GetProductIcon and UI.GetProductIcon(owner)})
+        if suite then table.insert(children,{key=caption,text=caption,expanded=false,children={node},icon=UI.GetProductIcon and UI.GetProductIcon(owner)})
+        else table.insert(children,node) end
     end
     AddProfile(product,state.ProfileContext,suite and "BootySuite" or "General")
     if suite then

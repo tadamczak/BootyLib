@@ -6,7 +6,7 @@ BootyLib supplies the shared appearance and integration used by BootyGuild, Boot
 
 Install the `BootyLib` folder in `Interface/AddOns` alongside any Booty product. Enable it in the character's addon list. Only one copy is needed, regardless of how many Booty products are installed. The library has no separate minimap button or feature window.
 
-Assign shortcuts under **Booty addons and tabs** in WoW Key Bindings. They open installed features with or without Suite. Each standalone product also accepts its full command (for example `/bootyguild` or `/bootyraider`) with `open`, `settings`, `about` or `versions`; existing short aliases and feature commands remain available.
+Assign shortcuts under **Booty addons and tabs** in WoW Key Bindings. They open installed features with or without Suite. Standalone products expose their command help through their full name (for example `/bootyguild`). BootyRaider uses `/br` or `/bootyraider` for its own list: `raid`, `stats`, `csr`, `config` and `roll`.
 
 When updating this development family, update BootyLib and all installed Booty
 products together, then restart the client. Their shared controls require a
@@ -18,6 +18,8 @@ Booty Suite can open a feature in its dashboard or in a separate window. Both
 presentations retain the same addon state and use the shared Settings gear.
 
 Settings groups options under each addon name with the same icon as its menu tab. Each feature addon and Suite have separate profile lists; BootyLib does not need a profile. General appears first in Settings. A Suite profile saves a map of the selected addon profiles, saving their current settings too. Loading Suite loads those named addon profiles. Missing profiles are recreated from its backup; an addon with no selected profile gets a uniquely named BootyAddon custom profile.
+
+Standalone profile fields appear directly under **Profile**. A protected addon baseline can be loaded or used to create a custom profile, but cannot be overwritten or deleted. Suite keeps changes to a selected protected baseline in a separate custom profile.
 
 BootyFrame places its complete options, search and profiles in the Frames tab.
 Its preferences remain included in shared profiles from Settings.
