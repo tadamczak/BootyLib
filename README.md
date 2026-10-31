@@ -39,6 +39,8 @@ Choices added through a settings editor become available without reopening Setti
 
 Resizing Settings reuses its measured labels and leaves current values and drafts intact. Its size is remembered across reloads in standalone addons and BootySuite. Section Reset buttons affect only the named section; other preferences and saved raid data are retained. Preset editors use one column with inline save feedback.
 
+Wrapped labels follow the available width while resizing, including clients with additional text-measurement APIs.
+
 Supported message settings show a full example below the text field and update it while you type. Examples wrap to fit the window.
 
 Dropdown captions keep their normal font while windows resize. Menu choices use the same surface in both skins. Disabled text settings release keyboard focus and become read-only until enabled again.

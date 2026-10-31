@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-dev.83 — 2026-10-31
+
+- Measure wrapped Settings labels at the requested width on clients with backported text APIs, without changing the visible label's geometry.
+
 ## 0.1.0-dev.82 — 2026-10-31
 
 - Support protected addon baseline profiles and compact profile forms directly under Profile. Suite saves changed baseline settings to a separate custom profile.

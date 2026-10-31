@@ -55,7 +55,9 @@ local probeFont, probeSize, probeFlags, probeSpacing, probeNonSpaceWrap
 function Components.MeasureTextHeight(label, resolvedWidth, nonSpaceWrap)
     if resolvedWidth then resolvedWidth = math.max(1, resolvedWidth - (label.bootyHeadingIconInset or 0)) end
     if resolvedWidth then label.bootyTextMeasureWidth = math.max(1, resolvedWidth) end
-    if type(label.GetStringHeight) == "function" then return label:GetStringHeight() or 0 end
+    -- Backported GetStringHeight uses the current label rectangle. An explicit
+    -- next width belongs to the reusable probe, never the visible source label.
+    if not resolvedWidth and type(label.GetStringHeight) == "function" then return label:GetStringHeight() or 0 end
     local text = label:GetText()
     if not text or text == "" then return 0 end
     if not textHeightProbe then
@@ -80,9 +82,11 @@ function Components.MeasureTextHeight(label, resolvedWidth, nonSpaceWrap)
     end
     textHeightProbe:SetWidth(label.bootyTextMeasureWidth or math.max(1, label:GetWidth()))
     textHeightProbe:SetText(text)
-    local height = textHeightProbe:GetHeight() or 0
+    local height
+    if type(label.GetStringHeight) == "function" and type(textHeightProbe.GetStringHeight) == "function" then height = textHeightProbe:GetStringHeight()
+    else height = textHeightProbe:GetHeight() end
     textHeightProbe:SetText("") -- Do not keep transient dialog text after measuring it.
-    return height
+    return height or 0
 end
 
 -- Native construction is confined to this package. Feature modules compose
