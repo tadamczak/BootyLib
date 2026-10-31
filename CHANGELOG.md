@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1-dev.1 — 2026-10-31
+
+- Shorten README to essential features, installation and basic usage.
+
 ## 0.1.0 — 2026-10-31
 
 - First production release of shared Booty windows, controls, product hosting, settings, profiles and guild-directory services.
